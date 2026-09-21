@@ -406,6 +406,24 @@ for document in documents:
     if "GoreeCloud/goreecloud-index" in text:
         raise SystemExit(f"{document} still references the superseded repository namespace")
 
+internet_boundary_expectations = {
+    "ARCHITECTURE.md": "Android `INTERNET` permission only for the dormant fixed-origin HTTPS client",
+    "FEATURES.md": "Android `INTERNET` permission is present only for the dormant fixed-origin HTTPS client",
+    "CONFORMANCE.md": "Android `INTERNET` permission is present only for the dormant fixed-origin Search HTTPS client",
+}
+for document, expected in internet_boundary_expectations.items():
+    text = (ROOT / document).read_text(encoding="utf-8")
+    if expected not in text:
+        raise SystemExit(f"{document} missing current dormant Search INTERNET permission boundary")
+    normalized = text.lower()
+    for prohibited in [
+        "does not request internet permission",
+        "no live transport registration or android internet permission",
+        "local-only with no internet permission",
+    ]:
+        if prohibited in normalized:
+            raise SystemExit(f"{document} contains stale INTERNET permission boundary: {prohibited}")
+
 for document in documents:
     text = (ROOT / document).read_text(encoding="utf-8").lower()
     for prohibited in [
