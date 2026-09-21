@@ -3,7 +3,7 @@
   "adapter": {
     "id": "index-privacy",
     "product": "GoreeCloud Index",
-    "runtime_authority": "GoreeCloud/goreecloud-index",
+    "runtime_authority": "GoreeCloud/index",
     "contract_version": 1
   },
   "capabilities": [
