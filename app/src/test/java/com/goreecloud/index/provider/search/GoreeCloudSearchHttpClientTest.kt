@@ -109,7 +109,7 @@ class GoreeCloudSearchHttpClientTest {
         val request = exchange.requests.single()
         assertEquals("POST", request.method)
         assertEquals("https://search.goreecloud.com/api/v1/search", request.url.toString())
-        assertFalse(request.url.toString().contains("goreecloud"))
+        assertEquals(null, request.url.query)
         assertEquals("psc_test_reference", request.headers["X-GoreeCloud-Privacy-Capability"])
         assertEquals("Bearer identity_test_token", request.headers["Authorization"])
         val body = checkNotNull(request.body).toString(Charsets.UTF_8)
