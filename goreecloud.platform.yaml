@@ -7,7 +7,7 @@ component:
   repository: GoreeCloud/index
 
 lifecycle: development
-version: 0.3.0-dev
+version: 0.3.1-dev
 
 supported_platforms:
   - android
@@ -137,6 +137,6 @@ conformance:
     - GoreeCloud Policy applicability is evaluated as applicable, but policy decision, enforcement, freshness, explanation, and evidence integration are not accepted.
     - GoreeCloud Observability applicability is evaluated as applicable, but health, diagnostics, performance, freshness, and operational evidence integration are not accepted.
     - Index exposes no accepted health/readiness interfaces.
-    - Live GoreeCloud Search transport and user-facing Internet-provider controls are not enabled or accepted.
+    - Concrete fixed-origin GoreeCloud Search HTTPS transport source is present, but live provider registration/user controls, producer-authoritative Identity/Privacy Shield connectivity, and target-runtime acceptance are not enabled or accepted.
     - Representative Android device, accessibility, localization/RTL, form-factor/performance, production signing/distribution, rollback, recovery, and release-provenance acceptance are incomplete.
     - No Stable or production-approved GoreeCloud Index release evidence is declared.
