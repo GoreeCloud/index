@@ -89,7 +89,7 @@ class HttpsUrlConnectionSearchExchange : GoreeCloudSearchHttpExchange {
 
 class AuthenticatedGoreeCloudSearchHttpClient(
     private val exchange: GoreeCloudSearchHttpExchange = HttpsUrlConnectionSearchExchange(),
-) : GoreeCloudSearchClient, GoreeCloudSearchCapabilityClient {
+) : GoreeCloudSearchClient, GoreeCloudSearchCapabilityClient, GoreeCloudSearchReadinessClient {
     private val origin = URL(GOREECLOUD_SEARCH_ORIGIN)
 
     init {
@@ -124,6 +124,46 @@ class AuthenticatedGoreeCloudSearchHttpClient(
             ?: throw GoreeCloudSearchTransportException(
                 "GoreeCloud Search capability discovery did not return exactly one query capability"
             )
+    }
+
+    override suspend fun queryReadiness(): Boolean {
+        val response = exchange.execute(
+            GoreeCloudSearchHttpRequest(
+                method = "GET",
+                url = endpoint(GOREECLOUD_SEARCH_READINESS_ENDPOINT),
+                headers = mapOf("Accept" to GOREECLOUD_SEARCH_RESPONSE_MEDIA_TYPE),
+            ),
+        )
+        validateReadinessResponse(response)
+        val payload = parseObject(response.body)
+        val service = payload.getString("service")
+        val status = payload.getString("status")
+        if (service != "goreecloud-search") {
+            throw GoreeCloudSearchTransportException(
+                "GoreeCloud Search readiness response identifies an unexpected service"
+            )
+        }
+        return when (response.status) {
+            HttpURLConnection.HTTP_OK -> {
+                if (status != "ready") {
+                    throw GoreeCloudSearchTransportException(
+                        "GoreeCloud Search readiness response is inconsistent"
+                    )
+                }
+                true
+            }
+
+            HttpURLConnection.HTTP_UNAVAILABLE -> {
+                if (status != "not_ready") {
+                    throw GoreeCloudSearchTransportException(
+                        "GoreeCloud Search readiness response is inconsistent"
+                    )
+                }
+                false
+            }
+
+            else -> error("readiness status validation should reject unsupported status")
+        }
     }
 
     override suspend fun search(request: GoreeCloudSearchRequest): GoreeCloudSearchResponse {
@@ -204,6 +244,28 @@ class AuthenticatedGoreeCloudSearchHttpClient(
             "GoreeCloud Search endpoint must be an absolute path"
         }
         return URL(origin, path)
+    }
+
+    private fun validateReadinessResponse(response: GoreeCloudSearchHttpResponse) {
+        if (
+            response.status != HttpURLConnection.HTTP_OK &&
+            response.status != HttpURLConnection.HTTP_UNAVAILABLE
+        ) {
+            throw GoreeCloudSearchTransportException(
+                "GoreeCloud Search readiness failed with HTTP " + response.status
+            )
+        }
+        val mediaType = response.contentType?.substringBefore(';')?.trim()?.lowercase()
+        if (mediaType != GOREECLOUD_SEARCH_RESPONSE_MEDIA_TYPE) {
+            throw GoreeCloudSearchTransportException(
+                "GoreeCloud Search readiness returned an unsupported media type"
+            )
+        }
+        if (response.body.isEmpty() || response.body.size > GOREECLOUD_SEARCH_HTTP_MAX_RESPONSE_BYTES) {
+            throw GoreeCloudSearchTransportException(
+                "GoreeCloud Search readiness returned an invalid response size"
+            )
+        }
     }
 
     private fun validateJsonResponse(response: GoreeCloudSearchHttpResponse, operation: String) {
