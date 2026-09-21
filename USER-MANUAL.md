@@ -38,7 +38,7 @@ Authorized providers can report results as they complete. Result composition rem
 
 ## Privacy and Remote Search
 
-Development runtime has no Android Internet permission and does not register a live remote Search provider. The repository includes transport-neutral GoreeCloud Search Production-contract source, but source code cannot activate networking by itself.
+The candidate app declares Android `INTERNET` because a fixed-origin Search HTTPS client now exists in source, but the Development runtime still does not register or expose a live remote Search provider. Session controls remain local-only, so the permission declaration and dormant client do not by themselves activate Internet search.
 
 ## GLAZE UI
 
@@ -52,4 +52,4 @@ The integrated Development source targets GLAZE UI V1.6 / `1.6.0`. This is sourc
 
 ## Known Limitations
 
-Live Search transport, accepted platform authority acquisition, Contacts runtime enablement, Files/Calendar/media/additional providers, durable indexing, representative-device qualification, production signing/distribution, recovery/rollback, Release Candidate, production, and Stable qualification remain incomplete.
+Live Search provider registration/user controls, producer-authoritative Identity/Privacy Shield connectivity, accepted platform authority acquisition, Contacts runtime enablement, Files/Calendar/media/additional providers, durable indexing, representative-device qualification, production signing/distribution, recovery/rollback, Release Candidate, production, and Stable qualification remain incomplete.
