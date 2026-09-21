@@ -46,9 +46,9 @@ Missing, denied, constrained, stale, user-decision-required, or unavailable evid
 
 ## GoreeCloud Search and Remote Processing
 
-The repository contains a transport-neutral GoreeCloud Search provider foundation. The shipped Android runtime does not register a live remote Search provider and does not request Android Internet permission.
+The repository contains a GoreeCloud Search provider foundation plus a fixed-origin HTTPS client candidate. The candidate manifest declares Android `INTERNET`, but the Development runtime does not register or expose a live remote Search provider, and the source controls remain local-only.
 
-Any future Internet-provider enablement must provide explicit user-facing controls, disclose local-versus-remote processing, minimize delegated query context, and satisfy applicable Privacy Shield, Identity, Wardveil Security, Policy, and other authority requirements. Local source data must not be silently bundled with an Internet query.
+Any future Internet-provider enablement must provide explicit user-facing controls, disclose local-versus-remote processing, minimize delegated query context, and satisfy applicable Privacy Shield, Identity, Wardveil Security, Policy, and other authority requirements. The candidate transport keeps query text in the JSON body and carries Identity/Privacy Shield values only in dedicated headers; this source boundary is not itself user consent or production authority. Local source data must not be silently bundled with an Internet query.
 
 ## Retention
 
