@@ -4,7 +4,7 @@ GoreeCloud Index is GoreeCloud's privacy-first universal search and indexing coo
 
 ## Status
 
-**Release lifecycle: Development.** Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Candidate version `0.3.1-dev`. Production acceptance and Stable qualification remain false.
 
 Canonical repository: `GoreeCloud/index`.
 
@@ -23,13 +23,13 @@ The integrated Development line preserves the still-valid runtime work reconcile
 - enforced local-only Development execution;
 - privacy-safe authority explanation;
 - explicit Android Contacts permission review through Android's own permission contract;
-- stronger GoreeCloud Search Privacy Shield + GoreeCloud Identity Production authority requirements;
+- stronger GoreeCloud Search Privacy Shield + GoreeCloud Identity Production authority requirements;\n- a bounded, fixed-origin Search HTTPS transport plus an authenticated-Development acceptance mode for source/CI qualification without claiming Production acceptance;
 - safe Search result/action validation and sensitive-value redaction; and
 - native GLAZE UI V1.6 / `1.6.0` source adoption.
 
 ## Runtime and Authority Boundaries
 
-The Development runtime does **not** register live GoreeCloud Search transport and does not request Android Internet permission. Source controls cannot enable GoreeCloud Search or an unknown remote provider.
+The candidate source includes a concrete HTTPS client for the fixed `https://search.goreecloud.com` origin and therefore declares Android `INTERNET`, but the current Development `MainActivity` and source controls still do **not** register or enable the remote Search provider. The existing local-only UI cannot activate Search or an unknown remote provider.
 
 Contacts remains fail-closed. Android `READ_CONTACTS` is only one prerequisite; Privacy Shield and GoreeCloud Identity remain independent authorities. Android permission review cannot mint or replace either GoreeCloud decision.
 
@@ -52,7 +52,7 @@ The integrated Development line preserves Platform Contract `0.4`, exactly nine 
 - Production application ID: `com.goreecloud.index`
 - Development application ID: `com.goreecloud.index.dev`
 - Development label: `GoreeCloud Index Dev`
-- Version: `0.3.0-dev`, code `3`
+- Version: `0.3.1-dev`, code `4`
 - Minimum API: 26
 - Compile API: 37
 - Target API: 36
