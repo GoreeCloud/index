@@ -174,6 +174,7 @@ data class GoreeCloudSearchRequesterAuthentication(
 
 enum class GoreeCloudSearchAcceptanceMode {
     DEVELOPMENT,
+    AUTHENTICATED_DEVELOPMENT,
     PRODUCTION,
 }
 
@@ -212,8 +213,11 @@ class GoreeCloudSearchProvider(
     override val processingLocation: IndexProcessingLocation = IndexProcessingLocation.REMOTE
     override val timeoutMillis: Long = 5_000L
     override val contractVersion: Int = GoreeCloudIndexContract.PROVIDER_CONTRACT_VERSION
+    private val requiresAuthenticatedTransport: Boolean
+        get() = acceptanceMode != GoreeCloudSearchAcceptanceMode.DEVELOPMENT
+
     override val authorityRequirements: Set<IndexAuthorityRequirement> =
-        if (acceptanceMode == GoreeCloudSearchAcceptanceMode.PRODUCTION) {
+        if (requiresAuthenticatedTransport) {
             setOf(
                 IndexAuthorityRequirement.PRIVACY_SHIELD,
                 IndexAuthorityRequirement.GOREECLOUD_IDENTITY,
@@ -229,8 +233,8 @@ class GoreeCloudSearchProvider(
 
         val capability = capabilityClient.queryCapability()
         validateCapability(capability)
-        val privacyCapabilityReference = productionPrivacyCapabilityReference()
-        val requesterBearerCredential = productionRequesterBearerCredential()
+        val privacyCapabilityReference = authenticatedPrivacyCapabilityReference()
+        val requesterBearerCredential = authenticatedRequesterBearerCredential()
         val limit = minOf(query.maxResults.coerceIn(1, GOREECLOUD_SEARCH_MAX_RESULTS), capability.maxResults)
         val request = GoreeCloudSearchRequest(
             query = normalizedQuery,
@@ -253,32 +257,54 @@ class GoreeCloudSearchProvider(
         )
     }
 
-    private suspend fun productionPrivacyCapabilityReference(): String? {
-        if (acceptanceMode != GoreeCloudSearchAcceptanceMode.PRODUCTION) return null
+    private suspend fun authenticatedPrivacyCapabilityReference(): String? {
+        if (!requiresAuthenticatedTransport) return null
+        val production = acceptanceMode == GoreeCloudSearchAcceptanceMode.PRODUCTION
         val authorizer = checkNotNull(authorizationClient) {
-            "GoreeCloud Search production delegation requires a Privacy Shield authorization client"
+            if (production) {
+                "GoreeCloud Search production delegation requires a Privacy Shield authorization client"
+            } else {
+                "GoreeCloud Search authenticated Development delegation requires a Privacy Shield authorization client"
+            }
         }
         val authorizationRequest = GoreeCloudSearchPrivacyAuthorizationRequest()
         check(authorizationRequest.requestId.isNotBlank()) {
-            "GoreeCloud Search production delegation requires a Privacy Shield request identifier"
+            if (production) {
+                "GoreeCloud Search production delegation requires a Privacy Shield request identifier"
+            } else {
+                "GoreeCloud Search authenticated Development delegation requires a Privacy Shield request identifier"
+            }
         }
         val authorization = authorizer.authorize(authorizationRequest)
         val reference = authorization.capabilityTokenReference.trim()
         check(isCanonicalPrivacyShieldCapabilityReference(reference)) {
-            "GoreeCloud Search production delegation requires a canonical Privacy Shield capability reference"
+            if (production) {
+                "GoreeCloud Search production delegation requires a canonical Privacy Shield capability reference"
+            } else {
+                "GoreeCloud Search authenticated Development delegation requires a canonical Privacy Shield capability reference"
+            }
         }
         return reference
     }
 
-    private suspend fun productionRequesterBearerCredential(): String? {
-        if (acceptanceMode != GoreeCloudSearchAcceptanceMode.PRODUCTION) return null
+    private suspend fun authenticatedRequesterBearerCredential(): String? {
+        if (!requiresAuthenticatedTransport) return null
+        val production = acceptanceMode == GoreeCloudSearchAcceptanceMode.PRODUCTION
         val authenticator = checkNotNull(requesterAuthenticationClient) {
-            "GoreeCloud Search production delegation requires a GoreeCloud Identity requester authentication client"
+            if (production) {
+                "GoreeCloud Search production delegation requires a GoreeCloud Identity requester authentication client"
+            } else {
+                "GoreeCloud Search authenticated Development delegation requires a GoreeCloud Identity requester authentication client"
+            }
         }
         val authentication = authenticator.authenticateRequester()
         val credential = authentication.bearerCredential
         check(isCanonicalSearchRequesterBearerCredential(credential)) {
-            "GoreeCloud Search production delegation requires a canonical Identity requester credential"
+            if (production) {
+                "GoreeCloud Search production delegation requires a canonical Identity requester credential"
+            } else {
+                "GoreeCloud Search authenticated Development delegation requires a canonical Identity requester credential"
+            }
         }
         return credential
     }
@@ -295,11 +321,13 @@ class GoreeCloudSearchProvider(
         ) { "GoreeCloud Search query capability does not provide cycle-safe Index-originated delegation" }
         if (acceptanceMode == GoreeCloudSearchAcceptanceMode.PRODUCTION) {
             check(capability.productionAccepted) { "GoreeCloud Search query capability is not production accepted" }
+        }
+        if (requiresAuthenticatedTransport) {
             check(capability.discoveryEndpoint == GOREECLOUD_SEARCH_DISCOVERY_ENDPOINT && capability.discoveryCollection == GOREECLOUD_SEARCH_DISCOVERY_COLLECTION) {
                 "GoreeCloud Search query capability discovery contract is incompatible"
             }
             check(GOREECLOUD_SEARCH_PREFERRED_METHOD in capability.methods && capability.preferredMethod == GOREECLOUD_SEARCH_PREFERRED_METHOD) {
-                "GoreeCloud Search query capability does not provide the required production POST transport"
+                "GoreeCloud Search query capability does not provide the required authenticated POST transport"
             }
             check(
                 capability.preferredQueryTransport == GOREECLOUD_SEARCH_PREFERRED_QUERY_TRANSPORT &&
