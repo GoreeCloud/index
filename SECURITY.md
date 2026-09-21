@@ -14,14 +14,14 @@ Include only the minimum information needed to reproduce and assess the issue. N
 
 ## Current Security Boundaries
 
-- The shipped Android runtime does not request Internet permission.
+- The candidate Android manifest declares `INTERNET` for the dormant fixed-origin Search HTTPS client; the current local-only Development UI does not register or enable the remote Search provider.
 - Applications search avoids unrestricted `QUERY_ALL_PACKAGES`.
 - Contacts requires Android permission plus independent Privacy Shield and GoreeCloud Identity authority evidence before dispatch.
 - Missing, constrained, denied, stale, or unavailable authority fails closed.
 - Settings actions are restricted to a closed local allowlist.
 - Provider results retain provenance and undergo provider-boundary validation.
 - GoreeCloud Search provider source validates API version, provider contract compatibility, capability evidence, result bounds, response binding, degradation state, and safe URLs before results may be accepted.
-- Live remote Search transport remains disabled in the shipped runtime.
+- A concrete Search HTTPS client exists in candidate source, but live remote Search registration remains disabled in the current Development UI/runtime composition.
 
 ## Untrusted Input
 
@@ -69,3 +69,10 @@ Production or Stable qualification requires applicable evidence for:
 - production deployment/acceptance.
 
 Unknown or missing evidence remains a blocker.
+
+
+## Search HTTPS Candidate Boundary
+
+The fixed-origin transport permits only HTTPS to `search.goreecloud.com`, disables redirect following, keeps query text in the JSON request body rather than the URL, carries the Privacy Shield capability reference and Identity bearer only in their dedicated headers, bounds request/response sizes, requires JSON response media type, rejects duplicate JSON keys, and redacts body/header values from the transport object's debug rendering.
+
+The `AUTHENTICATED_DEVELOPMENT` provider mode still requires both Privacy Shield and GoreeCloud Identity. Production mode additionally requires Search capability evidence to declare `productionAccepted=true`. No real authority credential or service endpoint beyond the fixed Search origin is embedded.
