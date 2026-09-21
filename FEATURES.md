@@ -2,7 +2,7 @@
 
 ## Status
 
-**Release lifecycle: Development.** Version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Version `0.3.1-dev`. Production acceptance and Stable qualification remain false.
 
 ## Integrated Development Features
 
