@@ -36,9 +36,9 @@ Dispatch requires Android runtime permission plus Privacy Shield and GoreeCloud 
 
 ## GoreeCloud Search
 
-The transport-neutral Search source validates Index provider contract v1, Search API v1, `search.query` capability identity/freshness, canonical endpoint and result bounds, the cycle-safe `goreecloud.search-index-delegation.v1` external-only/no-reentry/no-fallback contract, Privacy Shield intent/reference, authenticated Identity requester metadata, response binding, degraded state, URL safety, and sensitive rendering boundaries.
+The Search integration validates Index provider contract v1, Search API v1, `search.query` capability identity/freshness, canonical endpoint and result bounds, the cycle-safe `goreecloud.search-index-delegation.v1` external-only/no-reentry/no-fallback contract, Privacy Shield intent/reference, authenticated Identity requester metadata, response binding, degraded state, URL safety, and sensitive rendering boundaries. The candidate adds a concrete fixed-origin HTTPS client with strict capability/response JSON parsing, bounded response bytes, redirect refusal, and header-only authority carriage.
 
-The Development runtime does not register live Search transport and does not request Android Internet permission.
+The candidate manifest declares Android `INTERNET` because concrete Search transport source now exists, but the Development runtime still does not register or user-enable that remote provider. Session source controls remain local-only.
 
 ## GLAZE UI V1.6
 
