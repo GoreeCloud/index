@@ -6,6 +6,8 @@ GoreeCloud Index is GoreeCloud's privacy-first universal search and indexing lay
 
 **Release lifecycle: Development.** Production acceptance and Stable qualification remain false.
 
+Canonical repository: `GoreeCloud/index`.
+
 The verified integrated baseline immediately before this control-plane stabilization is `main` commit `258516d856fd48d7f3f181425d2a77199cdbab31`. Current source is version `0.3.0-dev` and remains local-only at runtime.
 
 ## Current Development Capability
