@@ -2,7 +2,7 @@
 
 ## Status
 
-**Release lifecycle: Development.** Latest runtime-bearing integration checkpoint is `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`, which integrates the still-valid PR #35 runtime work with the Contract 0.4 / nine-system control plane and current GLAZE UI V1.6 source projection through verified PR #38. Documentation/test-only commits may advance the default branch; verify GitHub live whenever the exact current `main` SHA is material. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Latest accepted runtime-bearing checkpoint is `34446cc519afb87bca27b0c3e6639db01ff114b8`. The current `0.3.1-dev` fixed-origin HTTPS Search client is an unmerged candidate layered on that exact authoritative baseline. Production acceptance and Stable qualification remain false.
 
 ## Authority Model
 
