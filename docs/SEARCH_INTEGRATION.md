@@ -59,6 +59,27 @@ The purpose is architectural: Index treats Search as the Internet/web provider, 
 
 The paired Search source candidate implements a dedicated `search_from_index` path that uses only external primary providers and fails before dispatch when no eligible external provider remains. That source contract is readiness evidence only; it does not create live transport, authentication, provider credentials, deployment, or production acceptance.
 
+## Concrete candidate HTTPS transport
+
+The current Development candidate adds `GoreeCloudSearchHttpTransport` as the concrete client-side implementation of the previously transport-neutral contract.
+
+The client:
+
+- fixes its origin to `https://search.goreecloud.com`;
+- discovers `/api/v1/status` with GET and no query text;
+- sends `/api/v1/search` as bounded `application/json` POST with `query`, `category`, and `limit` only;
+- carries `X-GoreeCloud-Privacy-Capability` and `Authorization: Bearer …` separately from the JSON body;
+- disables redirects to prevent authority-header forwarding to another origin;
+- requires JSON response media type and HTTP 200;
+- bounds response bytes and result count;
+- parses JSON strictly, including duplicate-key rejection;
+- never places query text or either authority value in the request URI;
+- redacts request-body and header values from ordinary object rendering.
+
+An `AUTHENTICATED_DEVELOPMENT` acceptance mode requires the same private transport shape and both authority clients while permitting Search capability evidence that is explicitly not production accepted. This mode is for source/CI qualification only. `PRODUCTION` still additionally requires `productionAccepted=true`.
+
+The current `MainActivity` does not register this transport/provider, and the existing Development source-control policy remains local-only. The Android manifest declares `INTERNET` because the concrete client source exists, but that declaration alone does not enable remote Search.
+
 ## Privacy Shield authorization carried with the operation
 
 The higher-level Index execution context still requires Privacy Shield authority before the remote provider becomes eligible. Production Search delegation adds a second provider-local boundary so bypassing the query coordinator cannot silently bypass authorization.
