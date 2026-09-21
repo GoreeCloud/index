@@ -2,109 +2,87 @@
 
 ## Status
 
-**Release lifecycle: Development.** Accepted `main` is `cc3cc21d6e11dad026253c3371c3b67663d3b726`. The `0.3.0-dev` Contacts/authority architecture is branch source pending exact-head validation and merge acceptance. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** The reconciliation candidate is based on authoritative `GoreeCloud/index` main `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`. It combines still-valid PR #35 runtime work with the current Contract 0.4 / nine-system control plane and a fresh GLAZE UI V1.6 source projection. Production acceptance and Stable qualification remain false.
 
 ## Authority Model
 
-GoreeCloud Index coordinates universal search; it does not own provider resources.
+Index coordinates universal search; it does not own provider resources.
 
-- Android is authoritative for launcher applications, ContactsProvider records, platform permissions, and Android handoff behavior.
-- GoreeCloud Launcher is an invocation/presentation surface; Index remains the universal-search/indexing authority.
-- GoreeCloud Search remains authoritative for Internet/web/current-information search.
-- Privacy Shield remains authoritative for consent, purpose, minimization, retention, processing-zone, and destination decisions.
-- GoreeCloud Identity remains authoritative for platform identity and GoreeCloud-level authority. Authentication is not blanket authorization to search application/provider records.
-- Provider/application logic remains responsible for provider-specific record access and source semantics.
-- Wardveil Security remains authoritative for applicable trust/protection/security evidence.
-- Everkeep remains authoritative for continuity of applicable durable Index configuration.
-- GoreeCloud Mesh may coordinate first-party provider discovery without taking source authority.
+- Android remains authoritative for launcher applications, ContactsProvider records, runtime permissions, and Android handoffs.
+- **GoreeCloud Search remains authoritative** for Internet/web/current-information search.
+- **Index remains the universal-search/indexing authority** for provider selection, query coordination, composition, provenance, and safe result actions.
+- **Privacy Shield remains authoritative** for privacy decisions and purpose/processing/destination constraints.
+- **GoreeCloud Identity remains authoritative** for identity, authentication, and authorization evidence.
+- Wardveil Security remains authoritative for security evidence.
+- Everkeep remains authoritative for applicable durable-state continuity.
+- GoreeCloud Mesh may coordinate first-party discovery without taking provider authority.
+- GoreeCloud Policy and GoreeCloud Observability retain policy and operational-evidence authority.
+- Glaze UI governs presentation only and never creates operational authority.
+
+`ALLOW_WITH_CONSTRAINTS` remains fail-closed until returned obligations can be enforced. Missing required evidence produces `AUTHORIZATION_REQUIRED` rather than provider dispatch.
 
 ## Query Flow
 
 ```text
-Launcher or user
+user / Launcher
   → MainActivity
-  → IndexExecutionContext
-      → exact provider allowlist
-      → local-only processing boundary
-      → provider authority evidence
-          → Android runtime permission
-          → Privacy Shield decision reference
-          → GoreeCloud Identity authorization reference
-  → IndexRoot / LaunchedEffect(query)
-  → IndexQueryEngine
-      → blank-query applicability
-      → fail-closed authority evaluation
-      → AUTHORIZATION_REQUIRED for incomplete authority
-      → supervisorScope / concurrent async dispatch
-      → per-provider withTimeout
-      → preserve external CancellationException
-      → normalize provider outcomes
-  → IndexSearchSnapshot
-      → ranked provider-scoped results
-      → AUTHORIZATION_REQUIRED / FAILED / TIMED_OUT issues
-  → source-aware UI
-  → typed, validated Android action handoff
+  → session source selection
+  → IndexDevelopmentSourcePolicy
+      → sanitize to Applications / Settings / Contacts
+      → force localOnly=true
+      → preserve supplied authority evidence
+  → IndexQueryEngine.searchIncrementally
+      → query normalization
+      → provider applicability
+      → authority and processing-location checks
+      → bounded concurrent dispatch
+      → timeout / cancellation / failure isolation
+      → provider-result validation
+      → deterministic composition
+      → incremental IndexSearchSnapshot
+  → IndexRoot
+      → source controls + coarse authority explanation
+      → typed validated actions
 ```
 
-## Core Authority Model
+## Incremental Composition
 
-`IndexAuthorityRequirement` currently supports Android runtime permission, Privacy Shield, and GoreeCloud Identity requirements.
+One `Flow<IndexSearchSnapshot>` path handles initial state, provider completion, deterministic re-ranking, and final state. One-shot search consumes that same path to its last snapshot.
 
-`IndexProviderAuthority` consumes evidence. Android permission is a boolean platform state; Privacy Shield/Identity entries require an `ALLOW` outcome plus non-empty reference. `ALLOW_WITH_CONSTRAINTS` intentionally fails closed until Index can enforce the returned obligations. Missing/denied/user-decision-required/unavailable evidence also fails closed.
+Cross-provider comparison uses Index-owned normalized textual relevance instead of comparing unrelated provider-private score scales. Same-provider scoring stays a same-provider input. Equal-relevance composition can prefer healthier state and then LOCAL → MIXED → REMOTE processing location. Stable identity provides a deterministic final tie.
 
-This is a **consumer contract**, not a substitute authority. No Identity endpoint is invented by Index and no Privacy Shield decision is fabricated locally.
+## Source Controls and Permission Review
 
-## Provider Contract
+`IndexDevelopmentSourcePolicy` exposes only integrated local providers and rejects remote Search from the selectable set. Source choice is session-only.
 
-`IndexProvider` declares stable identity, display name, processing location, timeout, authority requirements, blank-query support, and suspendable search.
+`IndexSourceAuthorityProjection` reports only missing authority domains needed to explain why ContactsProvider is unavailable. `IndexPermissionReviewPolicy` offers Android Contacts permission review only when the Android permission itself is missing; it cannot satisfy Privacy Shield or Identity.
 
-The engine considers only providers applicable to the current query. This prevents non-browsing private sources from generating authority prompts or enumerating data on blank input.
+## GoreeCloud Search Boundary
 
-## Applications Provider
+The provider remains transport-neutral. Production source validates Search API/provider contract, capability identity/freshness, endpoint/result bounds, Privacy Shield reference intent, authenticated Identity requester metadata, request/response binding, degraded state, and safe URLs/actions.
 
-`InstalledAppsProvider` remains the accepted provider: scoped launcher discovery, local processing, 500 ms provisional timeout, label/package matching, exact `ComponentName` actions, and no Internet permission or `QUERY_ALL_PACKAGES`.
+Development MainActivity does not register a live Search client/provider and Android does not request Internet permission. No remote fallback is created.
 
-## Contacts Provider — Branch Source
+## GLAZE UI V1.6
 
-`ContactsProvider` is the second provider implementation:
+`GlazeV16Contract` is the active native source projection. It binds current Stable shared source/runtime identity and adds fail-closed capability presentation for disabled, unavailable, restricted, unsupported, permission-required, unknown, and conflict states.
 
-- Android ContactsProvider authority through `ContactsContract`;
-- `LOCAL` processing;
-- provisional 750 ms timeout;
-- `supportsEmptyQuery=false`;
-- `Contacts.CONTENT_FILTER_URI` query path;
-- projection limited to `_ID`, `LOOKUP_KEY`, `DISPLAY_NAME_PRIMARY`;
-- no phone/email field read in this slice;
-- typed `ViewContact` result action generated from `Contacts.getLookupUri`;
-- required Android permission + Privacy Shield + Identity authority evidence.
+The shared JavaScript runtime is not embedded. No capability presentation can grant authorization, request permission automatically, choose provider precedence, or trigger consequential execution. Application-specific rendered/native acceptance is still blocked.
 
-Current MainActivity registers Contacts but supplies Privacy Shield/Identity evidence as unavailable. Therefore the engine reports authorization-required for nonblank queries and does not invoke Contacts. This preserves source progress without claiming platform integration.
+## Platform Contract
 
-## Action Boundary
+Contract `0.4` explicitly evaluates Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, Mesh, Identity, Policy, and Observability. GoreeCloud Sync remains separately governed.
 
-Application actions use exact package/class components. Contact actions are accepted only when the parsed URI has scheme `content`, authority `com.android.contacts`, and a contacts path before `ACTION_VIEW` is issued. Invalid action URIs fail closed with user-visible feedback.
+## Failure Model
 
-## UI Architecture
+- Missing authority → no dispatch; `AUTHORIZATION_REQUIRED`.
+- Provider timeout → `TIMED_OUT`; healthy siblings preserved.
+- Provider failure → sanitized `FAILED`; healthy siblings preserved.
+- Cancellation → propagates.
+- Remote/mixed provider under Development local-only → no dispatch.
+- Invalid result provenance/action → fail closed.
+- Glaze capability conflict/unknown/restricted state → disabled presentation, no inferred authority.
 
-The UI searches “authorized sources,” shows Applications as active and Contacts as authority-gated, lists all provider issues, and distinguishes authorization-required state from operational provider failure/timeout. It preserves safe-drawing insets, semantic headings, bounded targets, and non-animated progress.
+## Release Boundary
 
-Glaze UI 2.1.0 is the current Stable target; formal Index conformance remains pending.
-
-## Failure and Recovery Model
-
-- Missing authority → provider not dispatched; sanitized `AUTHORIZATION_REQUIRED`.
-- Provider exception → sanitized `FAILED`; healthy sibling results preserved.
-- Provider timeout → sanitized `TIMED_OUT`; healthy sibling results preserved.
-- Parent/query cancellation → propagates.
-- Disallowed provider or remote/mixed under local-only → not dispatched.
-- Blank query + non-browsing provider → provider not considered and no authority issue emitted.
-- Invalid result action → blocked at handoff.
-- No silent remote fallback.
-
-## Accepted Main Evidence
-
-`cc3cc21d6e11dad026253c3371c3b67663d3b726` passed exact-main workflow `33431294298` with APK SHA-256 `54139051e4243ca83b245338ed5e40680edd4ffd3e673a12dfff6b75eed3e99f`, artifact `9772740479`, digest `sha256:87162d517a95622f35c46a63992ed1c545e125ee620c0fa544e265285d61a22c`.
-
-## Next Architecture Milestone
-
-After this branch is source-valid, the next milestone is an accepted Privacy Shield/Identity adapter path plus explicit user decision flow, followed by representative-device Contacts acceptance. Broader file/calendar/provider expansion remains gated until that authority path is proven rather than simulated.
+Source/build validation does not satisfy representative-device, accessibility, performance, platform-runtime, rollback/recovery, signing/distribution, Release Candidate, production, or Stable gates.

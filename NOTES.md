@@ -3,43 +3,25 @@
 ## Current Working State
 
 - Release lifecycle: Development.
-- Current application version: `0.3.0-dev`.
+- Application version: `0.3.0-dev`.
 - Canonical repository: `GoreeCloud/index`.
-- Verified integrated baseline immediately before the current control-plane stabilization: `258516d856fd48d7f3f181425d2a77199cdbab31`.
+- Authoritative candidate base: `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`.
 - No production acceptance or Stable qualification is claimed.
 
-## Current Implementation Notes
+## Reconciliation Candidate
 
-- Applications and bounded Settings navigation are implemented local providers.
-- Contacts source is implemented but remains fail-closed pending accepted Android permission plus Privacy Shield and GoreeCloud Identity authority.
-- GoreeCloud Search has a transport-neutral provider foundation with API/provider-contract/capability checks, degradation propagation, result-bound validation, and safe URL/action handling.
-- The shipped Android runtime remains local-only: no remote Search registration and no Android Internet permission.
-- Current native presentation foundation is GLAZE UI V1.4 / `1.4.0`.
-- Current Platform Contract Stable consumer target is GLAZE UI V1.6 / `1.6.0`.
+The fresh `feature/index-v1.6-modernization-reconciliation` branch preserves PR #37's Contract 0.4/nine-system control plane while selectively carrying forward still-valid PR #35 runtime/test work. It does not rebase or modify PR #35/#36 and does not inherit their prior green checks.
 
-## Control-Plane Stabilization
+PR #36's V1.5 source adoption is superseded in this candidate by a native GLAZE UI V1.6 / `1.6.0` projection bound to current shared Stable authority.
 
-This change reconciles the repository to:
+## Runtime Boundary
 
-- Platform Contract `0.4`;
-- exactly nine Integral Platform Systems;
-- canonical repository identity `GoreeCloud/index`;
-- explicit GoreeCloud Policy and GoreeCloud Observability applicability;
-- current Stable Glaze target `1.6.0`;
-- mandatory `PRIVACY POLICY.md`, `NOTES.md`, `SECURITY.md`, and `.editorconfig`; and
-- durable repository validation that does not freeze current documentation to an obsolete historical build SHA.
+- Development source selection is local-only and limited to Applications, Settings, and Contacts.
+- Contacts permission review is Android-owned and cannot satisfy Privacy Shield/Identity.
+- Live GoreeCloud Search remains unregistered and Android Internet permission remains absent.
+- Production Search source requires independent Privacy Shield and Identity evidence.
+- No production credentials or concrete Identity registration are invented locally.
 
-## Known Open Work
+## Open Work
 
-- Live GoreeCloud Search transport, service discovery/authentication/TLS/proxy behavior, user-facing Internet-provider controls, and representative runtime acceptance.
-- Contacts permission/user-decision flow and accepted Privacy Shield/Identity adapters.
-- Files, Calendar, media, additional first-party, connected-device, extension, and optional third-party providers.
-- Local indexing and incremental result streaming.
-- GLAZE UI V1.6 migration and complete application/device acceptance.
-- Manager, Privacy Shield, Wardveil Security, Everkeep, Mesh, Identity, Policy, and Observability runtime acceptance.
-- Representative-device accessibility, localization/RTL, performance, and OEM/form-factor qualification.
-- Production signing/distribution, rollback/recovery, Release Candidate, production, and Stable gates.
-
-## Maintenance Note
-
-Historical exact-build evidence belongs in durable changelog/release records. Repository orientation documents should describe current verified capability and lifecycle without being mechanically pinned forever to one superseded Development artifact.
+Fresh exact-head CI; candidate merge decision; PR #35/#36 disposition; accepted platform-runtime integrations; live Search transport/user controls; V1.6 rendered/native application acceptance; representative-device accessibility/performance/OEM evidence; additional providers; recovery/rollback; protected signing/distribution; Release Candidate; production; and Stable qualification.

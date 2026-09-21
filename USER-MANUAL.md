@@ -2,80 +2,54 @@
 
 ## Current Development Scope
 
-**Release lifecycle: Development.** GoreeCloud Index is not Stable or production accepted.
-
-Accepted `main` (`cc3cc21d6e11dad026253c3371c3b67663d3b726`) provides the `0.2.0-dev` application-search/asynchronous-provider baseline. The current branch advances to `0.3.0-dev` with Contacts provider source and explicit authority gating, pending exact-head CI and merge acceptance.
+**Release lifecycle: Development.** This reconciliation candidate is not production accepted or Stable.
 
 ## Opening Index
 
-Open **GoreeCloud Index Dev** from Android, or invoke `com.goreecloud.index.action.SEARCH` with optional `com.goreecloud.index.extra.QUERY`.
+Open **GoreeCloud Index Dev** or invoke the supported Android external search action.
 
-## Searching Available Sources
+## Search Sources
 
-The search field now uses **Search this device**. Applications remain the active accepted source. When the field is blank, Index may browse launcher applications; Contacts does not enumerate records on blank input.
+Candidate source provides session controls for Applications, Settings, and Contacts. These controls affect only the current Index session. Development mode is enforced local-only.
 
-For nonblank queries, Index evaluates each applicable provider before dispatch. A provider with incomplete permission or platform authority is not sent the query.
+GoreeCloud Search / Internet results are not available through these controls and are never silently enabled.
 
-## Contacts Development State
+## Contacts
 
-The branch contains an Android Contacts provider, but it is intentionally **not enabled yet**.
+Contacts may be selected as a source, but search still requires all authority gates. When Android permission is missing, Index can show **Review Android Contacts permission**. Choosing it invokes Android's own permission UI.
 
-Contacts requires all three gates:
+Granting Android permission does not satisfy Privacy Shield or GoreeCloud Identity. If either authority remains unavailable, Contacts remains blocked and no Contacts query is sent.
 
-1. Android `READ_CONTACTS` runtime permission.
-2. An unconstrained Privacy Shield `ALLOW` decision with evidence reference.
-3. An unconstrained GoreeCloud Identity authorization decision/evidence reference.
+The Contacts provider reads only ID, lookup key, and display name in the current slice and keeps no persistent contact cache or query history.
 
-Current MainActivity does not fabricate either platform decision; it supplies Privacy Shield and Identity as unavailable. As a result, a nonblank query can show **Contacts not enabled**, and no ContactsProvider query is executed.
+## Incremental Results
 
-`ALLOW_WITH_CONSTRAINTS` also remains blocked until Index can enforce the returned obligations. This prevents a constrained platform decision from being silently treated as unrestricted permission.
-
-No Android contacts permission prompt is automatically shown in this branch because requesting sensitive permission before the full platform authority path can succeed would be premature.
-
-## Contact Data Boundary
-
-When the provider is eventually authorized, this source implementation:
-
-- searches through Android ContactsProvider's filter URI;
-- reads only contact ID, lookup key, and display name;
-- does not request phone-number or email columns;
-- returns `People · On-device` provenance;
-- uses a typed Android contact-view handoff rather than copying contact details into Index-owned storage;
-- rejects malformed/non-Contacts content actions before launch.
-
-The provider does not maintain a contact cache or persistent search history.
+Authorized providers can report results as they complete. Result composition remains deterministic as later providers finish, and cancellation stops superseded provider work.
 
 ## Search States
 
-- **Searching:** applicable authorized providers are executing.
-- **Applications browse:** blank query can show launcher-visible apps.
-- **Contacts not enabled:** Contacts was applicable but required authority evidence was incomplete; no contacts query was sent.
-- **Provider temporarily unavailable:** an invoked provider failed.
-- **Provider took too long:** an invoked provider exceeded its timeout.
-- **No matches:** available providers completed without a match.
-- **Action failure:** Android could not open the chosen app/contact action.
+- Searching authorized sources.
+- Source unavailable because required authority is incomplete.
+- Provider timed out.
+- Provider failed.
+- Provider degraded but returned usable results.
+- No matches.
+- Action could not be opened.
 
-No state silently activates remote fallback.
+## Privacy and Remote Search
 
-## Provider Timeouts
+Development runtime has no Android Internet permission and does not register a live remote Search provider. The repository includes transport-neutral GoreeCloud Search Production-contract source, but source code cannot activate networking by itself.
 
-Applications: provisional 500 ms Development bound. Contacts: provisional 750 ms Development bound. The engine caps provider declarations at five seconds. These are engineering bounds, not representative-device SLAs.
+## GLAZE UI
 
-## Privacy and Security
+Candidate source targets GLAZE UI V1.6 / `1.6.0`. This is source adoption only; rendered/native accessibility, device/form-factor, performance, rollback, release, and production acceptance remain open.
 
-Applications request no Android Internet permission and avoid unrestricted package enumeration. Contacts declares `READ_CONTACTS`, but provider dispatch still requires the separate platform authority gates above.
-
-Privacy Shield, GoreeCloud Identity, Wardveil Security, Everkeep, and Mesh runtime integrations are not accepted merely because source contracts exist.
-
-## Development Package
+## Development Identity
 
 - Application ID: `com.goreecloud.index.dev`
 - Label: `GoreeCloud Index Dev`
-- Branch version: `0.3.0-dev`, code `3`
-- Accepted-main version: `0.2.0-dev`, code `2`
-
-Accepted-main source `cc3cc21d6e11dad026253c3371c3b67663d3b726` passed workflow `33431294298`; APK SHA-256 `54139051e4243ca83b245338ed5e40680edd4ffd3e673a12dfff6b75eed3e99f`; artifact `9772740479`; artifact digest `sha256:87162d517a95622f35c46a63992ed1c545e125ee620c0fa544e265285d61a22c`.
+- Version: `0.3.0-dev`, code `3`
 
 ## Known Limitations
 
-Actual Contacts enablement/user permission flow, accepted Privacy Shield/Identity adapters, files/folders, calendar, media/settings, GoreeCloud service sources, connected devices, extensions, third-party providers, Internet results through Search, local content indexing, incremental streaming, formal Glaze UI 2.1.0 conformance, representative-device accessibility/performance, production signing/deployment, and Stable qualification remain pending.
+Live Search transport, accepted platform authority acquisition, Contacts runtime enablement, Files/Calendar/media/additional providers, durable indexing, representative-device qualification, production signing/distribution, recovery/rollback, Release Candidate, production, and Stable qualification remain incomplete.

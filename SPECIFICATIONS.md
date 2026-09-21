@@ -1,92 +1,54 @@
 # GoreeCloud Index — Specifications
 
-## 1. Product Status
+## Product Status
 
-- **Product:** GoreeCloud Index
-- **Repository:** `GoreeCloud/index`
-- **Release lifecycle:** Development
-- **Version:** `0.3.0-dev` / version code `3`
-- **Supported implementation:** Android foundation
-- **Verified integrated baseline before this control-plane stabilization:** `258516d856fd48d7f3f181425d2a77199cdbab31`
-- **Production acceptance:** No
-- **Stable qualification:** No
-- **Implemented Glaze foundation:** V1.4 / `1.4.0`
-- **Current required Stable Glaze consumer target:** V1.6 / `1.6.0`
-- **Platform Contract:** `0.4`
+**Release lifecycle: Development.**
 
-## 2. Purpose
+- Repository: `GoreeCloud/index`
+- Version: `0.3.0-dev` / code `3`
+- Candidate base: `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`
+- Supported implementation: Android
+- Platform Contract: `0.4`
+- GLAZE UI source target: V1.6 / `1.6.0`
+- Production acceptance: No
+- Stable qualification: No
 
-Index coordinates authorized search providers, normalizes and ranks results, preserves provider provenance, and exposes provider-authorized actions without taking ownership of provider data. GoreeCloud Search remains authoritative for Internet/web search.
+## Purpose
 
-## 3. Android Identity
+Index coordinates authorized search providers, normalizes and composes results, preserves provenance, and exposes provider-authorized actions. Provider applications and Android remain authoritative for their records. GoreeCloud Search remains authoritative for Internet/web search.
 
-- Production application ID: `com.goreecloud.index`
-- Development application ID: `com.goreecloud.index.dev`
-- Label: `GoreeCloud Index Dev`
-- Minimum API 26; compile API 37; target API 36.
+## Query Runtime
 
-## 4. Provider Contract
+The candidate engine supports deterministic NFKC normalization, applicability filtering, exact provider allowlisting, local-only gating, authority evaluation, structured concurrent dispatch, bounded provider timeouts, cancellation propagation, partial/degraded results, provider-result provenance validation, provider-scoped deduplication, bounded fan-out, deterministic ranking, and incremental `Flow<IndexSearchSnapshot>` delivery.
 
-Each `IndexProvider` declares provider identity, display name, contract compatibility, processing location, timeout, blank-query behavior, authority requirements, and suspendable search behavior. Undeclared or incompatible provider contract versions fail closed.
+One-shot search resolves through the same final incremental-composition path.
 
-## 5. Query Runtime
+## Development Source Controls
 
-The engine performs deterministic query normalization, applicability filtering, allowlist and processing-location checks, authority evaluation, structured concurrent dispatch, bounded timeouts, sanitized issues, provenance validation, deterministic ranking, provider-scoped deduplication, and final result bounding.
+Applications, Settings, and Contacts are the only selectable Development providers. Selection is session-scoped, sanitized against the allowlist, and always runs with `localOnly=true`. GoreeCloud Search is intentionally not user-enableable through the Development source selector.
 
-Parent cancellation propagates. One provider failure or timeout does not suppress healthy sibling results.
+## Contacts
 
-## 6. Applications Provider
+Contacts uses Android ContactsProvider, no blank-query enumeration, and a minimized projection of contact ID, lookup key, and display name. It does not read phone or email columns in this slice.
 
-The Applications provider uses launcher-visible Android components through `ACTION_MAIN` + `CATEGORY_LAUNCHER`, avoids unrestricted `QUERY_ALL_PACKAGES`, requires no Internet permission, and returns exact component actions.
+Dispatch requires Android runtime permission plus Privacy Shield and GoreeCloud Identity evidence. Android permission review is explicitly user-initiated through `ActivityResultContracts.RequestPermission`; granting Android permission does not satisfy either GoreeCloud authority.
 
-## 7. Settings Provider
+## GoreeCloud Search
 
-The Settings provider searches only a bounded repository-owned catalog of Android Settings destinations. It does not read setting values or private device configuration. Only allowlisted Settings actions are handed to Android.
+The transport-neutral Search source validates Index provider contract v1, Search API v1, `search.query` capability identity/freshness, canonical endpoint and result bounds, Privacy Shield intent/reference, authenticated Identity requester metadata, response binding, degraded state, URL safety, and sensitive rendering boundaries.
 
-## 8. Contacts Provider
+The Development runtime does not register live Search transport and does not request Android Internet permission.
 
-Contacts source uses Android ContactsProvider with local processing, no blank-query enumeration, minimized projection of ID/lookup key/display name, and typed contact-view actions.
+## GLAZE UI V1.6
 
-Dispatch requires Android runtime permission, Privacy Shield decision evidence, and GoreeCloud Identity authorization evidence. Constrained, denied, stale, missing, or unavailable platform evidence fails closed. The shipped Development gateway keeps Contacts non-dispatchable until accepted live platform integrations exist.
+The candidate includes a native V1.6 source projection bound to accepted release source `a7180679ea851389e0f3004515f9a25f420e716d`, qualification source `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`, and Stable runtime `js/glaze-v1.6.0.mjs`.
 
-## 9. GoreeCloud Search Provider Foundation
+Presentation remains non-authorizing. Unknown, conflicting, restricted, unsupported, or permission-required capability state fails closed. Accessibility precedence can force a solid presentation path. Index application-level rendered/native, accessibility, device/form-factor, performance, rollback, release, and production acceptance remain incomplete.
 
-The transport-neutral Search provider source requires compatible Index provider contract version 1 and Search API version 1. Before delegation it validates authoritative `search.query` capability evidence, endpoint expectations, freshness, result bounds, Privacy Shield gating, normalized query/category/limit minimization, response binding, degradation state, and safe URLs.
+## Platform Contract
 
-The shipped runtime does not register a remote Search transport and does not request Android Internet permission.
+All nine Integral Platform Systems are explicitly evaluated under Contract `0.4`. GLAZE UI is source-targeted at `1.6.0` but remains Applicable — Blocked until repository-local acceptance closes. Other systems remain blocked where runtime/acceptance evidence is missing. GoreeCloud Sync remains separately governed.
 
-## 10. Platform Contract and Integral Platform Systems
+## Release Boundary
 
-Contract `0.4` requires explicit evaluation of exactly nine Integral Platform Systems:
-
-1. GoreeCloud Manager
-2. Privacy Shield
-3. Wardveil Security
-4. Everkeep
-5. Glaze UI
-6. GoreeCloud Mesh
-7. GoreeCloud Identity
-8. GoreeCloud Policy
-9. GoreeCloud Observability
-
-All nine remain nonconformant, blocked, or migration-required where substantive runtime and acceptance evidence is missing. GoreeCloud Sync remains separately governed.
-
-## 11. GLAZE UI
-
-Current source contains the V1.4 / `1.4.0` native semantic foundation, including deterministic GoreeCloud light/dark presentation and accessibility-first fallback behavior. Contract `0.4` currently requires V1.6 / `1.6.0` for Stable consumer conformance. Source migration plus rendered/native accessibility, form-factor, representative-device/OEM, performance, Human Visual Excellence, rollback, release, and production acceptance remain open.
-
-## 12. Privacy, Security, and Data Handling
-
-Core shipped search remains local-only. No persistent query history or query analytics are intentionally stored. Remote Search must never activate silently. Provider output and result actions are untrusted until validated. Secrets and private records must not enter ordinary logs or evidence.
-
-## 13. Reliability and Accessibility
-
-Required release validation includes cancellation/timeout behavior, partial and degraded results, provider isolation, text scaling/reflow, TalkBack/screen-reader semantics, keyboard/focus behavior where applicable, reduced motion/transparency, contrast, localization/RTL, representative performance, resource use, and failure recovery.
-
-## 14. Current Open Scope
-
-Files/folders, calendar, media, additional first-party application content, connected-device providers, extension/third-party providers, local content indexing, incremental result streaming, accepted live Search transport, provider controls, complete platform-system runtime acceptance, production signing/deployment, Release Candidate, and Stable qualification remain open.
-
-## 15. Release Boundary
-
-Successful source validation, a green PR, a build artifact, or a merged branch is Development evidence only. Production-ready or Stable claims require exact-release evidence for applicable platform integrations, privacy/security, accessibility, representative runtime behavior, recovery/rollback, packaging/signing, deployment, and production acceptance.
+No source contract, unit test, build artifact, manifest validity, or shared Glaze Stable status automatically creates Index production or Stable acceptance.

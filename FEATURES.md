@@ -2,81 +2,56 @@
 
 ## Status
 
-**Release lifecycle: Development.** Version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Candidate version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
 
-## Implemented Development Features
+## Candidate Source Features
 
 ### Search Core
 
-- Provider-neutral query, result, action, provenance, health/degradation, and authority models.
-- Structured concurrent provider execution with cancellation propagation.
-- Bounded per-provider timeouts and sanitized failure states.
-- Partial-result preservation when another provider fails, times out, or is degraded.
-- Deterministic NFKC query normalization and result ordering.
-- Provider-scoped deduplication and bounded result counts.
-- Provider contract-version compatibility checks.
-- Fail-closed provider allowlisting and local-only gating.
+- Provider-neutral contracts and provenance.
+- Deterministic normalized ranking and provider-scoped deduplication.
+- Concurrent provider execution with bounded timeouts and cancellation propagation.
+- Partial/degraded result preservation.
+- Bounded provider fan-out and result counts.
+- Incremental `Flow` result delivery with one-shot/final-snapshot equivalence.
 
-### Applications · On-device
+### Local Providers
 
-- Launcher-visible application discovery.
-- No unrestricted package visibility.
-- Exact component launch actions.
-- Local processing.
+- Launcher-visible Applications search.
+- Bounded static Android Settings navigation.
+- Authority-gated Android Contacts search with minimized fields and no blank enumeration.
 
-### Settings · On-device
+### Session Source Controls
 
-- Bounded static Settings destination catalog.
-- No setting-value or private device-state reads.
-- No blank-query enumeration.
-- Closed Settings action allowlist.
+- Session-scoped enable/disable controls for Applications, Settings, and Contacts.
+- Enforced Development local-only mode.
+- Remote Search cannot be enabled through source controls.
+- Privacy-safe missing-authority explanation.
 
-### Contacts · On-device
+### Contacts Permission Review
 
-- Android ContactsProvider-backed source.
-- Minimized ID/lookup-key/display-name projection.
-- No phone/email field reads in the current slice.
-- No blank-query enumeration.
-- Typed contact-view action.
-- Android permission + Privacy Shield + GoreeCloud Identity authority requirements.
-- Fail-closed runtime state: current Development gateway does not supply accepted platform authority, so Contacts is not dispatched.
+- Explicit user-triggered Android Contacts permission review.
+- Android remains permission authority.
+- Privacy Shield and GoreeCloud Identity remain independent requirements.
+- No automatic permission request or platform-authority bypass.
 
-### GoreeCloud Search Provider Foundation
+### GoreeCloud Search Foundation
 
-- Search API v1 response binding.
-- Index provider contract v1 compatibility.
-- `search.query` capability preflight with freshness/authority checks.
-- Canonical endpoint and published result-bound validation.
-- Query/category/limit minimization and response integrity checks.
-- Partial-degradation propagation.
-- URL validation and safe web result actions.
+- Search API/provider-contract compatibility.
+- Capability preflight and freshness checks.
+- Privacy Shield constrained intent/reference handling.
+- Independent GoreeCloud Identity requester-credential requirement for Production delegation.
+- Query/category/limit minimization, response binding, degradation propagation, URL/action validation, and sensitive rendering controls.
+- No live transport registration or Android Internet permission in Development.
 
-This is source infrastructure only. The shipped runtime has no live Search transport registration and no Android Internet permission.
+### GLAZE UI V1.6 Source Adoption
 
-### GLAZE UI V1.4 Native Foundation
-
-- Deterministic GoreeCloud semantic light/dark schemes.
-- Accessibility-first fallback behavior.
-- Source-aware result and issue presentation.
-- V1.4 optical-policy boundaries without camera, wallpaper, telemetry, browsing-content, or remote-context collection.
-
-Current Stable consumer target is V1.6 / `1.6.0`; migration and full application acceptance remain open.
-
-## Platform Contract
-
-The repository declares Contract `0.4` and explicitly evaluates Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, Mesh, Identity, Policy, and Observability. Missing runtime evidence remains blocked or migration-required rather than being upgraded by metadata.
+- Native `1.6.0` source contract bound to current shared Stable authority.
+- Deterministic light/dark semantic mapping.
+- Accessibility-first solid fallback.
+- Fail-closed capability/conflict/permission-required presentation.
+- No automatic authorization, permission request, provider precedence, navigation, or consequential execution.
 
 ## Not Yet Accepted
 
-- Live GoreeCloud Search transport, discovery, authentication, TLS/proxy path, and Internet-provider controls.
-- Contacts runtime enablement and user decision/permission flow.
-- Accepted Privacy Shield, Identity, Wardveil, Everkeep, Mesh, Manager, Policy, and Observability runtime integration.
-- GLAZE UI V1.6 source migration and full rendered/native consumer acceptance.
-- Files/folders, calendar, media, additional application-content, connected-device, extension, and third-party providers.
-- Local content indexing and incremental/streaming result delivery.
-- Representative-device accessibility, localization/RTL, performance, and OEM/form-factor acceptance.
-- Production signing/distribution, rollback/recovery acceptance, Release Candidate, production, or Stable qualification.
-
-## Deprecated or Removed Features
-
-None.
+Live Search transport and user controls; accepted Privacy Shield/Identity/Manager/Wardveil/Everkeep/Mesh/Policy/Observability runtime integrations; Contacts runtime enablement; GLAZE UI rendered/native consumer acceptance; representative-device accessibility/performance/OEM qualification; Files/Calendar/media/additional providers; durable indexing; production signing/distribution; rollback/recovery; Release Candidate; production; and Stable qualification.

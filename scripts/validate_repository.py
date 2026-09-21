@@ -13,11 +13,16 @@ required = [
     "app/src/main/java/com/goreecloud/index/MainActivity.kt",
     "app/src/main/java/com/goreecloud/index/core/IndexAuthority.kt",
     "app/src/main/java/com/goreecloud/index/core/IndexContract.kt",
+    "app/src/main/java/com/goreecloud/index/core/IndexSourceControls.kt",
     "app/src/main/java/com/goreecloud/index/core/PlatformAuthorityAdapters.kt",
     "app/src/main/java/com/goreecloud/index/provider/apps/InstalledAppsProvider.kt",
     "app/src/main/java/com/goreecloud/index/provider/contacts/ContactsProvider.kt",
     "app/src/main/java/com/goreecloud/index/ui/IndexRoot.kt",
+    "app/src/main/java/com/goreecloud/index/ui/theme/GlazeV16Contract.kt",
     "app/src/test/java/com/goreecloud/index/core/IndexQueryEngineTest.kt",
+    "app/src/test/java/com/goreecloud/index/core/IndexIncrementalSearchTest.kt",
+    "app/src/test/java/com/goreecloud/index/core/IndexSourceControlsTest.kt",
+    "app/src/test/java/com/goreecloud/index/ui/theme/GlazeV16ContractTest.kt",
     "app/src/test/java/com/goreecloud/index/core/PlatformAuthorityAdaptersTest.kt",
     "goreecloud/privacy-shield.application-manifest.json",
     "goreecloud/privacy-shield.adapter.json",
@@ -158,7 +163,9 @@ for expected in [
     "IndexProviderIssueKind.AUTHORIZATION_REQUIRED", "IndexExecutionContext",
     "providerAuthorities", "authorityRequirements", "supportsEmptyQuery",
     "authorizationIssue", "allowedProviderIds", "localOnly", "processingLocation",
-    "timeoutMillis", "suspend fun search", "supervisorScope", "async(providerDispatcher)",
+    "timeoutMillis", "suspend fun search", "fun searchIncrementally(",
+    "Flow<IndexSearchSnapshot>", "supervisorScope", "launch(providerDispatcher)",
+    "Channel<Pair<Int, IndexProviderOutcome>>", "composeSnapshot(", ".last()",
     "withTimeout", "catch (_: TimeoutCancellationException)",
     "catch (cancellation: CancellationException)", "throw cancellation",
     "IndexProviderIssueKind.TIMED_OUT", "IndexProviderIssueKind.FAILED",
@@ -170,6 +177,22 @@ if core.index("sortedWith(ranking)") > core.index(".distinctBy { result ->"):
     raise SystemExit("Ranking must occur before provider-scoped deduplication")
 if core.index("catch (_: TimeoutCancellationException)") > core.index("catch (cancellation: CancellationException)"):
     raise SystemExit("Timeout handling must occur before general cancellation propagation")
+
+source_controls = (
+    ROOT / "app/src/main/java/com/goreecloud/index/core/IndexSourceControls.kt"
+).read_text(encoding="utf-8")
+for expected in [
+    "IndexDevelopmentSourcePolicy", "selectableProviderIds", "sanitizeEnabledProviderIds",
+    "PROVIDER_APPS", "PROVIDER_SETTINGS", "PROVIDER_CONTACTS", "intersect(selectableProviderIds)",
+    "localOnly = true", "IndexExecutionContext(", "providerAuthorities = providerAuthorities",
+    "IndexSourceAuthorityStatus", "IndexSourceAuthorityProjection", "missingRequirements",
+    "filterNot(authority::satisfies)", "IndexPermissionReviewPolicy",
+    "canRequestAndroidContactsPermission", "ANDROID_RUNTIME_PERMISSION",
+]:
+    if expected not in source_controls:
+        raise SystemExit(f"Missing fail-closed source-control/authority-presentation policy: {expected}")
+if "PROVIDER_SEARCH" in source_controls:
+    raise SystemExit("Development source controls must not make remote Search user-enableable")
 
 apps = (ROOT / "app/src/main/java/com/goreecloud/index/provider/apps/InstalledAppsProvider.kt").read_text(encoding="utf-8")
 for expected in [
@@ -201,27 +224,39 @@ for prohibited in [
 
 main_activity = (ROOT / "app/src/main/java/com/goreecloud/index/MainActivity.kt").read_text(encoding="utf-8")
 for expected in [
-    "ContactsProvider", "PROVIDER_APPS", "PROVIDER_CONTACTS", "providerAuthorities",
+    "ContactsProvider", "PROVIDER_CONTACTS", "providerAuthorities",
     "Manifest.permission.READ_CONTACTS", "IndexPlatformAuthorityGateway",
     "UnavailableIndexPlatformAuthorityGateway", "ContactsAuthorityProjection.project",
-    "platformAuthorityGateway.contactsSnapshot()", "IndexAction.ViewContact",
-    "ContactsContract.AUTHORITY", 'uri.scheme == "content"',
+    "platformAuthorityGateway.contactsSnapshot()", "queryEngine.searchIncrementally(",
+    "IndexDevelopmentSourcePolicy.selectableProviderIds", "executionContext(enabledProviderIds)",
+    "IndexDevelopmentSourcePolicy.executionContext(", "IndexSourceAuthorityProjection.contacts",
+    "authorityRefreshRevision", "ActivityResultContracts.RequestPermission()",
+    "contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)",
+    "onRequestContactsPermission = ::requestContactsPermission",
+    "IndexAction.ViewContact", "ContactsContract.AUTHORITY", 'uri.scheme == "content"',
     'uri.pathSegments.firstOrNull() == "contacts"', "Unable to open this application.",
     "Unable to open this contact.",
 ]:
     if expected not in main_activity:
-        raise SystemExit(f"MainActivity missing provider/authority/action boundary: {expected}")
+        raise SystemExit(f"MainActivity missing provider/authority/permission/action boundary: {expected}")
 
 ui = (ROOT / "app/src/main/java/com/goreecloud/index/ui/IndexRoot.kt").read_text(encoding="utf-8")
 for expected in [
-    "suspend (String) -> IndexSearchSnapshot", "LaunchedEffect(query)",
-    "Searching authorized sources…", "IndexProviderIssueKind.TIMED_OUT",
-    "IndexProviderIssueKind.AUTHORIZATION_REQUIRED", "Contacts · On-device · Authority gated",
+    "(String, Set<String>) -> Flow<IndexSearchSnapshot>",
+    "LaunchedEffect(query, enabledProviderIds)", "collect { update ->", "snapshot = update",
+    "Search sources", "Changes apply to this Index session only",
+    "Local-only mode", "Enforced in this Development build",
+    "Internet/Web results remain unavailable here",
+    "Index will not silently enable GoreeCloud Search or another remote provider",
+    "IndexProviderIssueKind.TIMED_OUT", "IndexProviderIssueKind.AUTHORIZATION_REQUIRED",
     "Required permission or platform authority evidence is incomplete",
+    "IndexPermissionReviewPolicy.canRequestAndroidContactsPermission",
+    "Review Android Contacts permission", "Android owns this permission decision",
+    "Privacy Shield and GoreeCloud Identity remain independent requirements",
     "WindowInsets.safeDrawing", "heightIn(min = 72.dp)", "People · On-device",
 ]:
     if expected not in ui:
-        raise SystemExit(f"Missing multi-source/degraded UI contract: {expected}")
+        raise SystemExit(f"Missing multi-source/incremental/source-control/permission-review UI contract: {expected}")
 
 tests = (ROOT / "app/src/test/java/com/goreecloud/index/core/IndexQueryEngineTest.kt").read_text(encoding="utf-8")
 for expected in [
@@ -237,6 +272,37 @@ for expected in [
 ]:
     if expected not in tests:
         raise SystemExit(f"Missing async/authority runtime test: {expected}")
+
+incremental_tests = (
+    ROOT / "app/src/test/java/com/goreecloud/index/core/IndexIncrementalSearchTest.kt"
+).read_text(encoding="utf-8")
+for expected in [
+    "incrementalSearchEmitsInitialThenProviderCompletionSnapshots",
+    "strongerLateRemoteResultReRanksThroughSameDeterministicComposition",
+    "authorizationIssueIsEmittedWithoutDispatchingProtectedProvider",
+    "cancellingIncrementalCollectionCancelsOutstandingProviderWork",
+    "oneShotSearchMatchesFinalIncrementalSnapshot",
+    "searchIncrementally", "StandardTestDispatcher", "awaitCancellation",
+]:
+    if expected not in incremental_tests:
+        raise SystemExit(f"Missing incremental search regression: {expected}")
+
+source_control_tests = (
+    ROOT / "app/src/test/java/com/goreecloud/index/core/IndexSourceControlsTest.kt"
+).read_text(encoding="utf-8")
+for expected in [
+    "developmentSourcePolicyAllowsOnlyIntegratedLocalProviders",
+    "developmentSourcePolicyAlwaysEnforcesLocalOnlyExecution",
+    "developmentSourcePolicyPreservesAuthorityEvidenceWithoutGrantingNewScope",
+    "contactsAuthorityProjectionReportsOnlyMissingAuthorityDomains",
+    "contactsAuthorityProjectionReportsAllPrerequisitesWhenAuthorityIsUnavailable",
+    "contactsAuthorityProjectionBecomesAvailableOnlyWhenEveryRequirementIsSatisfied",
+    "permissionReviewPolicyOffersAndroidRequestOnlyWhenAndroidPermissionIsMissing",
+    "permissionReviewPolicyDoesNotTreatPrivacyOrIdentityAsAndroidPermissionActions",
+    "PROVIDER_SEARCH", "sanitizeEnabledProviderIds", "assertFalse",
+]:
+    if expected not in source_control_tests:
+        raise SystemExit(f"Missing source-control/authority-presentation/permission-review regression: {expected}")
 
 platform_tests = (
     ROOT / "app/src/test/java/com/goreecloud/index/core/PlatformAuthorityAdaptersTest.kt"
@@ -302,6 +368,26 @@ if "GoreeCloud Sync" in platform_manifest:
 for control in ["PRIVACY POLICY.md", "NOTES.md", "SECURITY.md", ".editorconfig"]:
     if not (ROOT / control).is_file():
         raise SystemExit(f"Missing mandatory repository control: {control}")
+
+glaze = (ROOT / "app/src/main/java/com/goreecloud/index/ui/theme/GlazeV16Contract.kt").read_text(encoding="utf-8")
+for expected in [
+    'VERSION = "1.6.0"',
+    'STABLE_RELEASE_SOURCE = "a7180679ea851389e0f3004515f9a25f420e716d"',
+    'SOURCE_QUALIFICATION_ANCHOR = "c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"',
+    'STABLE_RUNTIME_ENTRYPOINT = "js/glaze-v1.6.0.mjs"',
+    'SHARED_ROLLBACK_BASELINE = "1.5.1"',
+    "PERMISSION_REQUEST_AUTOMATIC = false",
+    "AUTHORIZATION_INFERRED = false",
+    "PROVIDER_PRECEDENCE_INFERRED = false",
+    "CapabilityState.PermissionRequired",
+    "CapabilityState.Conflict",
+]:
+    if expected not in glaze:
+        raise SystemExit(f"Missing GLAZE UI V1.6 source/authority boundary: {expected}")
+
+theme = (ROOT / "app/src/main/java/com/goreecloud/index/ui/theme/IndexTheme.kt").read_text(encoding="utf-8")
+if "GlazeV16Contract" not in theme or "GlazeV15Contract" in theme:
+    raise SystemExit("Active Index theme must target GlazeV16Contract only")
 
 architecture = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
 for expected in [

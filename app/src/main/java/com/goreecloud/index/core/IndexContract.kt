@@ -6,8 +6,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withTimeout
 
@@ -74,8 +77,21 @@ data class IndexResult(
     val type: IndexResultType,
     val title: String,
     val subtitle: String? = null,
+    /**
+     * Provider-local ranking score. Index may use this to order results from the
+     * same provider, but never compares the raw numeric value across providers.
+     * Universal composition uses Index-owned normalized relevance instead.
+     */
     val score: Int,
     val action: IndexAction? = null,
+    /**
+     * Optional zero-based ordering supplied by the owning provider after that
+     * provider has completed its own ranking. Index uses this only to preserve
+     * same-provider ordering when provider-local scores tie. It is never
+     * compared across different providers and therefore cannot import a remote
+     * provider's private ranking scale into universal composition.
+     */
+    val sourceOrdinal: Int? = null,
 )
 
 data class IndexQuery(
@@ -151,12 +167,16 @@ interface IndexStatusAwareProvider : IndexProvider {
 }
 
 private data class IndexProviderOutcome(
+    val processingLocation: IndexProcessingLocation,
     val results: List<IndexResult> = emptyList(),
     val issue: IndexProviderIssue? = null,
 )
 
 private data class RankedIndexResult(
     val result: IndexResult,
+    val normalizedRelevance: Int,
+    val degradedProvider: Boolean,
+    val processingLocation: IndexProcessingLocation,
     val normalizedTitle: String,
 )
 
@@ -168,45 +188,126 @@ class IndexQueryEngine(
         rawQuery: String,
         executionContext: IndexExecutionContext,
         maxResults: Int = 50,
-    ): IndexSearchSnapshot = supervisorScope {
-        val query = IndexQuery(
-            text = IndexQueryNormalizer.normalize(rawQuery),
-            maxResults = maxResults.coerceIn(1, MAX_RESULTS),
-        )
+    ): IndexSearchSnapshot = searchIncrementally(
+        rawQuery = rawQuery,
+        executionContext = executionContext,
+        maxResults = maxResults,
+    ).last()
 
-        val applicableProviders = providers.filter { provider ->
-            query.text.isNotEmpty() || provider.supportsEmptyQuery
+    /**
+     * Emits an initial authority/compatibility snapshot and then a newly
+     * composed snapshot each time one eligible provider completes. Provider
+     * completion timing controls when an update is available, but never how
+     * accumulated results are ranked: every emission is rebuilt through the
+     * same deterministic relevance, health, processing-location, identity,
+     * validation, fan-out, and deduplication rules used by the final result.
+     *
+     * Cancelling collection cancels this supervisor scope and therefore all
+     * outstanding provider jobs. Provider cancellation remains cancellation;
+     * it is not converted into a provider failure or timeout issue.
+     */
+    fun searchIncrementally(
+        rawQuery: String,
+        executionContext: IndexExecutionContext,
+        maxResults: Int = 50,
+    ): Flow<IndexSearchSnapshot> = flow {
+        supervisorScope {
+            val query = IndexQuery(
+                text = IndexQueryNormalizer.normalize(rawQuery),
+                maxResults = maxResults.coerceIn(1, MAX_RESULTS),
+            )
+
+            val applicableProviders = providers.filter { provider ->
+                query.text.isNotEmpty() || provider.supportsEmptyQuery
+            }
+            val scopedProviders = applicableProviders.filter(executionContext::isInScope)
+            val compatibilityIssues = scopedProviders.mapNotNull(::compatibilityIssue)
+            val compatibleProviders = scopedProviders.filter(::isCompatibleProvider)
+            val authorizationIssues = compatibleProviders
+                .mapNotNull(executionContext::authorizationIssue)
+            val eligibleProviders = compatibleProviders.filter(executionContext::allows)
+            val completedOutcomes = MutableList<IndexProviderOutcome?>(eligibleProviders.size) { null }
+
+            emit(
+                composeSnapshot(
+                    query = query,
+                    compatibilityIssues = compatibilityIssues,
+                    authorizationIssues = authorizationIssues,
+                    outcomes = emptyList(),
+                ),
+            )
+
+            if (eligibleProviders.isEmpty()) {
+                return@supervisorScope
+            }
+
+            val completions = Channel<Pair<Int, IndexProviderOutcome>>(eligibleProviders.size)
+            try {
+                eligibleProviders.forEachIndexed { position, provider ->
+                    launch(providerDispatcher) {
+                        completions.send(position to queryProvider(provider, query))
+                    }
+                }
+
+                repeat(eligibleProviders.size) {
+                    val (position, outcome) = completions.receive()
+                    completedOutcomes[position] = outcome
+                    emit(
+                        composeSnapshot(
+                            query = query,
+                            compatibilityIssues = compatibilityIssues,
+                            authorizationIssues = authorizationIssues,
+                            outcomes = completedOutcomes.filterNotNull(),
+                        ),
+                    )
+                }
+            } finally {
+                completions.close()
+            }
         }
-        val scopedProviders = applicableProviders.filter(executionContext::isInScope)
-        val compatibilityIssues = scopedProviders.mapNotNull(::compatibilityIssue)
-        val compatibleProviders = scopedProviders.filter(::isCompatibleProvider)
-        val authorizationIssues = compatibleProviders
-            .mapNotNull(executionContext::authorizationIssue)
+    }
 
-        val outcomes = compatibleProviders
-            .asSequence()
-            .filter(executionContext::allows)
-            .map { provider ->
-                async(providerDispatcher) {
-                    queryProvider(provider, query)
+    private fun composeSnapshot(
+        query: IndexQuery,
+        compatibilityIssues: List<IndexProviderIssue>,
+        authorizationIssues: List<IndexProviderIssue>,
+        outcomes: List<IndexProviderOutcome>,
+    ): IndexSearchSnapshot {
+        val ranking = Comparator<RankedIndexResult> { left, right ->
+            if (left.result.providerId == right.result.providerId) {
+                compareSameProviderResults(left, right)
+            } else {
+                val relevanceOrder = right.normalizedRelevance.compareTo(left.normalizedRelevance)
+                if (relevanceOrder != 0) {
+                    relevanceOrder
+                } else {
+                    val healthOrder = compareProviderHealth(left, right)
+                    if (healthOrder != 0) {
+                        healthOrder
+                    } else {
+                        val locationOrder = compareProcessingLocation(left, right)
+                        if (locationOrder != 0) {
+                            locationOrder
+                        } else {
+                            compareStableResultIdentity(left, right)
+                        }
+                    }
                 }
             }
-            .toList()
-            .awaitAll()
-
-        val ranking = compareByDescending<RankedIndexResult> { it.result.score }
-            .thenBy { it.normalizedTitle }
-            .thenBy { it.result.providerId }
-            .thenBy { it.result.id }
+        }
 
         val results = outcomes
             .asSequence()
-            .flatMap { it.results.asSequence() }
-            .map { result ->
-                RankedIndexResult(
-                    result = result,
-                    normalizedTitle = IndexQueryNormalizer.normalizeForMatching(result.title),
-                )
+            .flatMap { outcome ->
+                val degradedProvider = outcome.issue?.kind == IndexProviderIssueKind.DEGRADED
+                outcome.results.asSequence().map { result ->
+                    rankedResult(
+                        query = query,
+                        result = result,
+                        degradedProvider = degradedProvider,
+                        processingLocation = outcome.processingLocation,
+                    )
+                }
             }
             .sortedWith(ranking)
             .map { it.result }
@@ -214,7 +315,7 @@ class IndexQueryEngine(
             .take(query.maxResults)
             .toList()
 
-        IndexSearchSnapshot(
+        return IndexSearchSnapshot(
             results = results,
             providerIssues = (
                 compatibilityIssues +
@@ -223,6 +324,101 @@ class IndexQueryEngine(
                 ).distinctBy { it.providerId },
         )
     }
+
+    private fun rankedResult(
+        query: IndexQuery,
+        result: IndexResult,
+        degradedProvider: Boolean,
+        processingLocation: IndexProcessingLocation,
+    ) = RankedIndexResult(
+        result = result,
+        normalizedRelevance = normalizedCrossProviderRelevance(query, result),
+        degradedProvider = degradedProvider,
+        processingLocation = processingLocation,
+        normalizedTitle = IndexQueryNormalizer.normalizeForMatching(result.title),
+    )
+
+    private fun compareSameProviderResults(
+        left: RankedIndexResult,
+        right: RankedIndexResult,
+    ): Int {
+        val providerScoreOrder = right.result.score.compareTo(left.result.score)
+        if (providerScoreOrder != 0) return providerScoreOrder
+
+        val sourceOrder = (left.result.sourceOrdinal ?: Int.MAX_VALUE)
+            .compareTo(right.result.sourceOrdinal ?: Int.MAX_VALUE)
+        if (sourceOrder != 0) return sourceOrder
+
+        val relevanceOrder = right.normalizedRelevance.compareTo(left.normalizedRelevance)
+        if (relevanceOrder != 0) return relevanceOrder
+
+        return compareStableResultIdentity(left, right)
+    }
+
+    private fun compareProviderHealth(
+        left: RankedIndexResult,
+        right: RankedIndexResult,
+    ): Int = when {
+        left.degradedProvider == right.degradedProvider -> 0
+        left.degradedProvider -> 1
+        else -> -1
+    }
+
+    private fun compareProcessingLocation(
+        left: RankedIndexResult,
+        right: RankedIndexResult,
+    ): Int = processingLocationRank(left.processingLocation)
+        .compareTo(processingLocationRank(right.processingLocation))
+
+    private fun processingLocationRank(location: IndexProcessingLocation): Int = when (location) {
+        IndexProcessingLocation.LOCAL -> 0
+        IndexProcessingLocation.MIXED -> 1
+        IndexProcessingLocation.REMOTE -> 2
+    }
+
+    private fun normalizedCrossProviderRelevance(
+        query: IndexQuery,
+        result: IndexResult,
+    ): Int = IndexTextMatcher.score(
+        query = query.text,
+        title = result.title,
+        secondary = result.subtitle.orEmpty(),
+    ) ?: 0
+
+    private fun compareStableResultIdentity(
+        left: RankedIndexResult,
+        right: RankedIndexResult,
+    ): Int {
+        val titleOrder = left.normalizedTitle.compareTo(right.normalizedTitle)
+        if (titleOrder != 0) return titleOrder
+        val providerOrder = left.result.providerId.compareTo(right.result.providerId)
+        if (providerOrder != 0) return providerOrder
+        return left.result.id.compareTo(right.result.id)
+    }
+
+    private fun boundProviderResults(
+        results: List<IndexResult>,
+        query: IndexQuery,
+        processingLocation: IndexProcessingLocation,
+    ): List<IndexResult> = results
+        .asSequence()
+        .map { result ->
+            rankedResult(
+                query = query,
+                result = result,
+                degradedProvider = false,
+                processingLocation = processingLocation,
+            )
+        }
+        .sortedWith(
+            Comparator { left, right ->
+                compareSameProviderResults(left, right)
+            },
+        )
+        .map { it.result }
+        .distinctBy(IndexResult::id)
+        .take(query.maxResults)
+        .toList()
 
     private fun isCompatibleProvider(provider: IndexProvider): Boolean =
         provider.contractVersion == GoreeCloudIndexContract.PROVIDER_CONTRACT_VERSION
@@ -251,10 +447,12 @@ class IndexQueryEngine(
         val validResults = providerResponse.results.filter { result ->
             result.providerId == provider.providerId &&
                 result.id.isNotBlank() &&
-                result.title.isNotBlank()
+                result.title.isNotBlank() &&
+                (result.sourceOrdinal == null || result.sourceOrdinal >= 0)
         }
+        val exceededResultBound = providerResponse.results.size > query.maxResults
         val issue = when {
-            validResults.size != providerResponse.results.size -> IndexProviderIssue(
+            validResults.size != providerResponse.results.size || exceededResultBound -> IndexProviderIssue(
                 providerId = provider.providerId,
                 providerName = provider.displayName,
                 kind = IndexProviderIssueKind.INVALID_RESULT,
@@ -268,11 +466,17 @@ class IndexQueryEngine(
         }
 
         IndexProviderOutcome(
-            results = validResults,
+            processingLocation = provider.processingLocation,
+            results = boundProviderResults(
+                results = validResults,
+                query = query,
+                processingLocation = provider.processingLocation,
+            ),
             issue = issue,
         )
     } catch (_: TimeoutCancellationException) {
         IndexProviderOutcome(
+            processingLocation = provider.processingLocation,
             issue = IndexProviderIssue(
                 providerId = provider.providerId,
                 providerName = provider.displayName,
@@ -283,6 +487,7 @@ class IndexQueryEngine(
         throw cancellation
     } catch (_: Exception) {
         IndexProviderOutcome(
+            processingLocation = provider.processingLocation,
             issue = IndexProviderIssue(
                 providerId = provider.providerId,
                 providerName = provider.displayName,
