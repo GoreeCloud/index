@@ -115,10 +115,7 @@ compatibility:
     - index-search-action-contract
 
 evidence:
-  acceptance_tests:
-    - app/src/test/java/com/goreecloud/index/provider/search/GoreeCloudSearchHttpClientTest.kt
-    - app/src/test/java/com/goreecloud/index/provider/search/GoreeCloudSearchCapabilityAcceptanceTest.kt
-    - app/src/test/java/com/goreecloud/index/provider/search/GoreeCloudSearchAuthorityRequirementsTest.kt
+  acceptance_tests: []
   release: []
 
 conformance:
