@@ -73,5 +73,9 @@ class GoreeCloudSearchBoundaryHardeningTest {
         authenticatedRequesterScheme = GOREECLOUD_SEARCH_REQUESTER_AUTHENTICATION_SCHEME,
         authenticatedRequesterHeader = GOREECLOUD_SEARCH_REQUESTER_AUTHENTICATION_HEADER,
         maxRequestBytes = GOREECLOUD_SEARCH_MAX_REQUEST_BYTES,
+        indexDelegationContractVersion = GOREECLOUD_SEARCH_INDEX_DELEGATION_CONTRACT_VERSION,
+        indexDelegationMode = GOREECLOUD_SEARCH_INDEX_DELEGATION_MODE,
+        indexProviderReentryAllowed = GOREECLOUD_SEARCH_INDEX_PROVIDER_REENTRY_ALLOWED,
+        indexDelegationFallbackAllowed = GOREECLOUD_SEARCH_INDEX_DELEGATION_FALLBACK_ALLOWED,
     )
 }

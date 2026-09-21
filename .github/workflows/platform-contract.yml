@@ -6,12 +6,20 @@ name: Platform Contract
     paths:
       - goreecloud.platform.yaml
       - .github/workflows/platform-contract.yml
+      - app/src/main/java/com/goreecloud/index/provider/search/**
+      - app/src/test/java/com/goreecloud/index/provider/search/**
+      - docs/SEARCH_INTEGRATION.md
+      - scripts/validate_repository.py
   push:
     branches:
       - main
     paths:
       - goreecloud.platform.yaml
       - .github/workflows/platform-contract.yml
+      - app/src/main/java/com/goreecloud/index/provider/search/**
+      - app/src/test/java/com/goreecloud/index/provider/search/**
+      - docs/SEARCH_INTEGRATION.md
+      - scripts/validate_repository.py
   workflow_dispatch:
 
 permissions:

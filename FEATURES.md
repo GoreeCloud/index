@@ -38,6 +38,7 @@
 ### GoreeCloud Search Foundation
 
 - Search API/provider-contract compatibility.
+- Cycle-safe Search capability gating requiring external-only Index-originated delegation with Index re-entry and fallback disabled.
 - Capability preflight and freshness checks.
 - Privacy Shield constrained intent/reference handling.
 - Independent GoreeCloud Identity requester-credential requirement for Production delegation.

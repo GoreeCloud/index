@@ -36,7 +36,7 @@ Dispatch requires Android runtime permission plus Privacy Shield and GoreeCloud 
 
 ## GoreeCloud Search
 
-The transport-neutral Search source validates Index provider contract v1, Search API v1, `search.query` capability identity/freshness, canonical endpoint and result bounds, Privacy Shield intent/reference, authenticated Identity requester metadata, response binding, degraded state, URL safety, and sensitive rendering boundaries.
+The transport-neutral Search source validates Index provider contract v1, Search API v1, `search.query` capability identity/freshness, canonical endpoint and result bounds, the cycle-safe `goreecloud.search-index-delegation.v1` external-only/no-reentry/no-fallback contract, Privacy Shield intent/reference, authenticated Identity requester metadata, response binding, degraded state, URL safety, and sensitive rendering boundaries.
 
 The Development runtime does not register live Search transport and does not request Android Internet permission.
 

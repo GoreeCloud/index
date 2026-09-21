@@ -15,6 +15,49 @@ class GoreeCloudSearchCapabilityAcceptanceTest {
     }
 
     @Test
+    fun developmentModeRejectsMissingCycleSafeDelegationEvidenceBeforeQuery() = runTest {
+        val unsafeCapabilities = listOf(
+            capability(
+                productionAccepted = false,
+                indexDelegationContractVersion = null,
+            ),
+            capability(
+                productionAccepted = false,
+                indexDelegationMode = "index_first",
+            ),
+            capability(
+                productionAccepted = false,
+                indexProviderReentryAllowed = true,
+            ),
+            capability(
+                productionAccepted = false,
+                indexDelegationFallbackAllowed = true,
+            ),
+        )
+
+        for (candidate in unsafeCapabilities) {
+            var searchCalls = 0
+            val provider = provider(
+                mode = GoreeCloudSearchAcceptanceMode.DEVELOPMENT,
+                capability = candidate,
+            ) {
+                searchCalls++
+            }
+
+            val failure = runCatching {
+                provider.searchWithStatus(IndexQuery(text = "goreecloud", maxResults = 1))
+            }.exceptionOrNull()
+
+            assertTrue(failure is IllegalStateException)
+            assertEquals(
+                "GoreeCloud Search query capability does not provide cycle-safe Index-originated delegation",
+                failure?.message,
+            )
+            assertEquals(0, searchCalls)
+        }
+    }
+
+    @Test
     fun developmentModeAcceptsLegacyDevelopmentGetCapability() = runTest {
         var searchCalls = 0
         val provider = provider(
@@ -390,6 +433,10 @@ class GoreeCloudSearchCapabilityAcceptanceTest {
         authenticatedRequesterScheme: String? = GOREECLOUD_SEARCH_REQUESTER_AUTHENTICATION_SCHEME,
         authenticatedRequesterHeader: String? = GOREECLOUD_SEARCH_REQUESTER_AUTHENTICATION_HEADER,
         maxRequestBytes: Int = GOREECLOUD_SEARCH_MAX_REQUEST_BYTES,
+        indexDelegationContractVersion: String? = GOREECLOUD_SEARCH_INDEX_DELEGATION_CONTRACT_VERSION,
+        indexDelegationMode: String? = GOREECLOUD_SEARCH_INDEX_DELEGATION_MODE,
+        indexProviderReentryAllowed: Boolean? = GOREECLOUD_SEARCH_INDEX_PROVIDER_REENTRY_ALLOWED,
+        indexDelegationFallbackAllowed: Boolean? = GOREECLOUD_SEARCH_INDEX_DELEGATION_FALLBACK_ALLOWED,
     ): GoreeCloudSearchCapability = GoreeCloudSearchCapability(
         id = GOREECLOUD_SEARCH_QUERY_CAPABILITY_ID,
         contractVersion = GOREECLOUD_SEARCH_API_VERSION,
@@ -414,6 +461,10 @@ class GoreeCloudSearchCapabilityAcceptanceTest {
         authenticatedRequesterAuthority = authenticatedRequesterAuthority,
         authenticatedRequesterScheme = authenticatedRequesterScheme,
         authenticatedRequesterHeader = authenticatedRequesterHeader,
+        indexDelegationContractVersion = indexDelegationContractVersion,
+        indexDelegationMode = indexDelegationMode,
+        indexProviderReentryAllowed = indexProviderReentryAllowed,
+        indexDelegationFallbackAllowed = indexDelegationFallbackAllowed,
     )
 
     private fun emptyResponse(request: GoreeCloudSearchRequest): GoreeCloudSearchResponse =
