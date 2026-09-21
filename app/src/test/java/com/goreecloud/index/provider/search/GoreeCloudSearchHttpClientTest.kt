@@ -72,6 +72,58 @@ class GoreeCloudSearchHttpClientTest {
     }
 
     @Test
+    fun readinessParsesReadyAndNotReadyWithoutAuthorityHeaders() = runTest {
+        val exchange = RecordingExchange(
+            response = jsonResponse(
+                """{"status":"ready","service":"goreecloud-search","version":"0.1.0.dev14","lifecycle":"development"}"""
+            ),
+        )
+        val client = AuthenticatedGoreeCloudSearchHttpClient(exchange)
+
+        assertTrue(client.queryReadiness())
+        val readyRequest = exchange.requests.single()
+        assertEquals("GET", readyRequest.method)
+        assertEquals("https://search.goreecloud.com/readyz", readyRequest.url.toString())
+        assertFalse(readyRequest.headers.containsKey("Authorization"))
+        assertFalse(readyRequest.headers.containsKey("X-GoreeCloud-Privacy-Capability"))
+
+        exchange.requests.clear()
+        exchange.response = GoreeCloudSearchHttpResponse(
+            status = 503,
+            contentType = "application/json; charset=utf-8",
+            body = """{"status":"not_ready","service":"goreecloud-search","version":"0.1.0.dev14","lifecycle":"development"}"""
+                .toByteArray(Charsets.UTF_8),
+        )
+
+        assertFalse(client.queryReadiness())
+        assertEquals("https://search.goreecloud.com/readyz", exchange.requests.single().url.toString())
+    }
+
+    @Test
+    fun readinessRejectsInconsistentOrUnexpectedServiceResponses() = runTest {
+        val exchange = RecordingExchange(
+            response = jsonResponse(
+                """{"status":"not_ready","service":"goreecloud-search","version":"0.1.0.dev14","lifecycle":"development"}"""
+            ),
+        )
+        val client = AuthenticatedGoreeCloudSearchHttpClient(exchange)
+
+        val inconsistent = runCatching { client.queryReadiness() }.exceptionOrNull()
+        assertTrue(inconsistent is GoreeCloudSearchTransportException)
+        assertEquals("GoreeCloud Search readiness response is inconsistent", inconsistent?.message)
+
+        exchange.response = jsonResponse(
+            """{"status":"ready","service":"unexpected-service","version":"0.1.0.dev14","lifecycle":"development"}"""
+        )
+        val unexpected = runCatching { client.queryReadiness() }.exceptionOrNull()
+        assertTrue(unexpected is GoreeCloudSearchTransportException)
+        assertEquals(
+            "GoreeCloud Search readiness response identifies an unexpected service",
+            unexpected?.message,
+        )
+    }
+
+    @Test
     fun authenticatedSearchUsesPostBodyAndSeparateAuthorityHeaders() = runTest {
         val exchange = RecordingExchange(
             response = jsonResponse(
