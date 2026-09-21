@@ -20,6 +20,12 @@ A future Search capability must prove `goreecloud.search-index-delegation.v1` wi
 
 Paired GoreeCloud Search PR #23 is integrated on its authoritative Development line with the cycle-safe authenticated HTTP boundary. Index still does not register Search in its Development UI, and no Identity/Privacy Shield runtime acceptance is created by either source integration.
 
+## 2026-09-21 — Search runtime readiness gate candidate
+
+The current Index candidate adds a separate production-only Search runtime-readiness preflight against the fixed `https://search.goreecloud.com/readyz` endpoint. Capability validation still runs first; a non-ready Search runtime then fails closed before Index asks Privacy Shield for an operation capability or GoreeCloud Identity for a requester credential. The preflight carries no authorization material or query content.
+
+The paired Search PR #28 currently defines readiness as accepted authority transports plus at least one enabled external provider, while still advertising `production_accepted=false`. Index remains dormant/unregistered in Development source controls, so this candidate does not activate remote Search or create runtime acceptance.
+
 ## Runtime Boundary
 
 - Development source selection is local-only and limited to Applications, Settings, and Contacts.
