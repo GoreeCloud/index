@@ -2,7 +2,7 @@
 
 ## Status
 
-**Release lifecycle: Development.** This document defines benchmark objectives, not current parity or superiority claims. Accepted `main` is `cc3cc21d6e11dad026253c3371c3b67663d3b726`; the `0.3.0-dev` Contacts/authority slice remains branch source pending exact-head validation and merge acceptance.
+**Release lifecycle: Development.** This document defines benchmark objectives, not current parity or superiority claims. Latest runtime-bearing integration checkpoint is `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`; documentation/test-only commits may advance the default branch, so verify GitHub live whenever the exact current `main` SHA is material. The integrated `0.3.0-dev` line includes Applications, bounded Settings navigation, authority-gated Contacts source, reconciled query/runtime improvements, and GLAZE UI V1.6 source adoption. Production acceptance and Stable qualification remain false.
 
 ## Benchmark References
 

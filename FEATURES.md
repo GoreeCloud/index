@@ -2,9 +2,9 @@
 
 ## Status
 
-**Release lifecycle: Development.** Candidate version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
 
-## Candidate Source Features
+## Integrated Development Features
 
 ### Search Core
 

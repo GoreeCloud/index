@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Release lifecycle: Development.** This reconciliation candidate is based on authoritative `GoreeCloud/index` main `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`. Candidate source is not integrated merely because it exists or passes CI.
+**Release lifecycle: Development.** Latest runtime-bearing integration checkpoint is `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. PR #38 is integrated and post-merge Platform Contract run `35600884480` plus Android Index foundation run `35600883648` passed on that checkpoint. Documentation/test-only commits may advance the default branch; verify GitHub live whenever the exact current `main` SHA is material. Production acceptance and Stable qualification remain false.
 
 ## Search and Composition
 
@@ -26,7 +26,7 @@ Android permission review is user-initiated and addresses only Android's prerequ
 
 ## GoreeCloud Search Production Contract Source
 
-Candidate Search source requires independent Privacy Shield and Identity evidence before Production delegation. It validates Search capability metadata and transport intent before calling a supplied client. No concrete Identity registration, token format, issuer, scope, client ID, TLS/proxy path, or production credential is invented locally.
+Integrated Search source requires independent Privacy Shield and Identity evidence before Production delegation. It validates Search capability metadata and transport intent before calling a supplied client. No concrete Identity registration, token format, issuer, scope, client ID, TLS/proxy path, or production credential is invented locally.
 
 ## GLAZE UI
 
@@ -34,4 +34,4 @@ Active native theme source targets V1.6 / `1.6.0`. Presentation consumes caller-
 
 ## Limits
 
-The candidate remains local-only in the Development UI. Live remote Search, accepted Contacts/platform runtime integrations, representative-device qualification, durable local indexing, additional providers, recovery/release gates, production, and Stable remain open.
+The authoritative Development runtime remains local-only in the Development UI. Live remote Search, accepted Contacts/platform runtime integrations, representative-device qualification, durable local indexing, additional providers, recovery/release gates, production, and Stable remain open.

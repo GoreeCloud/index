@@ -6,7 +6,8 @@
 
 - Repository: `GoreeCloud/index`
 - Version: `0.3.0-dev` / code `3`
-- Candidate base: `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`
+- Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`
+- Exact current default-branch SHA: verify GitHub live when material; documentation/test-only commits may advance it
 - Supported implementation: Android
 - Platform Contract: `0.4`
 - GLAZE UI source target: V1.6 / `1.6.0`
@@ -19,7 +20,7 @@ Index coordinates authorized search providers, normalizes and composes results, 
 
 ## Query Runtime
 
-The candidate engine supports deterministic NFKC normalization, applicability filtering, exact provider allowlisting, local-only gating, authority evaluation, structured concurrent dispatch, bounded provider timeouts, cancellation propagation, partial/degraded results, provider-result provenance validation, provider-scoped deduplication, bounded fan-out, deterministic ranking, and incremental `Flow<IndexSearchSnapshot>` delivery.
+The integrated engine supports deterministic NFKC normalization, applicability filtering, exact provider allowlisting, local-only gating, authority evaluation, structured concurrent dispatch, bounded provider timeouts, cancellation propagation, partial/degraded results, provider-result provenance validation, provider-scoped deduplication, bounded fan-out, deterministic ranking, and incremental `Flow<IndexSearchSnapshot>` delivery.
 
 One-shot search resolves through the same final incremental-composition path.
 
@@ -41,7 +42,7 @@ The Development runtime does not register live Search transport and does not req
 
 ## GLAZE UI V1.6
 
-The candidate includes a native V1.6 source projection bound to accepted release source `a7180679ea851389e0f3004515f9a25f420e716d`, qualification source `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`, and Stable runtime `js/glaze-v1.6.0.mjs`.
+The integrated Development line includes a native V1.6 source projection bound to accepted release source `a7180679ea851389e0f3004515f9a25f420e716d`, qualification source `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`, and Stable runtime `js/glaze-v1.6.0.mjs`.
 
 Presentation remains non-authorizing. Unknown, conflicting, restricted, unsupported, or permission-required capability state fails closed. Accessibility precedence can force a solid presentation path. Index application-level rendered/native, accessibility, device/form-factor, performance, rollback, release, and production acceptance remain incomplete.
 

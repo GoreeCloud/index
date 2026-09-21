@@ -2,7 +2,7 @@
 
 ## Current Development Scope
 
-**Release lifecycle: Development.** This reconciliation candidate is not production accepted or Stable.
+**Release lifecycle: Development.** The integrated `0.3.0-dev` build is not production accepted or Stable.
 
 ## Opening Index
 
@@ -10,7 +10,7 @@ Open **GoreeCloud Index Dev** or invoke the supported Android external search ac
 
 ## Search Sources
 
-Candidate source provides session controls for Applications, Settings, and Contacts. These controls affect only the current Index session. Development mode is enforced local-only.
+The integrated Development source provides session controls for Applications, Settings, and Contacts. These controls affect only the current Index session. Development mode is enforced local-only.
 
 GoreeCloud Search / Internet results are not available through these controls and are never silently enabled.
 
@@ -42,7 +42,7 @@ Development runtime has no Android Internet permission and does not register a l
 
 ## GLAZE UI
 
-Candidate source targets GLAZE UI V1.6 / `1.6.0`. This is source adoption only; rendered/native accessibility, device/form-factor, performance, rollback, release, and production acceptance remain open.
+The integrated Development source targets GLAZE UI V1.6 / `1.6.0`. This is source adoption only; rendered/native accessibility, device/form-factor, performance, rollback, release, and production acceptance remain open.
 
 ## Development Identity
 

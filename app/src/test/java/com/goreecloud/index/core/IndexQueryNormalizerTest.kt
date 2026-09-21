@@ -27,6 +27,29 @@ class IndexQueryNormalizerTest {
     }
 
     @Test
+    fun matcherTreatsCanonicalUnicodeFormsAsEquivalent() {
+        val composed = "Café"
+        val decomposed = "Cafe\u0301"
+
+        assertEquals(1_000, IndexTextMatcher.score(decomposed, composed))
+        assertEquals(1_000, IndexTextMatcher.score(composed, decomposed))
+        assertEquals(
+            540,
+            IndexTextMatcher.score(
+                query = "Re\u0301sume\u0301",
+                title = "Documents",
+                secondary = "Résumé",
+            ),
+        )
+    }
+
+    @Test
+    fun unicodeSeparatorsPreserveWordPrefixRanking() {
+        assertEquals(760, IndexTextMatcher.score("sett", "Privacy\u00A0Settings"))
+        assertEquals(760, IndexTextMatcher.score("cal", "Work\u2003Calendar"))
+    }
+
+    @Test
     fun enginePassesCanonicalWhitespaceToProviders() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         var observedQuery: IndexQuery? = null

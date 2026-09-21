@@ -8,11 +8,11 @@ GoreeCloud Index is GoreeCloud's privacy-first universal search and indexing coo
 
 Canonical repository: `GoreeCloud/index`.
 
-This reconciliation candidate starts from verified authoritative `main` commit `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`. Candidate source is not authoritative integration evidence until fresh exact-head validation passes and a separately authorized merge is verified.
+Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`, produced by the confirmed squash merge of PR #38 after exact-head validation. Documentation- or test-only commits may advance the default branch; verify GitHub live whenever the exact current `main` SHA is material. Post-merge Platform Contract run `35600884480` and Android Index foundation run `35600883648` both passed on the runtime-bearing checkpoint.
 
-## Candidate Development Capability
+## Integrated Development Capability
 
-The candidate selectively carries forward still-valid runtime work from PR #35 without inheriting its obsolete seven-system, Contract 0.3, older Glaze, or validator assumptions:
+The integrated Development line preserves the still-valid runtime work reconciled from PR #35 without inheriting its obsolete seven-system, Contract 0.3, older Glaze, or validator assumptions:
 
 - provider-neutral query/result/action contracts and result provenance validation;
 - deterministic Unicode normalization and provider-scoped composition;
@@ -37,7 +37,7 @@ GoreeCloud Search remains authoritative for Internet/web/current-information ret
 
 ## GLAZE UI V1.6
 
-Candidate source targets current Official Stable GLAZE UI V1.6 / `1.6.0`, bound to accepted release source `a7180679ea851389e0f3004515f9a25f420e716d` and Stable runtime `js/glaze-v1.6.0.mjs`.
+The integrated Development line targets current Official Stable GLAZE UI V1.6 / `1.6.0`, bound to accepted release source `a7180679ea851389e0f3004515f9a25f420e716d` and Stable runtime `js/glaze-v1.6.0.mjs`.
 
 The native projection remains presentation-only. It does not automatically request permission, infer authorization, choose provider precedence, navigate, execute fallbacks, or collect remote optical context.
 
@@ -45,7 +45,7 @@ Source adoption does **not** establish Index-local Glaze conformance. Rendered/n
 
 ## Platform Contract
 
-The candidate preserves Platform Contract `0.4`, exactly nine Integral Platform Systems, and GoreeCloud Sync as separately governed. Glaze source version is `1.6.0`, but its result remains **Applicable — Blocked** pending application-level acceptance. Manager, Privacy Shield, Wardveil Security, Everkeep, Mesh, Identity, Policy, and Observability also remain blocked pending accepted runtime evidence.
+The integrated Development line preserves Platform Contract `0.4`, exactly nine Integral Platform Systems, and GoreeCloud Sync as separately governed. Glaze source version is `1.6.0`, but its result remains **Applicable — Blocked** pending application-level acceptance. Manager, Privacy Shield, Wardveil Security, Everkeep, Mesh, Identity, Policy, and Observability also remain blocked pending accepted runtime evidence.
 
 ## Android Development Identity
 
@@ -59,7 +59,7 @@ The candidate preserves Platform Contract `0.4`, exactly nine Integral Platform 
 
 ## Release Boundary
 
-Fresh green CI on this candidate proves only the checks executed at that exact source revision. Production signing/distribution, representative-device acceptance, recovery/rollback, Release Candidate qualification, production approval, and Stable qualification remain separate gates.
+Post-merge CI on runtime-bearing checkpoint `5ae1a1debc79a7adc8b65266bb947baf633d4d1f` proves the checks executed at that revision; it does not by itself satisfy later runtime or release gates. Production signing/distribution, representative-device acceptance, recovery/rollback, Release Candidate qualification, production approval, and Stable qualification remain separate gates.
 
 ## Documentation
 

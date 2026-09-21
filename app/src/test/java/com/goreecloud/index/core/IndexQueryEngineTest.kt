@@ -387,6 +387,24 @@ class IndexQueryEngineTest {
     }
 
     @Test
+    fun canonicallyEquivalentCrossProviderTieFallsThroughToStableProviderIdentity() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val zProvider = provider("z-provider", "Z") {
+            listOf(result("one", "z-provider", "Cafe\u0301", 700))
+        }
+        val aProvider = provider("a-provider", "A") {
+            listOf(result("two", "a-provider", "Café", 700))
+        }
+
+        val snapshot = IndexQueryEngine(listOf(zProvider, aProvider), dispatcher).search(
+            rawQuery = "cafe",
+            executionContext = contextFor("z-provider", "a-provider"),
+        )
+
+        assertEquals(listOf("a-provider", "z-provider"), snapshot.results.map { it.providerId })
+    }
+
+    @Test
     fun healthyProviderWinsEqualCrossProviderRelevanceAgainstDegradedProvider() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val degraded = statusProvider("a-degraded", "Degraded") {
