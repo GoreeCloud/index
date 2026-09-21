@@ -295,7 +295,7 @@ private fun jsonString(value: String): String = buildString(value.length + 2) {
     append('"')
     value.forEach { character ->
         when (character) {
-            '"' -> append("\\"")
+            '"' -> append("\\\"")
             '\\' -> append("\\\\")
             '\b' -> append("\\b")
             '\u000C' -> append("\\f")
