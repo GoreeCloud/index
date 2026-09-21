@@ -327,7 +327,11 @@ class GoreeCloudSearchProvider(
                 "GoreeCloud Search query capability discovery contract is incompatible"
             }
             check(GOREECLOUD_SEARCH_PREFERRED_METHOD in capability.methods && capability.preferredMethod == GOREECLOUD_SEARCH_PREFERRED_METHOD) {
-                "GoreeCloud Search query capability does not provide the required authenticated POST transport"
+                if (acceptanceMode == GoreeCloudSearchAcceptanceMode.PRODUCTION) {
+                    "GoreeCloud Search query capability does not provide the required production POST transport"
+                } else {
+                    "GoreeCloud Search query capability does not provide the required authenticated Development POST transport"
+                }
             }
             check(
                 capability.preferredQueryTransport == GOREECLOUD_SEARCH_PREFERRED_QUERY_TRANSPORT &&
