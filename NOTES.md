@@ -5,7 +5,7 @@
 - Release lifecycle: Development.
 - Application version: `0.3.0-dev`.
 - Canonical repository: `GoreeCloud/index`.
-- Authoritative main: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`.
+- Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`; verify GitHub live whenever the exact current default-branch SHA is material.
 - No production acceptance or Stable qualification is claimed.
 
 ## Verified PR #38 Integration

@@ -53,7 +53,7 @@ platform_systems:
       - CONFORMANCE.md
       - FEATURE-ROADMAP.md
       - app/src/main/java/com/goreecloud/index/ui/theme/GlazeV16Contract.kt
-    notes: Authoritative main targets current Official Stable GLAZE UI V1.6 / 1.6.0, but repository-local rendered/native accessibility, representative-device/form-factor, performance, Human Visual Excellence, rollback, release, and production acceptance remain incomplete.
+    notes: Integrated Development source targets current Official Stable GLAZE UI V1.6 / 1.6.0, but repository-local rendered/native accessibility, representative-device/form-factor, performance, Human Visual Excellence, rollback, release, and production acceptance remain incomplete.
   mesh:
     result: applicable-blocked
     version: null
@@ -131,7 +131,7 @@ conformance:
     - Producer-authoritative Privacy Shield runtime integration, user-decision lifecycle, and acceptance are incomplete.
     - Wardveil Security provider/action evidence integration and production security acceptance are incomplete.
     - Everkeep continuity and recovery requirements for durable Index state remain unaccepted.
-    - Index authoritative main targets current Stable GLAZE UI V1.6 / 1.6.0, but application-level rendered/native, accessibility, device/form-factor, performance, rollback, release, and production acceptance remain incomplete.
+    - Index integrated Development source targets current Stable GLAZE UI V1.6 / 1.6.0, but application-level rendered/native, accessibility, device/form-factor, performance, rollback, release, and production acceptance remain incomplete.
     - GoreeCloud Mesh provider discovery/coordination integration and runtime acceptance are incomplete.
     - GoreeCloud Identity authorization, isolation, revocation, and runtime acceptance are incomplete.
     - GoreeCloud Policy applicability is evaluated as applicable, but policy decision, enforcement, freshness, explanation, and evidence integration are not accepted.

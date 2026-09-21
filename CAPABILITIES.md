@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Release lifecycle: Development.** Authoritative `GoreeCloud/index` main is `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. PR #38 is integrated and exact-main Platform Contract run `35600884480` plus Android Index foundation run `35600883648` passed. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Latest runtime-bearing integration checkpoint is `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. PR #38 is integrated and post-merge Platform Contract run `35600884480` plus Android Index foundation run `35600883648` passed on that checkpoint. Documentation/test-only commits may advance the default branch; verify GitHub live whenever the exact current `main` SHA is material. Production acceptance and Stable qualification remain false.
 
 ## Search and Composition
 

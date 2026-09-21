@@ -4,7 +4,7 @@
 
 **Release lifecycle: Development.** Version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
 
-Authoritative main: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`.
+Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. Verify GitHub live whenever the exact current default-branch SHA is material.
 
 ## Repository and Platform Contract
 
@@ -84,7 +84,7 @@ Authoritative main: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`.
 | GoreeCloud Policy | Applicable — Blocked |
 | GoreeCloud Observability | Applicable — Blocked |
 
-Glaze source migration is integrated on authoritative `main`, but application-level acceptance is still blocked. No declaration above equals production acceptance.
+Glaze source migration is integrated in the Development source line, but application-level acceptance is still blocked. No declaration above equals production acceptance.
 
 ## Verified Integration Evidence
 

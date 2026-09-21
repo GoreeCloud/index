@@ -42,7 +42,7 @@ Development runtime has no Android Internet permission and does not register a l
 
 ## GLAZE UI
 
-Authoritative `main` targets GLAZE UI V1.6 / `1.6.0`. This is source adoption only; rendered/native accessibility, device/form-factor, performance, rollback, release, and production acceptance remain open.
+The integrated Development source targets GLAZE UI V1.6 / `1.6.0`. This is source adoption only; rendered/native accessibility, device/form-factor, performance, rollback, release, and production acceptance remain open.
 
 ## Development Identity
 
