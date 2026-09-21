@@ -54,7 +54,7 @@ Latest accepted runtime-bearing checkpoint: `34446cc519afb87bca27b0c3e6639db01ff
 - [x] Integrated Production requirement for both Privacy Shield and GoreeCloud Identity.
 - [x] Integrated operation-scoped Privacy Shield reference and independent Identity requester credential boundary.
 - [x] Sensitive-value redaction and safe URL/action validation.
-- [x] Development runtime remains local-only with no Internet permission.
+- [x] Development provider registration and source controls remain local-only; Android `INTERNET` permission is present only for the dormant fixed-origin Search HTTPS client.
 - [ ] Live transport registration/discovery/authentication/TLS/proxy acceptance.
 - [ ] User-facing Internet-provider enablement/preferences.
 - [ ] Representative runtime acceptance.
