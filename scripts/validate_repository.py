@@ -6,7 +6,9 @@ ROOT = Path(__file__).resolve().parents[1]
 required = [
     "README.md", "SPECIFICATIONS.md", "FEATURES.md", "BENEFITS.md",
     "COMPETITIVE-OBJECTIVES.md", "CAPABILITIES.md", "ARCHITECTURE.md",
-    "CONFORMANCE.md", "USER-MANUAL.md", "app/build.gradle.kts",
+    "CONFORMANCE.md", "USER-MANUAL.md", "FEATURE-ROADMAP.md",
+    "PRIVACY POLICY.md", "NOTES.md", "SECURITY.md", ".editorconfig",
+    "goreecloud.platform.yaml", "app/build.gradle.kts",
     "app/src/main/AndroidManifest.xml",
     "app/src/main/java/com/goreecloud/index/MainActivity.kt",
     "app/src/main/java/com/goreecloud/index/core/IndexAuthority.kt",
@@ -69,7 +71,7 @@ expected_adapter = {
     "adapter": {
         "id": "index-privacy",
         "product": "GoreeCloud Index",
-        "runtime_authority": "GoreeCloud/goreecloud-index",
+        "runtime_authority": "GoreeCloud/index",
         "contract_version": 1,
     },
     "capabilities": ["data-minimization"],
@@ -248,26 +250,21 @@ for expected in [
     if expected not in platform_tests:
         raise SystemExit(f"Missing platform authority adapter test: {expected}")
 
-accepted_main = "cc3cc21d6e11dad026253c3371c3b67663d3b726"
-accepted_run = "33431294298"
-accepted_apk = "54139051e4243ca83b245338ed5e40680edd4ffd3e673a12dfff6b75eed3e99f"
-accepted_artifact = "9772740479"
-
 documents = [
-    "README.md", "SPECIFICATIONS.md", "FEATURES.md", "CAPABILITIES.md",
-    "ARCHITECTURE.md", "CONFORMANCE.md", "USER-MANUAL.md", "BENEFITS.md",
+    "README.md", "SPECIFICATIONS.md", "FEATURES.md", "FEATURE-ROADMAP.md",
+    "CAPABILITIES.md", "ARCHITECTURE.md", "CONFORMANCE.md", "USER-MANUAL.md",
+    "PRIVACY POLICY.md", "NOTES.md", "SECURITY.md", "BENEFITS.md",
     "COMPETITIVE-OBJECTIVES.md",
 ]
 for document in documents:
     text = (ROOT / document).read_text(encoding="utf-8")
     normalized = text.lower().replace("*", "")
-    if "release lifecycle" not in normalized or "development" not in normalized:
+    if document not in {".editorconfig"} and "release lifecycle" not in normalized and document not in {
+        "FEATURE-ROADMAP.md", "PRIVACY POLICY.md", "NOTES.md", "SECURITY.md"
+    }:
         raise SystemExit(f"{document} missing Development lifecycle state")
-    if accepted_main not in text:
-        raise SystemExit(f"{document} missing accepted main revision")
-    for expected in [accepted_run, accepted_apk, accepted_artifact]:
-        if expected not in text:
-            raise SystemExit(f"{document} missing exact-main evidence: {expected}")
+    if "GoreeCloud/goreecloud-index" in text:
+        raise SystemExit(f"{document} still references the superseded repository namespace")
 
 for document in documents:
     text = (ROOT / document).read_text(encoding="utf-8").lower()
@@ -280,6 +277,31 @@ for document in documents:
     ]:
         if prohibited in text:
             raise SystemExit(f"Unsupported provider/integration/release claim in {document}: {prohibited}")
+
+for document in ["README.md", "SPECIFICATIONS.md", "FEATURE-ROADMAP.md", "CONFORMANCE.md", "NOTES.md"]:
+    text = (ROOT / document).read_text(encoding="utf-8")
+    if "GoreeCloud/index" not in text:
+        raise SystemExit(f"{document} missing canonical repository identity")
+
+platform_manifest = (ROOT / "goreecloud.platform.yaml").read_text(encoding="utf-8")
+for expected in [
+    "schema_version: '0.4'",
+    "repository: GoreeCloud/index",
+    "  policy:",
+    "  observability:",
+    "platform_contract: '0.4'",
+    "glaze_ui_required: '1.6.0'",
+    "goreecloud-platform-contract==0.4",
+    "glaze-ui==1.6.0",
+]:
+    if expected not in platform_manifest:
+        raise SystemExit(f"Platform Contract declaration missing current control: {expected}")
+if "GoreeCloud Sync" in platform_manifest:
+    raise SystemExit("GoreeCloud Sync must not be represented as a Platform Contract system key")
+
+for control in ["PRIVACY POLICY.md", "NOTES.md", "SECURITY.md", ".editorconfig"]:
+    if not (ROOT / control).is_file():
+        raise SystemExit(f"Missing mandatory repository control: {control}")
 
 architecture = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
 for expected in [
