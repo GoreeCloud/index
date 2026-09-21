@@ -61,7 +61,7 @@ Cross-provider comparison uses Index-owned normalized textual relevance instead 
 
 The provider remains transport-neutral. Production source validates Search API/provider contract, capability identity/freshness, endpoint/result bounds, Privacy Shield reference intent, authenticated Identity requester metadata, request/response binding, degraded state, and safe URLs/actions.
 
-Development MainActivity does not register a live Search client/provider and Android does not request Internet permission. No remote fallback is created.
+Development MainActivity does not register a live Search client/provider. The current candidate requests Android `INTERNET` permission only for the dormant fixed-origin HTTPS client; the Development provider set and source controls remain local-only, and no remote fallback is created.
 
 ## GLAZE UI V1.6
 
