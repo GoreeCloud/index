@@ -8,40 +8,37 @@
 
 ## Current Development Checkpoint
 
-Verified integrated baseline before this control-plane stabilization is `258516d856fd48d7f3f181425d2a77199cdbab31`.
+Authoritative `main` baseline is `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`, which established Contract `0.4`, the nine-system model, current repository identity, and required Glaze `1.6.0` target.
 
-Current source includes the GoreeCloud Search provider foundation and provenance boundary from PR #26, ranking normalization optimization from PR #27, Search API-version binding from PR #29, provider contract compatibility from PR #30, degraded-provider propagation from PR #31, Search capability preflight from PR #32, the GLAZE UI V1.4 native foundation from PR #33, and roadmap reconciliation from PR #34.
-
-The control plane is now aligned to Platform Contract `0.4`, the nine-system Integral Platform Systems v3.0 model, canonical repository `GoreeCloud/index`, and current Stable GLAZE UI consumer target V1.6 / `1.6.0`. This does not promote lifecycle or claim runtime acceptance.
+This reconciliation candidate selectively carries still-valid PR #35 runtime work and replaces stacked PR #36's obsolete V1.5 adoption with a fresh V1.6 source projection. It does not inherit PR #35/#36 validation or lifecycle claims.
 
 ## Roadmap
 
 | ID | Feature / obligation | Priority | Current state |
 | --- | --- | --- | --- |
-| FR-001 | Keep repository and Drive roadmap controls synchronized with verified implementation and lifecycle state. | High | Ongoing control. |
-| FR-002 | Keep actionable Index obligations represented in GoreeCloud Tasks Management until verified completion. | High | Ongoing control. |
-| FR-003 | Preserve Development/nonconformant status until every applicable release gate has evidence. | High | Ongoing control. |
-| FR-004 | Migrate the current V1.4 native semantic foundation to GLAZE UI V1.6 / `1.6.0` and complete rendered/native, accessibility, form-factor, performance, Human Visual Excellence, rollback, release, and production acceptance. | High | V1.4 foundation implemented; V1.6 migration and application acceptance open. |
-| FR-005 | Preserve deterministic query normalization, ranking, provenance validation, provider contract compatibility, and fail-closed authority behavior. | High | Implemented at source level; maintain with exact-revision tests. |
-| FR-006 | Expand first-party providers one explicit authority contract at a time: Files, Calendar, media, additional GoreeCloud content, and connected-device resources. | High | Applications and bounded Settings implemented; Contacts remains fail-closed. |
-| FR-007 | Complete GoreeCloud Search Internet-provider integration without silently exporting unrelated local context. | High | Transport-neutral source foundation implemented; live transport, discovery/authentication/TLS/proxy, user controls, and runtime acceptance open. |
-| FR-008 | Integrate and accept Manager, Privacy Shield, Wardveil Security, Everkeep, Mesh, Identity, Policy, and Observability runtime responsibilities while preserving authority boundaries. | High | Applicable systems remain blocked; Glaze is separately migration-required. |
-| FR-009 | Add provider enable/disable, permission review, local-only mode, Internet-provider preference, third-party connection/revocation, history controls if history exists, and index/cache clearing. | Medium | Planned. |
-| FR-010 | Add local indexing only where latency/quality benefit justifies reconstructible, profile/device-scoped derived storage. | Medium | Planned; no production local-content index accepted. |
-| FR-011 | Qualify cancellation/timeouts, partial/degraded results, resource use, accessibility, localization/RTL, text scaling/reflow, reduced motion/transparency, contrast, and representative performance. | High | Source-level behavior exists; representative acceptance open. |
-| FR-012 | Complete signing/provenance, upgrade/rollback, Release Candidate, production approval, and Stable qualification. | High | Open release gates. |
-| FR-013 | Keep the repository Platform Contract current with central Contract `0.4`, all nine system declarations, and the current Stable Glaze target without upgrading missing evidence. | High | Implemented in this control-plane stabilization; exact-head CI and merge acceptance required before authoritative integration. |
-| FR-014 | Maintain mandatory repository root controls: `PRIVACY POLICY.md`, `NOTES.md`, `SECURITY.md`, and `.editorconfig`. | High | Added in this control-plane stabilization; exact-head CI and merge acceptance required before authoritative integration. |
+| FR-001 | Keep repository and Drive controls synchronized with verified reality. | High | Ongoing. |
+| FR-002 | Keep actionable Index obligations in Tasks Management. | High | GOR-26 remains In Progress. |
+| FR-003 | Preserve Development/nonconformant status until every applicable release gate has evidence. | High | Ongoing. |
+| FR-004 | Adopt current GLAZE UI V1.6 source and complete application acceptance. | High | V1.6 source projection is in this candidate; rendered/native/device/performance/rollback/production acceptance remains blocked. |
+| FR-005 | Preserve deterministic composition, bounded fan-out, provenance, and cancellation. | High | PR #35 improvements selectively restacked into this candidate; fresh CI required. |
+| FR-006 | Expand local/first-party providers through explicit authority contracts. | High | Applications/Settings integrated; Contacts remains authority-gated; Files/Calendar/media open. |
+| FR-007 | Complete GoreeCloud Search integration without silent remote context export. | High | Stronger Privacy Shield + Identity Production contract source is restacked; live transport/user controls remain disabled/open. |
+| FR-008 | Integrate and accept all applicable Integral Platform Systems. | High | All nine explicitly evaluated; runtime acceptance remains blocked. |
+| FR-009 | Provide provider controls and permission review without manufacturing authority. | Medium | Session source controls and Android Contacts permission review are in this candidate; durable preferences and remote-provider controls remain open. |
+| FR-010 | Add reconstructible local indexing only where justified. | Medium | Planned. |
+| FR-011 | Complete accessibility, localization/RTL, form-factor, performance, and representative-device qualification. | High | Open. |
+| FR-012 | Complete signing/provenance, rollback/recovery, Release Candidate, production, and Stable gates. | High | Open. |
+| FR-013 | Retire or close stale PR #35/#36 only after unique work is preserved and this reconciliation disposition is verified. | High | Pending candidate validation/integration decision. |
+| FR-014 | Maintain Contract 0.4, nine-system declarations, mandatory root controls, and current-state validation. | High | Preserved in candidate. |
 
 ## Sequencing
 
-1. Validate and integrate this control-plane stabilization without changing runtime behavior.
-2. Reconcile the Drive Project Specification, Change Log, roadmap DOCX, and active task records after verified repository integration.
-3. Implement live GoreeCloud Search transport and explicit user controls only through a separate authority-reviewed runtime tranche.
-4. Migrate V1.4 presentation source to V1.6 and complete application/device acceptance.
-5. Add additional local/first-party providers one bounded authority contract at a time.
-6. Complete platform-system runtime, recovery, release, production, and Stable gates.
+1. Exact-head validate this reconciliation candidate.
+2. If accepted and separately authorized, integrate it into `main`.
+3. Reconcile Drive/changelog/task records and disposition PR #35/#36 after verified integration.
+4. Continue live Search/platform-runtime work as separate bounded phases.
+5. Complete representative-device, recovery, release, production, and Stable gates.
 
 ## Reconciliation Rule
 
-Roadmap status is not proof of implementation or acceptance. Every completion or lifecycle claim must be backed by authoritative source, exact-revision validation, applicable runtime/device evidence, and synchronized Drive/task records.
+Candidate source, old green CI, and roadmap status are not authoritative integration evidence. Any head change requires fresh exact-head validation.

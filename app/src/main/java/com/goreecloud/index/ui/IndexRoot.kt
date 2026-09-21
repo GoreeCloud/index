@@ -23,12 +23,15 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,30 +46,47 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.goreecloud.index.core.GoreeCloudIndexContract
+import com.goreecloud.index.core.IndexAuthorityRequirement
+import com.goreecloud.index.core.IndexPermissionReviewPolicy
 import com.goreecloud.index.core.IndexProviderIssue
 import com.goreecloud.index.core.IndexProviderIssueKind
 import com.goreecloud.index.core.IndexResult
 import com.goreecloud.index.core.IndexResultType
 import com.goreecloud.index.core.IndexSearchSnapshot
+import com.goreecloud.index.core.IndexSourceAuthorityStatus
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 
 @Composable
 fun IndexRoot(
     initialQuery: String,
-    onSearch: suspend (String) -> IndexSearchSnapshot,
+    initiallyEnabledProviderIds: Set<String>,
+    authorityRevision: Int,
+    sourceAuthorityStatuses: Map<String, IndexSourceAuthorityStatus>,
+    onSearch: (String, Set<String>) -> Flow<IndexSearchSnapshot>,
+    onRequestContactsPermission: () -> Unit,
     onOpenResult: (IndexResult) -> Unit,
 ) {
     var query by rememberSaveable(initialQuery) { mutableStateOf(initialQuery) }
+    var enabledProviderIds by remember(initiallyEnabledProviderIds) {
+        mutableStateOf(initiallyEnabledProviderIds)
+    }
     var snapshot by remember { mutableStateOf(IndexSearchSnapshot()) }
     var searching by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
 
-    LaunchedEffect(query) {
-        searching = true
-        try {
-            snapshot = onSearch(query)
-        } finally {
-            searching = false
+    key(authorityRevision) {
+        LaunchedEffect(query, enabledProviderIds) {
+            searching = true
+            try {
+                onSearch(query, enabledProviderIds).collect { update ->
+                    snapshot = update
+                }
+            } finally {
+                searching = false
+            }
         }
     }
 
@@ -115,12 +135,23 @@ fun IndexRoot(
 
             Spacer(Modifier.height(12.dp))
 
-            SourceStatusCard()
+            SourceStatusCard(
+                enabledProviderIds = enabledProviderIds,
+                sourceAuthorityStatuses = sourceAuthorityStatuses,
+                onToggleProvider = { providerId, enabled ->
+                    enabledProviderIds = if (enabled) {
+                        enabledProviderIds + providerId
+                    } else {
+                        enabledProviderIds - providerId
+                    }
+                },
+                onRequestContactsPermission = onRequestContactsPermission,
+            )
 
             if (searching) {
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = "Searching authorized sources…",
+                    text = "Searching enabled authorized sources…",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -142,6 +173,7 @@ fun IndexRoot(
                     Text(
                         text = when {
                             searching -> "Searching…"
+                            enabledProviderIds.isEmpty() -> "Enable at least one local source to search"
                             snapshot.providerIssues.any {
                                 it.kind == IndexProviderIssueKind.FAILED ||
                                     it.kind == IndexProviderIssueKind.TIMED_OUT ||
@@ -149,8 +181,8 @@ fun IndexRoot(
                                     it.kind == IndexProviderIssueKind.DEGRADED ||
                                     it.kind == IndexProviderIssueKind.INVALID_RESULT
                             } -> "Some search sources are temporarily unavailable"
-                            query.isBlank() -> "Start typing to search authorized sources"
-                            else -> "No matches in available sources"
+                            query.isBlank() -> "Start typing to search enabled sources"
+                            else -> "No matches in enabled sources"
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -184,7 +216,15 @@ fun IndexRoot(
 }
 
 @Composable
-private fun SourceStatusCard() {
+private fun SourceStatusCard(
+    enabledProviderIds: Set<String>,
+    sourceAuthorityStatuses: Map<String, IndexSourceAuthorityStatus>,
+    onToggleProvider: (String, Boolean) -> Unit,
+    onRequestContactsPermission: () -> Unit,
+) {
+    val contactsStatus = sourceAuthorityStatuses[GoreeCloudIndexContract.PROVIDER_CONTACTS]
+    val contactsEnabled = GoreeCloudIndexContract.PROVIDER_CONTACTS in enabledProviderIds
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -194,29 +234,148 @@ private fun SourceStatusCard() {
     ) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(
-                text = "Applications · On-device · Active",
-                style = MaterialTheme.typography.labelLarge,
+                text = "Search sources",
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = "Settings · On-device · Active navigation",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-            Text(
-                text = "Contacts · On-device · Authority gated",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-            Text(
-                text = "Settings results are a static navigation catalog and do not read setting values. Contacts cannot run until Android contact permission plus Privacy Shield and GoreeCloud Identity authority evidence are all available. Files, calendar, GoreeCloud services, optional third-party services, and web results remain separately gated provider work.",
+                text = "Changes apply to this Index session only. They do not grant missing permissions or platform authority.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp),
+                modifier = Modifier.padding(top = 2.dp, bottom = 6.dp),
+            )
+
+            SourceToggleRow(
+                title = "Applications",
+                detail = "On-device",
+                checked = GoreeCloudIndexContract.PROVIDER_APPS in enabledProviderIds,
+                onCheckedChange = { enabled ->
+                    onToggleProvider(GoreeCloudIndexContract.PROVIDER_APPS, enabled)
+                },
+            )
+            SourceToggleRow(
+                title = "Settings",
+                detail = "On-device navigation catalog",
+                checked = GoreeCloudIndexContract.PROVIDER_SETTINGS in enabledProviderIds,
+                onCheckedChange = { enabled ->
+                    onToggleProvider(GoreeCloudIndexContract.PROVIDER_SETTINGS, enabled)
+                },
+            )
+            SourceToggleRow(
+                title = "Contacts",
+                detail = contactsSourceDetail(contactsStatus),
+                checked = contactsEnabled,
+                onCheckedChange = { enabled ->
+                    onToggleProvider(GoreeCloudIndexContract.PROVIDER_CONTACTS, enabled)
+                },
+            )
+
+            if (contactsEnabled && contactsStatus != null && !contactsStatus.available) {
+                Text(
+                    text = "Why Contacts is unavailable: ${missingAuthoritySummary(contactsStatus)}. Index reports these prerequisites but does not approve or bypass them here.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+
+                if (IndexPermissionReviewPolicy.canRequestAndroidContactsPermission(contactsStatus)) {
+                    OutlinedButton(
+                        onClick = onRequestContactsPermission,
+                        modifier = Modifier.padding(top = 8.dp),
+                    ) {
+                        Text("Review Android Contacts permission")
+                    }
+                    Text(
+                        text = "Android owns this permission decision. Granting it addresses only the Android prerequisite; Privacy Shield and GoreeCloud Identity remain independent requirements.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Local-only mode",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Enforced in this Development build",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = true,
+                    onCheckedChange = null,
+                    enabled = false,
+                )
+            }
+
+            Text(
+                text = "Internet/Web results remain unavailable here. Index will not silently enable GoreeCloud Search or another remote provider when a local source is disabled, unavailable, or unauthorized.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
             )
         }
+    }
+}
+
+private fun contactsSourceDetail(status: IndexSourceAuthorityStatus?): String = when {
+    status == null -> "On-device · authority status unavailable"
+    status.available -> "On-device · authorization prerequisites satisfied"
+    else -> "On-device · blocked by ${missingAuthoritySummary(status)}"
+}
+
+private fun missingAuthoritySummary(status: IndexSourceAuthorityStatus): String =
+    status.missingRequirements.joinToString(separator = " · ") { requirement ->
+        authorityRequirementLabel(requirement)
+    }
+
+private fun authorityRequirementLabel(requirement: IndexAuthorityRequirement): String = when (requirement) {
+    IndexAuthorityRequirement.ANDROID_RUNTIME_PERMISSION -> "Android Contacts permission"
+    IndexAuthorityRequirement.PRIVACY_SHIELD -> "Privacy Shield authorization"
+    IndexAuthorityRequirement.GOREECLOUD_IDENTITY -> "GoreeCloud Identity authorization"
+}
+
+@Composable
+private fun SourceToggleRow(
+    title: String,
+    detail: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
     }
 }
 
@@ -227,7 +386,7 @@ private fun ProviderIssueCard(issue: IndexProviderIssue) {
     val title = when (issue.kind) {
         IndexProviderIssueKind.FAILED -> "${issue.providerName} temporarily unavailable"
         IndexProviderIssueKind.TIMED_OUT -> "${issue.providerName} took too long"
-        IndexProviderIssueKind.AUTHORIZATION_REQUIRED -> "${issue.providerName} not enabled"
+        IndexProviderIssueKind.AUTHORIZATION_REQUIRED -> "${issue.providerName} authorization required"
         IndexProviderIssueKind.INCOMPATIBLE_CONTRACT -> "${issue.providerName} needs an update"
         IndexProviderIssueKind.DEGRADED -> "${issue.providerName} is partially available"
         IndexProviderIssueKind.INVALID_RESULT -> "${issue.providerName} returned invalid results"
@@ -244,7 +403,7 @@ private fun ProviderIssueCard(issue: IndexProviderIssue) {
         IndexProviderIssueKind.DEGRADED ->
             "Some upstream sources were unavailable, so Index kept the valid results that GoreeCloud Search could still return."
         IndexProviderIssueKind.INVALID_RESULT ->
-            "Index rejected results that failed provider provenance or required identity and title checks, while preserving valid results from healthy sources."
+            "Index rejected or bounded results that violated provider provenance, required identity/title fields, source ordering, or the requested result limit, while preserving valid bounded results."
     }
     val containerColor = if (informational) {
         MaterialTheme.colorScheme.surfaceContainerHigh

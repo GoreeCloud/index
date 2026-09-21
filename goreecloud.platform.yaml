@@ -46,13 +46,14 @@ platform_systems:
       - CONFORMANCE.md
     notes: Query state is transient and persistent query history is not implemented, but durable Index settings and future indexes require explicit continuity and recovery decisions before Stable qualification.
   glaze_ui:
-    result: applicable-migration-required
-    version: '1.4.0'
+    result: applicable-blocked
+    version: '1.6.0'
     evidence:
       - README.md
       - CONFORMANCE.md
       - FEATURE-ROADMAP.md
-    notes: Index main includes the native GLAZE UI V1.4 semantic foundation. Current Platform Contract Stable consumer authority is V1.6 / 1.6.0, so source migration plus rendered, accessibility, representative-device, performance, rollback, release, and production acceptance remain required.
+      - app/src/main/java/com/goreecloud/index/ui/theme/GlazeV16Contract.kt
+    notes: Candidate source targets current Official Stable GLAZE UI V1.6 / 1.6.0, but repository-local rendered/native accessibility, representative-device/form-factor, performance, Human Visual Excellence, rollback, release, and production acceptance remain incomplete.
   mesh:
     result: applicable-blocked
     version: null
@@ -130,7 +131,7 @@ conformance:
     - Producer-authoritative Privacy Shield runtime integration, user-decision lifecycle, and acceptance are incomplete.
     - Wardveil Security provider/action evidence integration and production security acceptance are incomplete.
     - Everkeep continuity and recovery requirements for durable Index state remain unaccepted.
-    - Index implements a GLAZE UI V1.4 native semantic foundation but must migrate to current Stable V1.6 / 1.6.0 and complete application-level acceptance.
+    - Index candidate source targets current Stable GLAZE UI V1.6 / 1.6.0, but application-level rendered/native, accessibility, device/form-factor, performance, rollback, release, and production acceptance remain incomplete.
     - GoreeCloud Mesh provider discovery/coordination integration and runtime acceptance are incomplete.
     - GoreeCloud Identity authorization, isolation, revocation, and runtime acceptance are incomplete.
     - GoreeCloud Policy applicability is evaluated as applicable, but policy decision, enforcement, freshness, explanation, and evidence integration are not accepted.

@@ -17,55 +17,46 @@ private val IndexShapes = Shapes(
 )
 
 private val GlazeLightColorScheme = lightColorScheme(
-    primary = Color(GlazeV14Contract.DEEP_TEAL),
+    primary = Color(GlazeV16Contract.DEEP_TEAL),
     onPrimary = Color.White,
-    primaryContainer = Color(GlazeV14Contract.SOFT_AQUA),
-    onPrimaryContainer = Color(GlazeV14Contract.DEEP_GRAPHITE),
-    secondary = Color(GlazeV14Contract.MINERAL_TEAL),
+    primaryContainer = Color(GlazeV16Contract.SOFT_AQUA),
+    onPrimaryContainer = Color(GlazeV16Contract.DEEP_GRAPHITE),
+    secondary = Color(GlazeV16Contract.MINERAL_TEAL),
     onSecondary = Color.White,
-    background = Color(GlazeV14Contract.FROST_WHITE),
-    onBackground = Color(GlazeV14Contract.COOL_GRAPHITE),
-    surface = Color(GlazeV14Contract.CRYSTAL_WHITE),
-    onSurface = Color(GlazeV14Contract.COOL_GRAPHITE),
-    surfaceVariant = Color(GlazeV14Contract.ICE_BLUE),
-    onSurfaceVariant = Color(GlazeV14Contract.SLATE_GRAY),
-    outline = Color(GlazeV14Contract.CLOUD_GRAY),
+    background = Color(GlazeV16Contract.FROST_WHITE),
+    onBackground = Color(GlazeV16Contract.COOL_GRAPHITE),
+    surface = Color(GlazeV16Contract.CRYSTAL_WHITE),
+    onSurface = Color(GlazeV16Contract.COOL_GRAPHITE),
+    surfaceVariant = Color(GlazeV16Contract.ICE_BLUE),
+    onSurfaceVariant = Color(GlazeV16Contract.SLATE_GRAY),
+    outline = Color(GlazeV16Contract.CLOUD_GRAY),
 )
 
 private val GlazeDarkColorScheme = darkColorScheme(
-    primary = Color(GlazeV14Contract.SOFT_AQUA),
-    onPrimary = Color(GlazeV14Contract.BLUE_BLACK),
-    primaryContainer = Color(GlazeV14Contract.DEEP_TEAL),
-    onPrimaryContainer = Color(GlazeV14Contract.CRYSTAL_WHITE),
-    secondary = Color(GlazeV14Contract.MINERAL_TEAL),
-    onSecondary = Color(GlazeV14Contract.BLUE_BLACK),
-    background = Color(GlazeV14Contract.BLUE_BLACK),
-    onBackground = Color(GlazeV14Contract.CRYSTAL_WHITE),
-    surface = Color(GlazeV14Contract.DEEP_GRAPHITE),
-    onSurface = Color(GlazeV14Contract.CRYSTAL_WHITE),
-    surfaceVariant = Color(GlazeV14Contract.COOL_GRAPHITE),
-    onSurfaceVariant = Color(GlazeV14Contract.CLOUD_GRAY),
-    outline = Color(GlazeV14Contract.SLATE_GRAY),
+    primary = Color(GlazeV16Contract.SOFT_AQUA),
+    onPrimary = Color(GlazeV16Contract.BLUE_BLACK),
+    primaryContainer = Color(GlazeV16Contract.DEEP_TEAL),
+    onPrimaryContainer = Color(GlazeV16Contract.CRYSTAL_WHITE),
+    secondary = Color(GlazeV16Contract.MINERAL_TEAL),
+    onSecondary = Color(GlazeV16Contract.BLUE_BLACK),
+    background = Color(GlazeV16Contract.BLUE_BLACK),
+    onBackground = Color(GlazeV16Contract.CRYSTAL_WHITE),
+    surface = Color(GlazeV16Contract.DEEP_GRAPHITE),
+    onSurface = Color(GlazeV16Contract.CRYSTAL_WHITE),
+    surfaceVariant = Color(GlazeV16Contract.COOL_GRAPHITE),
+    onSurfaceVariant = Color(GlazeV16Contract.CLOUD_GRAY),
+    outline = Color(GlazeV16Contract.SLATE_GRAY),
 )
 
 /**
- * GoreeCloud Index's deterministic native GLAZE UI V1.4 theme projection.
+ * GoreeCloud Index's deterministic native GLAZE UI V1.6 source projection.
  *
- * The shared web Optical Engine is not executed inside Compose. Native optical effects remain
- * separately acceptance-gated; the shipped theme uses stable semantic color/shape mappings and
- * therefore stays on the solid, legible path until a reviewed native optical adapter exists.
+ * The shared JavaScript runtime is not embedded in Compose. Presentation consumes only state
+ * already owned by Index/platform authorities. Repository-local rendered/accessibility/device
+ * acceptance remains separately gated.
  */
 @Composable
 fun GoreeCloudIndexTheme(content: @Composable () -> Unit) {
-    val colorScheme = if (isSystemInDarkTheme()) {
-        GlazeDarkColorScheme
-    } else {
-        GlazeLightColorScheme
-    }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        shapes = IndexShapes,
-        content = content,
-    )
+    val colorScheme = if (isSystemInDarkTheme()) GlazeDarkColorScheme else GlazeLightColorScheme
+    MaterialTheme(colorScheme = colorScheme, shapes = IndexShapes, content = content)
 }

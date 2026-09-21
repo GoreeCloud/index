@@ -4,108 +4,96 @@
 
 **Release lifecycle: Development.** Version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
 
-Verified integrated baseline before this control-plane stabilization: `258516d856fd48d7f3f181425d2a77199cdbab31`.
+Candidate base: `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`.
 
 ## Repository and Platform Contract
 
-- [x] Canonical repository is `GoreeCloud/index`.
-- [x] Root Platform Contract declaration uses schema `0.4`.
-- [x] Exactly nine Integral Platform Systems are evaluated.
-- [x] GoreeCloud Sync remains separately governed.
-- [x] Current required Stable Glaze target is `1.6.0`.
-- [x] Mandatory repository root controls include privacy, security, notes, and editor configuration.
+- [x] Canonical repository `GoreeCloud/index`.
+- [x] Contract schema `0.4`.
+- [x] Exactly nine Integral Platform Systems evaluated.
+- [x] GoreeCloud Sync separately governed.
+- [x] Required Stable Glaze target `1.6.0`.
 - [ ] Overall Platform conformance.
 - [ ] Release eligibility.
 
-## Native Android Foundation
+## Query Runtime
 
-- [x] Original GoreeCloud-owned Kotlin/Jetpack Compose implementation.
-- [x] Production package `com.goreecloud.index`.
-- [x] Development package `com.goreecloud.index.dev`.
-- [x] API 26 minimum, compile API 37, target API 36.
-- [ ] Representative physical-device acceptance.
-- [ ] Controlled production signing and distribution.
-
-## Search Runtime
-
-- [x] Provider-neutral contracts.
-- [x] Structured concurrent dispatch.
-- [x] Cancellation propagation and bounded timeouts.
-- [x] Healthy sibling-result preservation.
-- [x] Deterministic NFKC query normalization and ordering.
-- [x] Provider result provenance validation.
-- [x] Provider contract-version compatibility.
-- [x] Partial-degradation propagation.
-- [ ] Incremental/streaming delivery.
+- [x] Provider-neutral contracts and provenance validation.
+- [x] Structured concurrent dispatch, cancellation propagation, and bounded timeouts.
+- [x] Deterministic normalization/ranking and provider-scoped deduplication.
+- [x] Partial/degraded result preservation.
+- [x] Bounded provider fan-out.
+- [x] Candidate incremental `Flow` delivery and one-shot/final-snapshot equivalence.
 - [ ] Accepted cross-provider operational telemetry.
 
-## Applications and Settings
+## Local Sources
 
-- [x] Launcher-visible Applications provider.
-- [x] No unrestricted `QUERY_ALL_PACKAGES`.
-- [x] Bounded local Settings navigation provider.
-- [x] Settings provider reads no setting values/private device state.
-- [ ] Representative-device performance and OEM action acceptance.
+- [x] Applications.
+- [x] Bounded Settings navigation.
+- [x] Contacts source with minimized fields and no blank enumeration.
+- [x] Candidate session-scoped source controls limited to local integrated providers.
+- [x] Candidate enforced local-only Development execution.
+- [ ] Representative-device/OEM acceptance.
 
-## Contacts
+## Contacts Authority
 
-- [x] Android `READ_CONTACTS` declared.
-- [x] Android ContactsProvider remains source authority.
-- [x] Minimized ID/lookup-key/display-name projection.
-- [x] No blank-query enumeration.
-- [x] Android + Privacy Shield + Identity requirements declared.
+- [x] Android permission, Privacy Shield, and Identity are independent requirements.
 - [x] Missing/constrained/denied/stale/unavailable authority fails closed.
-- [x] Current shipped Development gateway keeps Contacts non-dispatchable.
-- [ ] Accepted live Privacy Shield adapter/evidence.
-- [ ] Accepted GoreeCloud Identity adapter/evidence.
-- [ ] User decision and Android permission workflow.
+- [x] Candidate coarse missing-authority presentation.
+- [x] Candidate explicit Android permission review.
+- [ ] Accepted live Privacy Shield decision acquisition.
+- [ ] Accepted live Identity authorization acquisition.
+- [ ] Complete user decision lifecycle.
 - [ ] Representative-device Contacts acceptance.
 
 ## GoreeCloud Search
 
-- [x] Transport-neutral provider/client foundation.
-- [x] Search API version 1 binding.
-- [x] `search.query` capability preflight.
-- [x] Endpoint/result-bound checks.
-- [x] Query/category/limit minimization.
-- [x] Response binding, degraded-state propagation, URL validation, safe actions.
-- [x] Shipped runtime remains local-only with no Android Internet permission.
-- [ ] Live transport registration.
-- [ ] Service discovery/authentication/TLS/proxy acceptance.
-- [ ] Explicit user-facing Internet-provider controls.
+- [x] Transport-neutral provider foundation.
+- [x] API/provider-contract/capability validation.
+- [x] Candidate Production requirement for both Privacy Shield and GoreeCloud Identity.
+- [x] Candidate operation-scoped Privacy Shield reference and independent Identity requester credential boundary.
+- [x] Sensitive-value redaction and safe URL/action validation.
+- [x] Development runtime remains local-only with no Internet permission.
+- [ ] Live transport registration/discovery/authentication/TLS/proxy acceptance.
+- [ ] User-facing Internet-provider enablement/preferences.
 - [ ] Representative runtime acceptance.
 
 ## GLAZE UI
 
-- [x] Native V1.4 / `1.4.0` semantic foundation.
-- [x] Deterministic GoreeCloud light/dark schemes.
-- [x] Accessibility-first fallback and source-aware status presentation.
-- [ ] Migrate source to current Stable V1.6 / `1.6.0`.
-- [ ] Rendered/native accessibility, text-scale/reflow, RTL/localization, reduced-motion/transparency, contrast, form-factor, performance, and Human Visual Excellence acceptance.
+- [x] Candidate native V1.6 / `1.6.0` source projection.
+- [x] Stable release source/runtime identity recorded.
+- [x] Accessibility-first fallback and fail-closed capability presentation.
+- [x] No automatic permission/authorization/provider precedence/consequential execution.
+- [ ] Rendered/native visual and interaction acceptance.
+- [ ] TalkBack/screen-reader, keyboard/focus, text scaling/reflow, contrast, reduced motion/transparency, localization/RTL acceptance.
+- [ ] Representative phone/tablet/form-factor and performance acceptance.
+- [ ] Human Visual Excellence acceptance.
+- [ ] Rollback and production acceptance.
 
 ## Integral Platform Systems v3.0
 
-| System | Current declaration |
+| System | Candidate declaration |
 | --- | --- |
 | GoreeCloud Manager | Applicable — Blocked |
 | Privacy Shield | Applicable — Blocked |
 | Wardveil Security | Applicable — Blocked |
 | Everkeep | Applicable — Blocked |
-| Glaze UI | Applicable — Migration Required |
+| Glaze UI | Applicable — Blocked |
 | GoreeCloud Mesh | Applicable — Blocked |
 | GoreeCloud Identity | Applicable — Blocked |
 | GoreeCloud Policy | Applicable — Blocked |
 | GoreeCloud Observability | Applicable — Blocked |
 
-No declaration above is equivalent to accepted runtime integration.
+Glaze no longer requires a version migration in candidate source, but application-level acceptance is still blocked. No declaration above equals production acceptance.
 
 ## Release Gates
 
+- [ ] Fresh exact-head PR validation.
 - [ ] Accepted platform-system runtime evidence.
-- [ ] Representative-device accessibility and performance.
+- [ ] Representative-device accessibility/performance.
 - [ ] Production security/privacy review.
 - [ ] Recovery/rollback evidence.
-- [ ] Protected signing, packaging, distribution, and provenance.
+- [ ] Protected signing/distribution/provenance.
 - [ ] Release Candidate qualification.
 - [ ] Production acceptance.
 - [ ] Stable qualification.

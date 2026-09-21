@@ -5,15 +5,17 @@ ROOT = Path(__file__).resolve().parents[1]
 provider_path = ROOT / "app/src/main/java/com/goreecloud/index/provider/settings/SystemSettingsProvider.kt"
 test_path = ROOT / "app/src/test/java/com/goreecloud/index/provider/settings/SystemSettingsProviderTest.kt"
 core_path = ROOT / "app/src/main/java/com/goreecloud/index/core/IndexContract.kt"
+source_controls_path = ROOT / "app/src/main/java/com/goreecloud/index/core/IndexSourceControls.kt"
 main_path = ROOT / "app/src/main/java/com/goreecloud/index/MainActivity.kt"
 manifest_path = ROOT / "app/src/main/AndroidManifest.xml"
 
-for path in [provider_path, test_path, core_path, main_path, manifest_path]:
+for path in [provider_path, test_path, core_path, source_controls_path, main_path, manifest_path]:
     if not path.is_file():
         raise SystemExit(f"Missing Settings provider contract file: {path.relative_to(ROOT)}")
 
 provider = provider_path.read_text(encoding="utf-8")
 core = core_path.read_text(encoding="utf-8")
+source_controls = source_controls_path.read_text(encoding="utf-8")
 main = main_path.read_text(encoding="utf-8")
 manifest = manifest_path.read_text(encoding="utf-8")
 tests = test_path.read_text(encoding="utf-8")
@@ -79,8 +81,18 @@ for prohibited in [
         raise SystemExit(f"Settings provider exceeded static navigation-only boundary: {prohibited}")
 
 for expected in [
-    "SystemSettingsProvider",
+    "IndexDevelopmentSourcePolicy",
     "GoreeCloudIndexContract.PROVIDER_SETTINGS",
+    "selectableProviderIds",
+    "localOnly = true",
+]:
+    if expected not in source_controls:
+        raise SystemExit(f"Central source policy missing Settings eligibility boundary: {expected}")
+
+for expected in [
+    "SystemSettingsProvider",
+    "IndexDevelopmentSourcePolicy.selectableProviderIds",
+    "IndexDevelopmentSourcePolicy.executionContext(",
     "IndexAction.OpenSystemSetting",
     "SystemSettingsProvider.isAllowedAction(action.action)",
     "startActivity(Intent(action.action))",
