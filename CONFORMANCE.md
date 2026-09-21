@@ -93,7 +93,9 @@ Glaze source migration is integrated in the Development source line, but applica
 - Confirmed squash merge produced authoritative `main` `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`.
 - Post-merge Platform Contract run `35600884480` passed; artifact `10638283225`, digest `sha256:a05991f865a43a4fe6a1175bc864a53df0124386bb431c332dc330b526d98465`.
 - Post-merge Android Index foundation run `35600883648` passed; Development APK evidence artifact `10638847014`, digest `sha256:5dbdd9f249a07687b4cbd2b72a04bd337b83a03a7afe31802be38f8775fbf446`.
-- PR #35 and PR #36 are closed as superseded after their still-valid work was preserved or replaced through PR #38.\n- PR #40 merged at `34446cc519afb87bca27b0c3e6639db01ff114b8`; post-merge Platform Contract run `35613027668` and Android Index foundation run `35613026810` passed.\n- The current `0.3.1-dev` transport candidate has no acceptance claim until its own exact-head checks complete.
+- PR #35 and PR #36 are closed as superseded after their still-valid work was preserved or replaced through PR #38.
+- PR #40 merged at `34446cc519afb87bca27b0c3e6639db01ff114b8`; post-merge Platform Contract run `35613027668` and Android Index foundation run `35613026810` passed.
+- The current `0.3.1-dev` transport candidate has no acceptance claim until its own exact-head checks complete.
 
 ## Release Gates
 
