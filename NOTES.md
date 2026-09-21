@@ -3,31 +3,31 @@
 ## Current Working State
 
 - Release lifecycle: Development.
-- Application version: `0.3.0-dev`.
+- Application version: `0.3.1-dev`.
 - Canonical repository: `GoreeCloud/index`.
-- Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`; verify GitHub live whenever the exact current default-branch SHA is material.
+- Latest runtime-bearing integration checkpoint: `7b84ef011a8701f90e737a1ae340d8db09d58e78` from PR #41. Authoritative main is currently the later documentation-only checkpoint `29c1c4150ef0b80118b1cf8bdf1c34533014dee4`; verify GitHub live whenever the exact current default-branch SHA is material.
 - No production acceptance or Stable qualification is claimed.
 
-## Verified PR #38 Integration
+## Verified transport integration
 
-PR #38 exact head `e7ef8933a1a1efbfe1b944295fd24e4f7bb56c75` passed fresh Platform Contract and Android validation, then squash-merged as authoritative `main` `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. Post-merge runs `35600884480` and `35600883648` both passed on that exact revision.
+PR #38 remains historical integration provenance for the Contract 0.4/V1.6 source line. PR #41 then integrated the dormant fixed-origin authenticated GoreeCloud Search HTTPS client on exact runtime-bearing main `7b84ef011a8701f90e737a1ae340d8db09d58e78`. Post-merge Platform Contract run `35625546653` and Android Index foundation run `35625545378` passed on that exact revision.
 
-The integrated line preserves the still-valid PR #35 runtime/test work while keeping Contract 0.4 and all nine Integral Platform Systems. PR #36's V1.5 adoption is superseded by the integrated native GLAZE UI V1.6 / `1.6.0` projection. PR #35 and PR #36 are closed as superseded.
+The client discovers `search.query` through Search status, uses bounded JSON POST to the fixed Search origin, carries separately supplied Privacy Shield capability and GoreeCloud Identity requester evidence, refuses redirects, bounds response size, validates media/status responses, and redacts wire data from debug rendering. It remains dormant and unregistered in Development source controls.
 
 ## Search cycle-safety readiness
 
 A future Search capability must prove `goreecloud.search-index-delegation.v1` with `external_only` mode, Index-provider re-entry disabled, and fallback disabled before the Index Search provider will dispatch. This prevents a future `Index → Search → Index` recursion while preserving Search's ordinary ability to use Index for non-Index-originated callers.
 
-The paired GoreeCloud Search source candidate remains separate and source-only. Live Search remains unregistered in Index, Android `INTERNET` remains absent, and no Identity/Privacy Shield runtime acceptance is created by this readiness contract.
+Paired GoreeCloud Search PR #23 is integrated on its authoritative Development line with the cycle-safe authenticated HTTP boundary. Index still does not register Search in its Development UI, and no Identity/Privacy Shield runtime acceptance is created by either source integration.
 
 ## Runtime Boundary
 
 - Development source selection is local-only and limited to Applications, Settings, and Contacts.
 - Contacts permission review is Android-owned and cannot satisfy Privacy Shield/Identity.
-- Live GoreeCloud Search remains unregistered and Android Internet permission remains absent.
+- Live GoreeCloud Search remains unregistered. Android `INTERNET` permission is now present only so the dormant fixed-origin HTTPS client can function if a later governed registration is accepted; the permission alone does not enable remote Search or grant authority.
 - Production Search source requires independent Privacy Shield and Identity evidence.
 - No production credentials or concrete Identity registration are invented locally.
 
 ## Open Work
 
-Canonical Drive DOCX reconciliation; accepted platform-runtime integrations; live Search transport/user controls; V1.6 rendered/native application acceptance; representative-device accessibility/performance/OEM evidence; additional providers; recovery/rollback; protected signing/distribution; Release Candidate; production; and Stable qualification.
+Canonical Drive DOCX reconciliation; live Identity/Privacy Shield authority transport and governed Search registration/user controls; accepted platform-runtime integrations; V1.6 rendered/native application acceptance; representative-device accessibility/performance/OEM evidence; additional providers; recovery/rollback; protected signing/distribution; Release Candidate; production; and Stable qualification.
