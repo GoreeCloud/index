@@ -8,9 +8,7 @@
 
 ## Current Development Checkpoint
 
-Authoritative `main` baseline is `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`, which established Contract `0.4`, the nine-system model, current repository identity, and required Glaze `1.6.0` target.
-
-This reconciliation candidate selectively carries still-valid PR #35 runtime work and replaces stacked PR #36's obsolete V1.5 adoption with a fresh V1.6 source projection. It does not inherit PR #35/#36 validation or lifecycle claims.
+Authoritative `main` is `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. Verified PR #38 integrated the still-valid PR #35 runtime/test work onto Contract `0.4`, preserved the nine-system model and current repository identity, and replaced PR #36's obsolete V1.5 adoption with current GLAZE UI V1.6 / `1.6.0` source adoption. Post-merge Platform Contract run `35600884480` and Android Index foundation run `35600883648` passed. PR #35 and PR #36 are closed as superseded.
 
 ## Roadmap
 
@@ -19,26 +17,26 @@ This reconciliation candidate selectively carries still-valid PR #35 runtime wor
 | FR-001 | Keep repository and Drive controls synchronized with verified reality. | High | Ongoing. |
 | FR-002 | Keep actionable Index obligations in Tasks Management. | High | GOR-26 remains In Progress. |
 | FR-003 | Preserve Development/nonconformant status until every applicable release gate has evidence. | High | Ongoing. |
-| FR-004 | Adopt current GLAZE UI V1.6 source and complete application acceptance. | High | V1.6 source projection is in this candidate; rendered/native/device/performance/rollback/production acceptance remains blocked. |
-| FR-005 | Preserve deterministic composition, bounded fan-out, provenance, and cancellation. | High | PR #35 improvements selectively restacked into this candidate; fresh CI required. |
+| FR-004 | Adopt current GLAZE UI V1.6 source and complete application acceptance. | High | V1.6 source projection is integrated on authoritative `main`; rendered/native/device/performance/rollback/production acceptance remains blocked. |
+| FR-005 | Preserve deterministic composition, bounded fan-out, provenance, and cancellation. | High | PR #35 improvements are integrated through PR #38; exact-head and post-merge CI passed. |
 | FR-006 | Expand local/first-party providers through explicit authority contracts. | High | Applications/Settings integrated; Contacts remains authority-gated; Files/Calendar/media open. |
 | FR-007 | Complete GoreeCloud Search integration without silent remote context export. | High | Stronger Privacy Shield + Identity Production contract source is restacked; live transport/user controls remain disabled/open. |
 | FR-008 | Integrate and accept all applicable Integral Platform Systems. | High | All nine explicitly evaluated; runtime acceptance remains blocked. |
-| FR-009 | Provide provider controls and permission review without manufacturing authority. | Medium | Session source controls and Android Contacts permission review are in this candidate; durable preferences and remote-provider controls remain open. |
+| FR-009 | Provide provider controls and permission review without manufacturing authority. | Medium | Session source controls and Android Contacts permission review are integrated; durable preferences and remote-provider controls remain open. |
 | FR-010 | Add reconstructible local indexing only where justified. | Medium | Planned. |
 | FR-011 | Complete accessibility, localization/RTL, form-factor, performance, and representative-device qualification. | High | Open. |
 | FR-012 | Complete signing/provenance, rollback/recovery, Release Candidate, production, and Stable gates. | High | Open. |
-| FR-013 | Retire or close stale PR #35/#36 only after unique work is preserved and this reconciliation disposition is verified. | High | Pending candidate validation/integration decision. |
-| FR-014 | Maintain Contract 0.4, nine-system declarations, mandatory root controls, and current-state validation. | High | Preserved in candidate. |
+| FR-013 | Retire or close stale PR #35/#36 only after unique work is preserved and this reconciliation disposition is verified. | High | Complete — unique valid work was preserved/reconciled through PR #38 and PR #35/#36 are closed. |
+| FR-014 | Maintain Contract 0.4, nine-system declarations, mandatory root controls, and current-state validation. | High | Preserved on authoritative `main`. |
 
 ## Sequencing
 
-1. Exact-head validate this reconciliation candidate.
-2. If accepted and separately authorized, integrate it into `main`.
-3. Reconcile Drive/changelog/task records and disposition PR #35/#36 after verified integration.
-4. Continue live Search/platform-runtime work as separate bounded phases.
-5. Complete representative-device, recovery, release, production, and Stable gates.
+1. Reconcile the canonical Drive Project Specification, Change Log, and Drive roadmap to verified PR #38 integration when safe DOCX in-place editing is available.
+2. Continue live Search and Integral Platform System runtime work as separate bounded phases without weakening fail-closed authority.
+3. Complete GLAZE UI V1.6 rendered/native, accessibility, device/form-factor, performance, and Human Visual Excellence acceptance.
+4. Expand providers and durable indexing only through explicit authority, privacy, security, continuity, and recovery contracts.
+5. Complete recovery/rollback, protected signing/distribution, Release Candidate, production, and Stable gates.
 
 ## Reconciliation Rule
 
-Candidate source, old green CI, and roadmap status are not authoritative integration evidence. Any head change requires fresh exact-head validation.
+Roadmap text and historical green CI are not substitutes for live authoritative repository state. Any material head change requires fresh validation appropriate to that exact revision.

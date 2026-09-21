@@ -5,14 +5,14 @@
 - Release lifecycle: Development.
 - Application version: `0.3.0-dev`.
 - Canonical repository: `GoreeCloud/index`.
-- Authoritative candidate base: `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`.
+- Authoritative main: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`.
 - No production acceptance or Stable qualification is claimed.
 
-## Reconciliation Candidate
+## Verified PR #38 Integration
 
-The fresh `feature/index-v1.6-modernization-reconciliation` branch preserves PR #37's Contract 0.4/nine-system control plane while selectively carrying forward still-valid PR #35 runtime/test work. It does not rebase or modify PR #35/#36 and does not inherit their prior green checks.
+PR #38 exact head `e7ef8933a1a1efbfe1b944295fd24e4f7bb56c75` passed fresh Platform Contract and Android validation, then squash-merged as authoritative `main` `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. Post-merge runs `35600884480` and `35600883648` both passed on that exact revision.
 
-PR #36's V1.5 source adoption is superseded in this candidate by a native GLAZE UI V1.6 / `1.6.0` projection bound to current shared Stable authority.
+The integrated line preserves the still-valid PR #35 runtime/test work while keeping Contract 0.4 and all nine Integral Platform Systems. PR #36's V1.5 adoption is superseded by the integrated native GLAZE UI V1.6 / `1.6.0` projection. PR #35 and PR #36 are closed as superseded.
 
 ## Runtime Boundary
 
@@ -24,4 +24,4 @@ PR #36's V1.5 source adoption is superseded in this candidate by a native GLAZE 
 
 ## Open Work
 
-Fresh exact-head CI; candidate merge decision; PR #35/#36 disposition; accepted platform-runtime integrations; live Search transport/user controls; V1.6 rendered/native application acceptance; representative-device accessibility/performance/OEM evidence; additional providers; recovery/rollback; protected signing/distribution; Release Candidate; production; and Stable qualification.
+Canonical Drive DOCX reconciliation; accepted platform-runtime integrations; live Search transport/user controls; V1.6 rendered/native application acceptance; representative-device accessibility/performance/OEM evidence; additional providers; recovery/rollback; protected signing/distribution; Release Candidate; production; and Stable qualification.

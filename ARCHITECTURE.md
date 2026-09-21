@@ -2,7 +2,7 @@
 
 ## Status
 
-**Release lifecycle: Development.** The reconciliation candidate is based on authoritative `GoreeCloud/index` main `c97a6ef3958b14cfcd99c15fd8e56222c56bc77d`. It combines still-valid PR #35 runtime work with the current Contract 0.4 / nine-system control plane and a fresh GLAZE UI V1.6 source projection. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Authoritative `GoreeCloud/index` main is `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. It integrates the still-valid PR #35 runtime work with the Contract 0.4 / nine-system control plane and current GLAZE UI V1.6 source projection through verified PR #38. Production acceptance and Stable qualification remain false.
 
 ## Authority Model
 
