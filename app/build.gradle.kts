@@ -11,8 +11,8 @@ android {
         applicationId = "com.goreecloud.index"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0-dev"
+        versionCode = 4
+        versionName = "0.3.1-dev"
         manifestPlaceholders["appLabel"] = "GoreeCloud Index"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
