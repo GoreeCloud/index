@@ -204,6 +204,35 @@ for expected in [
     if expected not in apps:
         raise SystemExit(f"Missing Applications provider boundary: {expected}")
 
+search_provider = (
+    ROOT / "app/src/main/java/com/goreecloud/index/provider/search/GoreeCloudSearchProvider.kt"
+).read_text(encoding="utf-8")
+for expected in [
+    'GOREECLOUD_SEARCH_INDEX_DELEGATION_CONTRACT_VERSION = "goreecloud.search-index-delegation.v1"',
+    'GOREECLOUD_SEARCH_INDEX_DELEGATION_MODE = "external_only"',
+    "GOREECLOUD_SEARCH_INDEX_PROVIDER_REENTRY_ALLOWED = false",
+    "GOREECLOUD_SEARCH_INDEX_DELEGATION_FALLBACK_ALLOWED = false",
+    "indexDelegationContractVersion",
+    "indexDelegationMode",
+    "indexProviderReentryAllowed",
+    "indexDelegationFallbackAllowed",
+    "does not provide cycle-safe Index-originated delegation",
+]:
+    if expected not in search_provider:
+        raise SystemExit(f"Missing Search cycle-safety capability boundary: {expected}")
+
+search_capability_tests = (
+    ROOT / "app/src/test/java/com/goreecloud/index/provider/search/GoreeCloudSearchCapabilityAcceptanceTest.kt"
+).read_text(encoding="utf-8")
+for expected in [
+    "developmentModeRejectsMissingCycleSafeDelegationEvidenceBeforeQuery",
+    "indexDelegationMode = \"index_first\"",
+    "indexProviderReentryAllowed = true",
+    "indexDelegationFallbackAllowed = true",
+]:
+    if expected not in search_capability_tests:
+        raise SystemExit(f"Missing Search cycle-safety regression: {expected}")
+
 contacts = (ROOT / "app/src/main/java/com/goreecloud/index/provider/contacts/ContactsProvider.kt").read_text(encoding="utf-8")
 for expected in [
     'displayName: String = "Contacts"', "IndexProcessingLocation.LOCAL",

@@ -44,6 +44,21 @@ Stable/production Index builds must require Search capability evidence that is e
 
 A Development exception must never be interpreted as permission to promote Index or Search to Stable.
 
+## Cycle-safe Index-originated delegation
+
+A future Index-to-Search request must advertise and satisfy Search's cycle-safety contract before Index may dispatch:
+
+- contract version `goreecloud.search-index-delegation.v1`;
+- delegation mode `external_only`;
+- Index-provider re-entry disabled;
+- delegation fallback disabled.
+
+This is required in Development and Production capability evidence. It is independent of the later Privacy Shield/Identity production checks.
+
+The purpose is architectural: Index treats Search as the Internet/web provider, while Search may also expose an Index provider to other callers. Index must therefore reject any Search capability that could route an Index-originated request back to `GOREECLOUD_INDEX`, another first-party/local provider, or a fallback stage.
+
+The paired Search source candidate implements a dedicated `search_from_index` path that uses only external primary providers and fails before dispatch when no eligible external provider remains. That source contract is readiness evidence only; it does not create live transport, authentication, provider credentials, deployment, or production acceptance.
+
 ## Privacy Shield authorization carried with the operation
 
 The higher-level Index execution context still requires Privacy Shield authority before the remote provider becomes eligible. Production Search delegation adds a second provider-local boundary so bypassing the query coordinator cannot silently bypass authorization.

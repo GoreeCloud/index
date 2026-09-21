@@ -84,6 +84,10 @@ class GoreeCloudSearchAuthorityRequirementsTest {
                 endpoint = GOREECLOUD_SEARCH_QUERY_ENDPOINT,
                 maxResults = GOREECLOUD_SEARCH_MAX_RESULTS,
                 productionAccepted = false,
+                indexDelegationContractVersion = GOREECLOUD_SEARCH_INDEX_DELEGATION_CONTRACT_VERSION,
+                indexDelegationMode = GOREECLOUD_SEARCH_INDEX_DELEGATION_MODE,
+                indexProviderReentryAllowed = GOREECLOUD_SEARCH_INDEX_PROVIDER_REENTRY_ALLOWED,
+                indexDelegationFallbackAllowed = GOREECLOUD_SEARCH_INDEX_DELEGATION_FALLBACK_ALLOWED,
             )
         },
         acceptanceMode = GoreeCloudSearchAcceptanceMode.PRODUCTION,

@@ -14,6 +14,12 @@ PR #38 exact head `e7ef8933a1a1efbfe1b944295fd24e4f7bb56c75` passed fresh Platfo
 
 The integrated line preserves the still-valid PR #35 runtime/test work while keeping Contract 0.4 and all nine Integral Platform Systems. PR #36's V1.5 adoption is superseded by the integrated native GLAZE UI V1.6 / `1.6.0` projection. PR #35 and PR #36 are closed as superseded.
 
+## Search cycle-safety readiness
+
+A future Search capability must prove `goreecloud.search-index-delegation.v1` with `external_only` mode, Index-provider re-entry disabled, and fallback disabled before the Index Search provider will dispatch. This prevents a future `Index → Search → Index` recursion while preserving Search's ordinary ability to use Index for non-Index-originated callers.
+
+The paired GoreeCloud Search source candidate remains separate and source-only. Live Search remains unregistered in Index, Android `INTERNET` remains absent, and no Identity/Privacy Shield runtime acceptance is created by this readiness contract.
+
 ## Runtime Boundary
 
 - Development source selection is local-only and limited to Applications, Settings, and Contacts.

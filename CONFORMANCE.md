@@ -50,6 +50,7 @@ Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf
 
 - [x] Transport-neutral provider foundation.
 - [x] API/provider-contract/capability validation.
+- [x] Candidate cycle-safe Search capability requirement for `goreecloud.search-index-delegation.v1`, `external_only`, no Index re-entry, and no fallback.
 - [x] Integrated Production requirement for both Privacy Shield and GoreeCloud Identity.
 - [x] Integrated operation-scoped Privacy Shield reference and independent Identity requester credential boundary.
 - [x] Sensitive-value redaction and safe URL/action validation.

@@ -37,6 +37,10 @@ internal const val GOREECLOUD_SEARCH_PRIVACY_RETENTION_MODE = "none"
 internal const val GOREECLOUD_SEARCH_PRIVACY_PURPOSE = "internet_search"
 internal const val GOREECLOUD_SEARCH_PRIVACY_RESOURCE_ID = "goreecloud.search.query"
 internal const val GOREECLOUD_SEARCH_PRIVACY_RESOURCE_CLASSIFICATION = "query_text"
+internal const val GOREECLOUD_SEARCH_INDEX_DELEGATION_CONTRACT_VERSION = "goreecloud.search-index-delegation.v1"
+internal const val GOREECLOUD_SEARCH_INDEX_DELEGATION_MODE = "external_only"
+internal const val GOREECLOUD_SEARCH_INDEX_PROVIDER_REENTRY_ALLOWED = false
+internal const val GOREECLOUD_SEARCH_INDEX_DELEGATION_FALLBACK_ALLOWED = false
 internal const val GOREECLOUD_INDEX_PRIVACY_REQUESTER_ID = "goreecloud-index"
 internal const val GOREECLOUD_INDEX_PRIVACY_REQUESTER_TYPE = "application"
 internal const val GOREECLOUD_SEARCH_MAX_REQUEST_BYTES = 16 * 1024
@@ -136,6 +140,10 @@ data class GoreeCloudSearchCapability(
     val authenticatedRequesterAuthority: String? = null,
     val authenticatedRequesterScheme: String? = null,
     val authenticatedRequesterHeader: String? = null,
+    val indexDelegationContractVersion: String? = null,
+    val indexDelegationMode: String? = null,
+    val indexProviderReentryAllowed: Boolean? = null,
+    val indexDelegationFallbackAllowed: Boolean? = null,
 )
 
 data class GoreeCloudSearchPrivacyAuthorizationRequest(
@@ -279,6 +287,12 @@ class GoreeCloudSearchProvider(
         check(capability.id == GOREECLOUD_SEARCH_QUERY_CAPABILITY_ID) { "GoreeCloud Search query capability is unavailable" }
         check(capability.contractVersion == GOREECLOUD_SEARCH_API_VERSION) { "GoreeCloud Search capability contract version is not supported" }
         check(capability.authoritative && capability.current) { "GoreeCloud Search query capability is not current and authoritative" }
+        check(
+            capability.indexDelegationContractVersion == GOREECLOUD_SEARCH_INDEX_DELEGATION_CONTRACT_VERSION &&
+                capability.indexDelegationMode == GOREECLOUD_SEARCH_INDEX_DELEGATION_MODE &&
+                capability.indexProviderReentryAllowed == GOREECLOUD_SEARCH_INDEX_PROVIDER_REENTRY_ALLOWED &&
+                capability.indexDelegationFallbackAllowed == GOREECLOUD_SEARCH_INDEX_DELEGATION_FALLBACK_ALLOWED
+        ) { "GoreeCloud Search query capability does not provide cycle-safe Index-originated delegation" }
         if (acceptanceMode == GoreeCloudSearchAcceptanceMode.PRODUCTION) {
             check(capability.productionAccepted) { "GoreeCloud Search query capability is not production accepted" }
             check(capability.discoveryEndpoint == GOREECLOUD_SEARCH_DISCOVERY_ENDPOINT && capability.discoveryCollection == GOREECLOUD_SEARCH_DISCOVERY_COLLECTION) {
