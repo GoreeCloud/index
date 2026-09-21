@@ -2,7 +2,7 @@
 
 ## Status
 
-**Release lifecycle: Development.** Version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Version `0.3.1-dev`. Production acceptance and Stable qualification remain false.
 
 ## Integrated Development Features
 
@@ -39,11 +39,11 @@
 
 - Search API/provider-contract compatibility.
 - Cycle-safe Search capability gating requiring external-only Index-originated delegation with Index re-entry and fallback disabled.
-- Capability preflight and freshness checks.
+- Capability preflight and freshness checks.\n- Concrete `https://search.goreecloud.com` capability-discovery and JSON-body POST transport with redirect refusal, response bounds, strict JSON parsing, and credential/reference redaction.\n- Authenticated-Development acceptance mode requiring both Privacy Shield and GoreeCloud Identity while still accepting explicitly non-production capability evidence for source/CI qualification.
 - Privacy Shield constrained intent/reference handling.
 - Independent GoreeCloud Identity requester-credential requirement for Production delegation.
 - Query/category/limit minimization, response binding, degradation propagation, URL/action validation, and sensitive rendering controls.
-- No live transport registration or Android Internet permission in Development.
+- Concrete fixed-origin HTTPS transport source and Android `INTERNET` declaration are present, but the current local-only Development UI does not register or enable the remote Search provider.
 
 ### GLAZE UI V1.6 Source Adoption
 
