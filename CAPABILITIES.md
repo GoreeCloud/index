@@ -26,7 +26,7 @@ Android permission review is user-initiated and addresses only Android's prerequ
 
 ## GoreeCloud Search Production Contract Source
 
-Integrated Search source requires independent Privacy Shield and Identity evidence before Production delegation. It validates Search capability metadata and transport intent before calling a supplied client. No concrete Identity registration, token format, issuer, scope, client ID, TLS/proxy path, or production credential is invented locally.
+Integrated Search source requires independent Privacy Shield and Identity evidence before authenticated Development or Production delegation. The candidate now includes a concrete fixed-origin HTTPS client for capability discovery and JSON-body Search POST, with redirect refusal, bounded responses, strict JSON parsing, and header-only authority carriage. No concrete Identity registration, issuer/audience/scope, live Privacy Shield verifier path, production credential, proxy acceptance, or production provider registration is invented locally.
 
 ## GLAZE UI
 
