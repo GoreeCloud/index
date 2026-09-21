@@ -20,7 +20,7 @@ Latest accepted runtime-bearing checkpoint is `7b84ef011a8701f90e737a1ae340d8db0
 | FR-004 | Adopt current GLAZE UI V1.6 source and complete application acceptance. | High | V1.6 source projection is integrated in the current Development source line; rendered/native/device/performance/rollback/production acceptance remains blocked. |
 | FR-005 | Preserve deterministic composition, bounded fan-out, provenance, and cancellation. | High | PR #35 improvements are integrated through PR #38; exact-head and post-merge CI passed. |
 | FR-006 | Expand local/first-party providers through explicit authority contracts. | High | Applications/Settings integrated; Contacts remains authority-gated; Files/Calendar/media open. |
-| FR-007 | Complete GoreeCloud Search integration without silent remote context export. | High | Accepted consumer gating requires Search's cycle-safe `goreecloud.search-index-delegation.v1` contract. PR #41 integrates a dormant fixed-origin HTTPS client and required Android network permission. Live provider registration, real authority acquisition, user controls, target-runtime acceptance, and Production remain open. |
+| FR-007 | Complete GoreeCloud Search integration without silent remote context export. | High | Accepted consumer gating requires Search's cycle-safe `goreecloud.search-index-delegation.v1` contract. PR #41 integrates the dormant fixed-origin HTTPS client. Current candidate adds a separate Production `/readyz` gate before authority acquisition; paired Search PR #28 remains Development-only and not production accepted. Live provider registration, real authority acquisition, approved external provider execution, user controls, target-runtime acceptance, and Production remain open. |
 | FR-008 | Integrate and accept all applicable Integral Platform Systems. | High | All nine explicitly evaluated; runtime acceptance remains blocked. |
 | FR-009 | Provide provider controls and permission review without manufacturing authority. | Medium | Session source controls and Android Contacts permission review are integrated; durable preferences and remote-provider controls remain open. |
 | FR-010 | Add reconstructible local indexing only where justified. | Medium | Planned. |
@@ -32,7 +32,7 @@ Latest accepted runtime-bearing checkpoint is `7b84ef011a8701f90e737a1ae340d8db0
 ## Sequencing
 
 1. Reconcile the canonical Drive Project Specification, Change Log, and Drive roadmap to verified PR #38 integration when safe DOCX in-place editing is available.
-2. Validate the current dormant Search HTTPS client candidate against the paired Search server candidate without registering it in the Development UI; continue real Identity/Privacy Shield/Wardveil/Mesh/Policy/Observability runtime work as separate bounded phases.
+2. Validate the dormant Search HTTPS client plus the separate runtime-readiness gate against the paired Search server candidate without registering it in the Development UI; continue real Identity/Privacy Shield/Wardveil/Mesh/Policy/Observability runtime work as separate bounded phases.
 3. Complete GLAZE UI V1.6 rendered/native, accessibility, device/form-factor, performance, and Human Visual Excellence acceptance.
 4. Expand providers and durable indexing only through explicit authority, privacy, security, continuity, and recovery contracts.
 5. Complete recovery/rollback, protected signing/distribution, Release Candidate, production, and Stable gates.

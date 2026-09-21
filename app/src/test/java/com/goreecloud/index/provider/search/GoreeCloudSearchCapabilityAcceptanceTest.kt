@@ -279,6 +279,82 @@ class GoreeCloudSearchCapabilityAcceptanceTest {
     }
 
     @Test
+    fun productionModeRejectsNotReadyRuntimeBeforeAuthorityAcquisitionOrQuery() = runTest {
+        var readinessCalls = 0
+        var authorizationCalls = 0
+        var authenticationCalls = 0
+        var searchCalls = 0
+        val provider = GoreeCloudSearchProvider(
+            client = GoreeCloudSearchClient { request ->
+                searchCalls++
+                emptyResponse(request)
+            },
+            capabilityClient = GoreeCloudSearchCapabilityClient {
+                capability(productionAccepted = true)
+            },
+            acceptanceMode = GoreeCloudSearchAcceptanceMode.PRODUCTION,
+            readinessClient = GoreeCloudSearchReadinessClient {
+                readinessCalls++
+                false
+            },
+            authorizationClient = GoreeCloudSearchAuthorizationClient {
+                authorizationCalls++
+                GoreeCloudSearchPrivacyAuthorization("psc_test")
+            },
+            requesterAuthenticationClient = GoreeCloudSearchRequesterAuthenticationClient {
+                authenticationCalls++
+                GoreeCloudSearchRequesterAuthentication("identity-requester-token")
+            },
+        )
+
+        val failure = runCatching {
+            provider.searchWithStatus(IndexQuery(text = "goreecloud", maxResults = 1))
+        }.exceptionOrNull()
+
+        assertTrue(failure is IllegalStateException)
+        assertEquals(
+            "GoreeCloud Search runtime is not ready for production delegation",
+            failure?.message,
+        )
+        assertEquals(1, readinessCalls)
+        assertEquals(0, authorizationCalls)
+        assertEquals(0, authenticationCalls)
+        assertEquals(0, searchCalls)
+    }
+
+    @Test
+    fun productionModeRequiresReadinessClientBeforeAuthorityAcquisition() = runTest {
+        var authorizationCalls = 0
+        var searchCalls = 0
+        val provider = GoreeCloudSearchProvider(
+            client = GoreeCloudSearchClient { request ->
+                searchCalls++
+                emptyResponse(request)
+            },
+            capabilityClient = GoreeCloudSearchCapabilityClient {
+                capability(productionAccepted = true)
+            },
+            acceptanceMode = GoreeCloudSearchAcceptanceMode.PRODUCTION,
+            authorizationClient = GoreeCloudSearchAuthorizationClient {
+                authorizationCalls++
+                GoreeCloudSearchPrivacyAuthorization("psc_test")
+            },
+        )
+
+        val failure = runCatching {
+            provider.searchWithStatus(IndexQuery(text = "goreecloud", maxResults = 1))
+        }.exceptionOrNull()
+
+        assertTrue(failure is IllegalStateException)
+        assertEquals(
+            "GoreeCloud Search production delegation requires a runtime readiness client",
+            failure?.message,
+        )
+        assertEquals(0, authorizationCalls)
+        assertEquals(0, searchCalls)
+    }
+
+    @Test
     fun productionModeRequiresAuthorizationClientBeforeQuery() = runTest {
         var searchCalls = 0
         val provider = GoreeCloudSearchProvider(
@@ -290,6 +366,7 @@ class GoreeCloudSearchCapabilityAcceptanceTest {
                 capability(productionAccepted = true)
             },
             acceptanceMode = GoreeCloudSearchAcceptanceMode.PRODUCTION,
+            readinessClient = GoreeCloudSearchReadinessClient { true },
             authorizationClient = null,
         )
 
@@ -317,6 +394,7 @@ class GoreeCloudSearchCapabilityAcceptanceTest {
                 capability(productionAccepted = true)
             },
             acceptanceMode = GoreeCloudSearchAcceptanceMode.PRODUCTION,
+            readinessClient = GoreeCloudSearchReadinessClient { true },
             authorizationClient = GoreeCloudSearchAuthorizationClient {
                 GoreeCloudSearchPrivacyAuthorization("privacy-shield:capability:test")
             },
@@ -347,6 +425,7 @@ class GoreeCloudSearchCapabilityAcceptanceTest {
                 capability(productionAccepted = true)
             },
             acceptanceMode = GoreeCloudSearchAcceptanceMode.PRODUCTION,
+            readinessClient = GoreeCloudSearchReadinessClient { true },
             authorizationClient = GoreeCloudSearchAuthorizationClient { request ->
                 observedAuthorizationRequest = request
                 GoreeCloudSearchPrivacyAuthorization(" psc_test ")
@@ -379,6 +458,7 @@ class GoreeCloudSearchCapabilityAcceptanceTest {
                 capability(productionAccepted = true)
             },
             acceptanceMode = GoreeCloudSearchAcceptanceMode.PRODUCTION,
+            readinessClient = GoreeCloudSearchReadinessClient { true },
             authorizationClient = GoreeCloudSearchAuthorizationClient {
                 authorizationCalls++
                 GoreeCloudSearchPrivacyAuthorization("psc_query_$authorizationCalls")

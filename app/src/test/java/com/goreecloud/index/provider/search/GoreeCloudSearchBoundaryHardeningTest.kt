@@ -31,6 +31,7 @@ class GoreeCloudSearchBoundaryHardeningTest {
                     productionCapability()
                 },
                 acceptanceMode = GoreeCloudSearchAcceptanceMode.PRODUCTION,
+                readinessClient = GoreeCloudSearchReadinessClient { true },
                 authorizationClient = GoreeCloudSearchAuthorizationClient {
                     GoreeCloudSearchPrivacyAuthorization(invalidReference)
                 },

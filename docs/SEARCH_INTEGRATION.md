@@ -18,6 +18,7 @@ The Search provider is eligible only when all of the following are true:
 - `search` is explicitly present in the provider allowlist;
 - applicable Privacy Shield authorization evidence is present and enforceable;
 - the Search `search.query` capability is current, authoritative, version-compatible, structurally valid, and appropriate for the current build lifecycle.
+- for Production delegation, Search's fixed-origin `/readyz` endpoint reports `ready` on a valid bounded JSON response before Index acquires Privacy Shield or Identity credentials.
 
 Local-only execution must not perform Search capability preflight, Privacy Shield remote-Search authorization, or network search.
 
@@ -43,6 +44,20 @@ Development Index builds may consume explicitly non-production or legacy-GET cap
 Stable/production Index builds must require Search capability evidence that is explicitly production accepted **and** matches the complete private transport contract. A merely reachable endpoint, GET-compatible capability, consumer-side Privacy Shield decision without server enforcement, or server contract without authenticated requester identity is insufficient.
 
 A Development exception must never be interpreted as permission to promote Index or Search to Stable.
+
+## Runtime readiness gate
+
+Capability metadata and runtime readiness are separate prerequisites.
+
+Production-mode Index performs a credential-free GET to the fixed Search origin at `/readyz` after capability validation and before acquiring a Privacy Shield capability reference or GoreeCloud Identity requester credential. A valid `200` response must identify `goreecloud-search` and report `status=ready`.
+
+A valid `503` response with `status=not_ready` is treated as an ordinary fail-closed runtime state. It prevents Privacy Shield authorization, Identity authentication, and query dispatch. Unsupported status codes, media types, response sizes, service identities, or status/body inconsistencies are transport failures.
+
+The paired Search Development readiness candidate defines `ready` as the conjunction of accepted authority-transport readiness and at least one enabled external provider. Index does not infer those facts from capability metadata and does not manufacture readiness locally.
+
+The readiness request carries no query text, bearer credential, Privacy Shield capability reference, local results, application inventory, or user data. It is re-evaluated for each Production query attempt rather than cached as durable authority.
+
+Development provider registration remains dormant and this readiness gate does not enable Search in the current Development UI.
 
 ## Cycle-safe Index-originated delegation
 
