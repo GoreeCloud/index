@@ -2,7 +2,7 @@
 
 ## Lifecycle
 
-**Release lifecycle: Development.** Version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Version `0.3.1-dev`. Production acceptance and Stable qualification remain false.
 
 Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. Verify GitHub live whenever the exact current default-branch SHA is material.
 
@@ -54,8 +54,8 @@ Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf
 - [x] Integrated Production requirement for both Privacy Shield and GoreeCloud Identity.
 - [x] Integrated operation-scoped Privacy Shield reference and independent Identity requester credential boundary.
 - [x] Sensitive-value redaction and safe URL/action validation.
-- [x] Development runtime remains local-only with no Internet permission.
-- [ ] Live transport registration/discovery/authentication/TLS/proxy acceptance.
+- [x] Current Development UI/runtime registration remains local-only; remote Search is not registered or user-enabled. The candidate manifest declares `INTERNET` for the dormant HTTPS transport source.
+- [x] Fixed-origin HTTPS client source, capability discovery parser, bounded JSON POST, redirect refusal, and authenticated-Development source mode.\n- [ ] Live transport registration plus producer-authoritative Identity/Privacy Shield connectivity, TLS/proxy/target-runtime acceptance.
 - [ ] User-facing Internet-provider enablement/preferences.
 - [ ] Representative runtime acceptance.
 
