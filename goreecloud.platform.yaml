@@ -1,10 +1,10 @@
-schema_version: '0.2'
+schema_version: '0.4'
 
 component:
   type: application
   id: goreecloud-index
   product_name: GoreeCloud Index
-  repository: GoreeCloud/goreecloud-index
+  repository: GoreeCloud/index
 
 lifecycle: development
 version: 0.3.0-dev
@@ -30,32 +30,35 @@ platform_systems:
     evidence:
       - README.md
       - CONFORMANCE.md
-    notes: Index has a fail-closed source authority model that keeps Android permission distinct from Privacy Shield decisions, but accepted producer-authoritative Privacy Shield runtime adapters, retained-decision lifecycle, and acceptance evidence are incomplete.
+      - PRIVACY POLICY.md
+    notes: Index has fail-closed Privacy Shield decision projection and bounded downstream declarations, but no accepted producer-authoritative runtime adapter, user-decision lifecycle, or production acceptance.
   wardveil_security:
     result: applicable-blocked
     version: null
     evidence:
       - CONFORMANCE.md
-    notes: Index does not infer Wardveil trust from provider success, but accepted provider/action security evidence integration and production security acceptance are incomplete.
+      - SECURITY.md
+    notes: Index constrains provider and result-action behavior but has no accepted Wardveil runtime security-evidence integration or production security acceptance.
   everkeep:
     result: applicable-blocked
     version: null
     evidence:
       - CONFORMANCE.md
-    notes: Current query state is transient and no intentional persistent query history exists, but any applicable durable Index configuration/settings still requires an accepted Everkeep continuity contract and recovery evidence before Stable qualification.
+    notes: Query state is transient and persistent query history is not implemented, but durable Index settings and future indexes require explicit continuity and recovery decisions before Stable qualification.
   glaze_ui:
     result: applicable-migration-required
-    version: '2.1.0'
+    version: '1.4.0'
     evidence:
       - README.md
       - CONFORMANCE.md
-    notes: Authoritative Index main still records Glaze UI 2.1.0 source targeting. Current published Stable consumer authority is V1.1 / 1.1.0, so migration is required. Draft PR #16 contains a Development V1.1 Compose mapping but is unmerged; the published 1.1.0 source also has the known immutable import-closure defect pending a corrected consumer-eligible Stable release and explicit downstream revalidation.
+      - FEATURE-ROADMAP.md
+    notes: Index main includes the native GLAZE UI V1.4 semantic foundation. Current Platform Contract Stable consumer authority is V1.6 / 1.6.0, so source migration plus rendered, accessibility, representative-device, performance, rollback, release, and production acceptance remain required.
   mesh:
     result: applicable-blocked
     version: null
     evidence:
       - CONFORMANCE.md
-    notes: Mesh-backed provider discovery/coordination remains planned and no accepted Mesh runtime registration, discovery, event, dependency, or transport evidence exists for Index.
+    notes: Mesh-backed first-party provider discovery and coordination remain planned; no accepted Mesh registration, discovery, event, dependency, or runtime transport evidence exists for Index.
     capabilities: []
     dependencies: []
     published_events: []
@@ -66,7 +69,19 @@ platform_systems:
     evidence:
       - README.md
       - CONFORMANCE.md
-    notes: Index source distinguishes Identity authorization from authentication and Android permission, but accepted producer-authoritative Identity authorization/runtime integration and user/profile isolation evidence are incomplete.
+    notes: Index distinguishes Identity authorization from Android permission and Privacy Shield decisions, but no accepted Identity runtime authorization adapter, user/profile isolation, revocation, or production evidence exists.
+  policy:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - CONFORMANCE.md
+    notes: GoreeCloud Policy is applicable to shared provider, authority, and execution policy decisions, but Index has not integrated or accepted producer-authoritative policy evaluation, freshness, explanation, enforcement, or policy evidence.
+  observability:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - CONFORMANCE.md
+    notes: GoreeCloud Observability is applicable to runtime health, provider diagnostics, latency, failure/degradation evidence, and operational freshness, but no accepted Observability integration or health/readiness publication exists.
 
 health:
   health_endpoint: null
@@ -89,11 +104,11 @@ continuity:
 external_dependencies: []
 
 compatibility:
-  platform_contract: '0.2'
-  glaze_ui_required: '1.1.0'
+  platform_contract: '0.4'
+  glaze_ui_required: '1.6.0'
   requires:
-    - goreecloud-platform-contract==0.2
-    - glaze-ui==1.1.0
+    - goreecloud-platform-contract==0.4
+    - glaze-ui==1.6.0
   provides:
     - index-local-provider-contract
     - index-search-action-contract
@@ -112,12 +127,15 @@ conformance:
     - CAPABILITIES.md
   blockers:
     - GoreeCloud Manager operational integration and acceptance are incomplete.
-    - Producer-authoritative Privacy Shield runtime integration and decision lifecycle acceptance are incomplete.
-    - Wardveil Security provider/action evidence integration and security acceptance are incomplete.
-    - Everkeep applicability and recovery requirements for any durable Index configuration/settings have not been accepted.
-    - Authoritative Index main still targets superseded Glaze UI 2.1.0; current published Stable V1.1 / 1.1.0 migration and downstream acceptance remain incomplete, and the known immutable 1.1.0 import-closure defect still requires a corrected consumer-eligible Stable release before current conformance can be claimed.
+    - Producer-authoritative Privacy Shield runtime integration, user-decision lifecycle, and acceptance are incomplete.
+    - Wardveil Security provider/action evidence integration and production security acceptance are incomplete.
+    - Everkeep continuity and recovery requirements for durable Index state remain unaccepted.
+    - Index implements a GLAZE UI V1.4 native semantic foundation but must migrate to current Stable V1.6 / 1.6.0 and complete application-level acceptance.
     - GoreeCloud Mesh provider discovery/coordination integration and runtime acceptance are incomplete.
-    - GoreeCloud Identity authorization adapter, user/profile isolation, revocation, and runtime acceptance are incomplete.
-    - Index exposes no accepted health/readiness interfaces for GoreeCloud Manager or platform observability.
-    - Representative Android device acceptance, accessibility, localization/RTL, form-factor/performance, production signing/distribution, recovery decisions, and release provenance are incomplete.
+    - GoreeCloud Identity authorization, isolation, revocation, and runtime acceptance are incomplete.
+    - GoreeCloud Policy applicability is evaluated as applicable, but policy decision, enforcement, freshness, explanation, and evidence integration are not accepted.
+    - GoreeCloud Observability applicability is evaluated as applicable, but health, diagnostics, performance, freshness, and operational evidence integration are not accepted.
+    - Index exposes no accepted health/readiness interfaces.
+    - Live GoreeCloud Search transport and user-facing Internet-provider controls are not enabled or accepted.
+    - Representative Android device, accessibility, localization/RTL, form-factor/performance, production signing/distribution, rollback, recovery, and release-provenance acceptance are incomplete.
     - No Stable or production-approved GoreeCloud Index release evidence is declared.
