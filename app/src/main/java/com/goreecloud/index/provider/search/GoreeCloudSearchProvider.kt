@@ -18,6 +18,7 @@ internal const val GOREECLOUD_SEARCH_API_VERSION = "1"
 internal const val GOREECLOUD_SEARCH_QUERY_CAPABILITY_ID = "search.query"
 internal const val GOREECLOUD_SEARCH_QUERY_ENDPOINT = "/api/v1/search"
 internal const val GOREECLOUD_SEARCH_DISCOVERY_ENDPOINT = "/api/v1/status"
+internal const val GOREECLOUD_SEARCH_READINESS_ENDPOINT = "/readyz"
 internal const val GOREECLOUD_SEARCH_DISCOVERY_COLLECTION = "capability_evidence"
 internal const val GOREECLOUD_SEARCH_ORIGIN = "https://search.goreecloud.com"
 internal const val GOREECLOUD_SEARCH_MAX_RESULTS = 100
@@ -185,6 +186,10 @@ fun interface GoreeCloudSearchCapabilityClient {
     suspend fun queryCapability(): GoreeCloudSearchCapability
 }
 
+fun interface GoreeCloudSearchReadinessClient {
+    suspend fun queryReadiness(): Boolean
+}
+
 fun interface GoreeCloudSearchAuthorizationClient {
     suspend fun authorize(request: GoreeCloudSearchPrivacyAuthorizationRequest): GoreeCloudSearchPrivacyAuthorization
 }
@@ -204,6 +209,7 @@ class GoreeCloudSearchProvider(
     private val client: GoreeCloudSearchClient,
     private val capabilityClient: GoreeCloudSearchCapabilityClient,
     private val acceptanceMode: GoreeCloudSearchAcceptanceMode = GoreeCloudSearchAcceptanceMode.DEVELOPMENT,
+    private val readinessClient: GoreeCloudSearchReadinessClient? = null,
     private val authorizationClient: GoreeCloudSearchAuthorizationClient? = null,
     private val requesterAuthenticationClient: GoreeCloudSearchRequesterAuthenticationClient? = null,
 ) : IndexStatusAwareProvider {
@@ -229,6 +235,7 @@ class GoreeCloudSearchProvider(
 
         val capability = capabilityClient.queryCapability()
         validateCapability(capability)
+        validateProductionReadiness()
         val privacyCapabilityReference = productionPrivacyCapabilityReference()
         val requesterBearerCredential = productionRequesterBearerCredential()
         val limit = minOf(query.maxResults.coerceIn(1, GOREECLOUD_SEARCH_MAX_RESULTS), capability.maxResults)
@@ -251,6 +258,16 @@ class GoreeCloudSearchProvider(
             }.toList(),
             degraded = response.degraded,
         )
+    }
+
+    private suspend fun validateProductionReadiness() {
+        if (acceptanceMode != GoreeCloudSearchAcceptanceMode.PRODUCTION) return
+        val readiness = checkNotNull(readinessClient) {
+            "GoreeCloud Search production delegation requires a runtime readiness client"
+        }
+        check(readiness.queryReadiness()) {
+            "GoreeCloud Search runtime is not ready for production delegation"
+        }
     }
 
     private suspend fun productionPrivacyCapabilityReference(): String? {
