@@ -18,16 +18,16 @@ The integrated line preserves the still-valid PR #35 runtime/test work while kee
 
 A future Search capability must prove `goreecloud.search-index-delegation.v1` with `external_only` mode, Index-provider re-entry disabled, and fallback disabled before the Index Search provider will dispatch. This prevents a future `Index → Search → Index` recursion while preserving Search's ordinary ability to use Index for non-Index-originated callers.
 
-The paired GoreeCloud Search source candidate remains separate and source-only. Live Search remains unregistered in Index, Android `INTERNET` remains absent, and no Identity/Privacy Shield runtime acceptance is created by this readiness contract.
+The paired GoreeCloud Search source candidate remains separate and source/CI-only. Index now has a concrete fixed-origin HTTPS client candidate and declares Android `INTERNET`, but live Search remains unregistered in the Development runtime and no Identity/Privacy Shield runtime acceptance is created by this readiness work.
 
 ## Runtime Boundary
 
 - Development source selection is local-only and limited to Applications, Settings, and Contacts.
 - Contacts permission review is Android-owned and cannot satisfy Privacy Shield/Identity.
-- Live GoreeCloud Search remains unregistered and Android Internet permission remains absent.
+- Live GoreeCloud Search remains unregistered; Android `INTERNET` is declared only to support the dormant fixed-origin HTTPS client candidate.
 - Production Search source requires independent Privacy Shield and Identity evidence.
 - No production credentials or concrete Identity registration are invented locally.
 
 ## Open Work
 
-Canonical Drive DOCX reconciliation; accepted platform-runtime integrations; live Search transport/user controls; V1.6 rendered/native application acceptance; representative-device accessibility/performance/OEM evidence; additional providers; recovery/rollback; protected signing/distribution; Release Candidate; production; and Stable qualification.
+Canonical Drive DOCX reconciliation; accepted platform-runtime integrations; live Search provider registration/user controls and authority-service connectivity; V1.6 rendered/native application acceptance; representative-device accessibility/performance/OEM evidence; additional providers; recovery/rollback; protected signing/distribution; Release Candidate; production; and Stable qualification.
