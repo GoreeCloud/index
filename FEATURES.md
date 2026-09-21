@@ -2,7 +2,7 @@
 
 ## Status
 
-**Release lifecycle: Development.** Version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Version `0.3.1-dev`. Production acceptance and Stable qualification remain false.
 
 ## Integrated Development Features
 
@@ -43,7 +43,7 @@
 - Privacy Shield constrained intent/reference handling.
 - Independent GoreeCloud Identity requester-credential requirement for Production delegation.
 - Query/category/limit minimization, response binding, degradation propagation, URL/action validation, and sensitive rendering controls.
-- No live transport registration or Android Internet permission in Development.
+- No live transport registration in Development; Android `INTERNET` permission is present only for the dormant fixed-origin HTTPS client and does not make remote Search user-enableable.
 
 ### GLAZE UI V1.6 Source Adoption
 

@@ -65,9 +65,10 @@ jobs:
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt -print | sort -V | tail -n 1)"
           test -n "$AAPT"
           "$AAPT" dump badging "$APK" | tee build-evidence/app-debug.badging.txt
-          grep -Fq "package: name='com.goreecloud.index.dev' versionCode='3' versionName='0.3.0-dev'" build-evidence/app-debug.badging.txt
+          grep -Fq "package: name='com.goreecloud.index.dev' versionCode='4' versionName='0.3.1-dev'" build-evidence/app-debug.badging.txt
           grep -Fq "application-label:'GoreeCloud Index Dev'" build-evidence/app-debug.badging.txt
           grep -Fq "uses-permission: name='android.permission.READ_CONTACTS'" build-evidence/app-debug.badging.txt
+          grep -Fq "uses-permission: name='android.permission.INTERNET'" build-evidence/app-debug.badging.txt
 
       - name: Upload development APK evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

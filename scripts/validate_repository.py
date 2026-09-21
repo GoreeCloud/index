@@ -17,6 +17,8 @@ required = [
     "app/src/main/java/com/goreecloud/index/core/PlatformAuthorityAdapters.kt",
     "app/src/main/java/com/goreecloud/index/provider/apps/InstalledAppsProvider.kt",
     "app/src/main/java/com/goreecloud/index/provider/contacts/ContactsProvider.kt",
+    "app/src/main/java/com/goreecloud/index/provider/search/GoreeCloudSearchProvider.kt",
+    "app/src/main/java/com/goreecloud/index/provider/search/GoreeCloudSearchHttpClient.kt",
     "app/src/main/java/com/goreecloud/index/ui/IndexRoot.kt",
     "app/src/main/java/com/goreecloud/index/ui/theme/GlazeV16Contract.kt",
     "app/src/test/java/com/goreecloud/index/core/IndexQueryEngineTest.kt",
@@ -24,6 +26,7 @@ required = [
     "app/src/test/java/com/goreecloud/index/core/IndexSourceControlsTest.kt",
     "app/src/test/java/com/goreecloud/index/ui/theme/GlazeV16ContractTest.kt",
     "app/src/test/java/com/goreecloud/index/core/PlatformAuthorityAdaptersTest.kt",
+    "app/src/test/java/com/goreecloud/index/provider/search/GoreeCloudSearchHttpClientTest.kt",
     "goreecloud/privacy-shield.application-manifest.json",
     "goreecloud/privacy-shield.adapter.json",
     "goreecloud/PRIVACY-SHIELD.md",
@@ -108,8 +111,10 @@ for expected in [
         raise SystemExit(f"Privacy Shield downstream boundary documentation missing: {expected}")
 
 manifest = (ROOT / "app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
-if "android.permission.INTERNET" in manifest:
-    raise SystemExit("Current local provider slice must not request INTERNET")
+if "android.permission.INTERNET" not in manifest:
+    raise SystemExit("Authenticated GoreeCloud Search HTTPS candidate requires INTERNET")
+if 'android:usesCleartextTraffic="false"' not in manifest:
+    raise SystemExit("Authenticated GoreeCloud Search transport must keep cleartext traffic disabled")
 if "android.permission.QUERY_ALL_PACKAGES" in manifest:
     raise SystemExit("Applications provider must not request QUERY_ALL_PACKAGES")
 for expected in [
@@ -124,9 +129,9 @@ for expected in [
 build = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
 for expected in [
     'applicationId = "com.goreecloud.index"', 'applicationIdSuffix = ".dev"',
-    'compileSdk = 37', 'targetSdk = 36', 'minSdk = 26', 'versionCode = 3',
-    'versionName = "0.3.0-dev"', 'kotlinx-coroutines-android:1.11.0',
-    'kotlinx-coroutines-test:1.11.0',
+    'compileSdk = 37', 'targetSdk = 36', 'minSdk = 26', 'versionCode = 4',
+    'versionName = "0.3.1-dev"', 'kotlinx-coroutines-android:1.11.0',
+    'kotlinx-coroutines-test:1.11.0', 'org.json:json:20240303',
 ]:
     if expected not in build:
         raise SystemExit(f"Missing Android/runtime build contract: {expected}")
@@ -220,6 +225,46 @@ for expected in [
 ]:
     if expected not in search_provider:
         raise SystemExit(f"Missing Search cycle-safety capability boundary: {expected}")
+
+search_http_client = (
+    ROOT / "app/src/main/java/com/goreecloud/index/provider/search/GoreeCloudSearchHttpClient.kt"
+).read_text(encoding="utf-8")
+for expected in [
+    'GOREECLOUD_SEARCH_ORIGIN',
+    'HttpsURLConnection',
+    'instanceFollowRedirects = false',
+    'GOREECLOUD_SEARCH_PRIVACY_AUTHORIZATION_HEADER',
+    'GOREECLOUD_SEARCH_REQUESTER_AUTHENTICATION_HEADER',
+    '"Bearer $bearerCredential"',
+    'GOREECLOUD_SEARCH_MAX_REQUEST_BYTES',
+    'GOREECLOUD_SEARCH_HTTP_MAX_RESPONSE_BYTES',
+    'GoreeCloudSearchHttpRequest(method=$method, url=<redacted>, headers=<redacted>, body=<redacted>)',
+]:
+    if expected not in search_http_client:
+        raise SystemExit(f"Missing authenticated Search HTTP transport boundary: {expected}")
+
+main_activity_transport = (
+    ROOT / "app/src/main/java/com/goreecloud/index/MainActivity.kt"
+).read_text(encoding="utf-8")
+for prohibited in [
+    "AuthenticatedGoreeCloudSearchHttpClient",
+    "GoreeCloudSearchProvider(",
+]:
+    if prohibited in main_activity_transport:
+        raise SystemExit(f"Development runtime must not register remote Search transport yet: {prohibited}")
+
+search_http_tests = (
+    ROOT / "app/src/test/java/com/goreecloud/index/provider/search/GoreeCloudSearchHttpClientTest.kt"
+).read_text(encoding="utf-8")
+for expected in [
+    "capabilityDiscoveryParsesDevelopmentProductionShapedContract",
+    "authenticatedSearchUsesPostBodyAndSeparateAuthorityHeaders",
+    "missingPrivacyOrIdentityAuthorityFailsBeforeNetworkExchange",
+    "transportRejectsNonSuccessWithoutSurfacingResponseBody",
+    "request.url.query",
+]:
+    if expected not in search_http_tests:
+        raise SystemExit(f"Missing authenticated Search HTTP transport regression: {expected}")
 
 search_capability_tests = (
     ROOT / "app/src/test/java/com/goreecloud/index/provider/search/GoreeCloudSearchCapabilityAcceptanceTest.kt"
@@ -360,6 +405,24 @@ for document in documents:
         raise SystemExit(f"{document} missing Development lifecycle state")
     if "GoreeCloud/goreecloud-index" in text:
         raise SystemExit(f"{document} still references the superseded repository namespace")
+
+internet_boundary_expectations = {
+    "ARCHITECTURE.md": "Android `INTERNET` permission only for the dormant fixed-origin HTTPS client",
+    "FEATURES.md": "Android `INTERNET` permission is present only for the dormant fixed-origin HTTPS client",
+    "CONFORMANCE.md": "Android `INTERNET` permission is present only for the dormant fixed-origin Search HTTPS client",
+}
+for document, expected in internet_boundary_expectations.items():
+    text = (ROOT / document).read_text(encoding="utf-8")
+    if expected not in text:
+        raise SystemExit(f"{document} missing current dormant Search INTERNET permission boundary")
+    normalized = text.lower()
+    for prohibited in [
+        "does not request internet permission",
+        "no live transport registration or android internet permission",
+        "local-only with no internet permission",
+    ]:
+        if prohibited in normalized:
+            raise SystemExit(f"{document} contains stale INTERNET permission boundary: {prohibited}")
 
 for document in documents:
     text = (ROOT / document).read_text(encoding="utf-8").lower()

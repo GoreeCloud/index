@@ -8,7 +8,7 @@ GoreeCloud Index is GoreeCloud's privacy-first universal search and indexing coo
 
 Canonical repository: `GoreeCloud/index`.
 
-Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`, produced by the confirmed squash merge of PR #38 after exact-head validation. Documentation- or test-only commits may advance the default branch; verify GitHub live whenever the exact current `main` SHA is material. Post-merge Platform Contract run `35600884480` and Android Index foundation run `35600883648` both passed on the runtime-bearing checkpoint.
+Latest accepted runtime-bearing checkpoint: `34446cc519afb87bca27b0c3e6639db01ff114b8`, produced by the confirmed merge of PR #40 after exact-head validation. Post-merge Platform Contract run `35613027668` and Android Index foundation run `35613026810` both passed on that authoritative `main` revision.
 
 ## Integrated Development Capability
 
@@ -29,7 +29,7 @@ The integrated Development line preserves the still-valid runtime work reconcile
 
 ## Runtime and Authority Boundaries
 
-The Development runtime does **not** register live GoreeCloud Search transport and does not request Android Internet permission. Source controls cannot enable GoreeCloud Search or an unknown remote provider.
+The Development runtime still does **not** register a live GoreeCloud Search provider or expose remote Search in source controls. The current candidate does request Android `INTERNET` permission so its dormant fixed-origin HTTPS client can function when a later governed runtime registration exists; that permission alone does not enable Search, mint authority, or establish deployment acceptance.
 
 Contacts remains fail-closed. Android `READ_CONTACTS` is only one prerequisite; Privacy Shield and GoreeCloud Identity remain independent authorities. Android permission review cannot mint or replace either GoreeCloud decision.
 
@@ -52,14 +52,14 @@ The integrated Development line preserves Platform Contract `0.4`, exactly nine 
 - Production application ID: `com.goreecloud.index`
 - Development application ID: `com.goreecloud.index.dev`
 - Development label: `GoreeCloud Index Dev`
-- Version: `0.3.0-dev`, code `3`
+- Version: `0.3.1-dev`, code `4`
 - Minimum API: 26
 - Compile API: 37
 - Target API: 36
 
 ## Release Boundary
 
-Post-merge CI on runtime-bearing checkpoint `5ae1a1debc79a7adc8b65266bb947baf633d4d1f` proves the checks executed at that revision; it does not by itself satisfy later runtime or release gates. Production signing/distribution, representative-device acceptance, recovery/rollback, Release Candidate qualification, production approval, and Stable qualification remain separate gates.
+Post-merge CI on accepted checkpoint `34446cc519afb87bca27b0c3e6639db01ff114b8` proves the checks executed at that revision; the current transport branch requires its own exact-head validation before it can be considered for integration; it does not by itself satisfy later runtime or release gates. Production signing/distribution, representative-device acceptance, recovery/rollback, Release Candidate qualification, production approval, and Stable qualification remain separate gates.
 
 ## Documentation
 

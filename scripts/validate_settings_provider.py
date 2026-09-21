@@ -101,8 +101,9 @@ for expected in [
     if expected not in main:
         raise SystemExit(f"MainActivity missing Settings handoff boundary: {expected}")
 
-if "android.permission.INTERNET" in manifest:
-    raise SystemExit("Local Settings provider must not add INTERNET permission")
+# INTERNET is now an application-level prerequisite for the separately bounded
+# GoreeCloud Search HTTPS candidate. The Settings provider itself remains local,
+# static, and network-free through the provider-source prohibitions above.
 if "android.permission.QUERY_ALL_PACKAGES" in manifest:
     raise SystemExit("Local Settings provider must not add unrestricted package visibility")
 

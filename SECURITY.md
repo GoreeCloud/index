@@ -14,7 +14,7 @@ Include only the minimum information needed to reproduce and assess the issue. N
 
 ## Current Security Boundaries
 
-- The shipped Android runtime does not request Internet permission.
+- The current candidate requests Android `INTERNET` permission solely to support the dormant GoreeCloud Search HTTPS client; no remote provider is registered or user-enabled by this change.
 - Applications search avoids unrestricted `QUERY_ALL_PACKAGES`.
 - Contacts requires Android permission plus independent Privacy Shield and GoreeCloud Identity authority evidence before dispatch.
 - Missing, constrained, denied, stale, or unavailable authority fails closed.

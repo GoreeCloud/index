@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Release lifecycle: Development.** Latest runtime-bearing integration checkpoint is `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. PR #38 is integrated and post-merge Platform Contract run `35600884480` plus Android Index foundation run `35600883648` passed on that checkpoint. Documentation/test-only commits may advance the default branch; verify GitHub live whenever the exact current `main` SHA is material. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Latest accepted runtime-bearing checkpoint is `34446cc519afb87bca27b0c3e6639db01ff114b8`; post-merge Platform Contract run `35613027668` and Android Index foundation run `35613026810` passed. The current `0.3.1-dev` HTTPS transport work is an unmerged candidate. Production acceptance and Stable qualification remain false.
 
 ## Search and Composition
 
@@ -26,7 +26,7 @@ Android permission review is user-initiated and addresses only Android's prerequ
 
 ## GoreeCloud Search Production Contract Source
 
-Integrated Search source requires independent Privacy Shield and Identity evidence before Production delegation. It validates Search capability metadata and transport intent before calling a supplied client. No concrete Identity registration, token format, issuer, scope, client ID, TLS/proxy path, or production credential is invented locally.
+Integrated Search source requires independent Privacy Shield and Identity evidence before Production delegation. The current candidate adds a concrete fixed-origin HTTPS client for capability discovery and bounded JSON-body query dispatch, but still invents no Identity issuer/token format/scope/client ID, Privacy Shield verifier, production credential, deployment path, or runtime registration.
 
 ## GLAZE UI
 
@@ -34,4 +34,4 @@ Active native theme source targets V1.6 / `1.6.0`. Presentation consumes caller-
 
 ## Limits
 
-The authoritative Development runtime remains local-only in the Development UI. Live remote Search, accepted Contacts/platform runtime integrations, representative-device qualification, durable local indexing, additional providers, recovery/release gates, production, and Stable remain open.
+The authoritative Development UI remains local-only. The candidate Android package has network permission and a dormant Search HTTPS client, but remote Search registration, accepted authority acquisition, live provider execution, target-runtime qualification, durable local indexing, additional providers, recovery/release gates, production, and Stable remain open.

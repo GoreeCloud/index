@@ -7,7 +7,7 @@ component:
   repository: GoreeCloud/index
 
 lifecycle: development
-version: 0.3.0-dev
+version: 0.3.1-dev
 
 supported_platforms:
   - android
@@ -31,7 +31,7 @@ platform_systems:
       - README.md
       - CONFORMANCE.md
       - PRIVACY POLICY.md
-    notes: Index has fail-closed Privacy Shield decision projection and bounded downstream declarations, but no accepted producer-authoritative runtime adapter, user-decision lifecycle, or production acceptance.
+    notes: Index has fail-closed Privacy Shield decision projection and the candidate carries only an opaque capability reference in the dedicated Search authorization header, but no accepted producer-authoritative runtime adapter, user-decision lifecycle, or production acceptance.
   wardveil_security:
     result: applicable-blocked
     version: null
@@ -70,7 +70,7 @@ platform_systems:
     evidence:
       - README.md
       - CONFORMANCE.md
-    notes: Index distinguishes Identity authorization from Android permission and Privacy Shield decisions, but no accepted Identity runtime authorization adapter, user/profile isolation, revocation, or production evidence exists.
+    notes: Index distinguishes Identity authorization from Android permission and Privacy Shield decisions; the candidate can carry an independently acquired bearer credential over the fixed Search HTTPS client, but no accepted Identity runtime adapter, issuer/credential policy, user/profile isolation, revocation, or production evidence exists.
   policy:
     result: applicable-blocked
     version: null
@@ -137,6 +137,6 @@ conformance:
     - GoreeCloud Policy applicability is evaluated as applicable, but policy decision, enforcement, freshness, explanation, and evidence integration are not accepted.
     - GoreeCloud Observability applicability is evaluated as applicable, but health, diagnostics, performance, freshness, and operational evidence integration are not accepted.
     - Index exposes no accepted health/readiness interfaces.
-    - Live GoreeCloud Search transport and user-facing Internet-provider controls are not enabled or accepted.
+    - A dormant fixed-origin GoreeCloud Search HTTPS client exists in the candidate and Android network permission is present, but live provider registration, authority acquisition, target-runtime TLS/proxy acceptance, user-facing Internet-provider controls, and production acceptance are not enabled or accepted.
     - Representative Android device, accessibility, localization/RTL, form-factor/performance, production signing/distribution, rollback, recovery, and release-provenance acceptance are incomplete.
     - No Stable or production-approved GoreeCloud Index release evidence is declared.

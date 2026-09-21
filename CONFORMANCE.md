@@ -2,9 +2,9 @@
 
 ## Lifecycle
 
-**Release lifecycle: Development.** Version `0.3.0-dev`. Production acceptance and Stable qualification remain false.
+**Release lifecycle: Development.** Version `0.3.1-dev`. Production acceptance and Stable qualification remain false.
 
-Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf633d4d1f`. Verify GitHub live whenever the exact current default-branch SHA is material.
+Latest accepted runtime-bearing checkpoint: `34446cc519afb87bca27b0c3e6639db01ff114b8`. The current `0.3.1-dev` authenticated Search transport work remains an unmerged candidate.
 
 ## Repository and Platform Contract
 
@@ -54,7 +54,7 @@ Latest runtime-bearing integration checkpoint: `5ae1a1debc79a7adc8b65266bb947baf
 - [x] Integrated Production requirement for both Privacy Shield and GoreeCloud Identity.
 - [x] Integrated operation-scoped Privacy Shield reference and independent Identity requester credential boundary.
 - [x] Sensitive-value redaction and safe URL/action validation.
-- [x] Development runtime remains local-only with no Internet permission.
+- [x] Development provider registration and source controls remain local-only; Android `INTERNET` permission is present only for the dormant fixed-origin Search HTTPS client.
 - [ ] Live transport registration/discovery/authentication/TLS/proxy acceptance.
 - [ ] User-facing Internet-provider enablement/preferences.
 - [ ] Representative runtime acceptance.
@@ -94,6 +94,8 @@ Glaze source migration is integrated in the Development source line, but applica
 - Post-merge Platform Contract run `35600884480` passed; artifact `10638283225`, digest `sha256:a05991f865a43a4fe6a1175bc864a53df0124386bb431c332dc330b526d98465`.
 - Post-merge Android Index foundation run `35600883648` passed; Development APK evidence artifact `10638847014`, digest `sha256:5dbdd9f249a07687b4cbd2b72a04bd337b83a03a7afe31802be38f8775fbf446`.
 - PR #35 and PR #36 are closed as superseded after their still-valid work was preserved or replaced through PR #38.
+- PR #40 merged at `34446cc519afb87bca27b0c3e6639db01ff114b8`; post-merge Platform Contract run `35613027668` and Android Index foundation run `35613026810` passed.
+- The current `0.3.1-dev` transport candidate has no acceptance claim until its own exact-head checks complete.
 
 ## Release Gates
 
