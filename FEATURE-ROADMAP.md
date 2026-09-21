@@ -8,7 +8,7 @@
 
 ## Current Development Checkpoint
 
-Latest accepted runtime-bearing checkpoint is `34446cc519afb87bca27b0c3e6639db01ff114b8`. PR #40 integrated the fail-closed cycle-safe Search capability gate and post-merge Platform Contract run `35613027668` plus Android Index foundation run `35613026810` passed. The current `0.3.1-dev` transport branch is a fresh candidate from that exact main revision and is not accepted until exact-head validation and a separately confirmed merge.
+Latest accepted runtime-bearing checkpoint is `7b84ef011a8701f90e737a1ae340d8db09d58e78`. PR #41 integrated the dormant fixed-origin authenticated GoreeCloud Search HTTPS client after paired Search PR #23 was accepted. Post-merge Platform Contract run `35625546653` and Android Index foundation run `35625545378` passed on that exact main revision. The client remains unregistered in the Development UI; live Identity and Privacy Shield authority transport, approved provider execution, representative runtime acceptance, deployment, Production, and Stable qualification remain open.
 
 ## Roadmap
 
@@ -20,7 +20,7 @@ Latest accepted runtime-bearing checkpoint is `34446cc519afb87bca27b0c3e6639db01
 | FR-004 | Adopt current GLAZE UI V1.6 source and complete application acceptance. | High | V1.6 source projection is integrated in the current Development source line; rendered/native/device/performance/rollback/production acceptance remains blocked. |
 | FR-005 | Preserve deterministic composition, bounded fan-out, provenance, and cancellation. | High | PR #35 improvements are integrated through PR #38; exact-head and post-merge CI passed. |
 | FR-006 | Expand local/first-party providers through explicit authority contracts. | High | Applications/Settings integrated; Contacts remains authority-gated; Files/Calendar/media open. |
-| FR-007 | Complete GoreeCloud Search integration without silent remote context export. | High | Accepted consumer gating requires Search's cycle-safe `goreecloud.search-index-delegation.v1` contract. Current candidate adds a dormant fixed-origin HTTPS client and required Android network permission; live provider registration, real authority acquisition, user controls, target-runtime acceptance, and Production remain open. |
+| FR-007 | Complete GoreeCloud Search integration without silent remote context export. | High | Accepted consumer gating requires Search's cycle-safe `goreecloud.search-index-delegation.v1` contract. PR #41 integrates a dormant fixed-origin HTTPS client and required Android network permission. Live provider registration, real authority acquisition, user controls, target-runtime acceptance, and Production remain open. |
 | FR-008 | Integrate and accept all applicable Integral Platform Systems. | High | All nine explicitly evaluated; runtime acceptance remains blocked. |
 | FR-009 | Provide provider controls and permission review without manufacturing authority. | Medium | Session source controls and Android Contacts permission review are integrated; durable preferences and remote-provider controls remain open. |
 | FR-010 | Add reconstructible local indexing only where justified. | Medium | Planned. |
