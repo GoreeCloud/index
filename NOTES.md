@@ -2,38 +2,49 @@
 
 ## Current Working State
 
-- Release lifecycle: Development.
+- Release lifecycle: Development / nonconformant.
 - Application version: `0.3.1-dev`.
 - Canonical repository: `GoreeCloud/index`.
-- Latest runtime-bearing integration checkpoint: `7b84ef011a8701f90e737a1ae340d8db09d58e78` from PR #41. Authoritative main is currently the later documentation-only checkpoint `29c1c4150ef0b80118b1cf8bdf1c34533014dee4`; verify GitHub live whenever the exact current default-branch SHA is material.
-- No production acceptance or Stable qualification is claimed.
+- Current authoritative `main` at the migration baseline: `8de424217d475662d49da9714452b63285ee08d0` from PR #45.
+- PR #45 exact head `65b3e397b8c80b8bc21e801fcd4314d12f37c46c` passed Platform Contract run `35651653575` and Android Index foundation validation run `35651652655` before integration.
+- No Production Acceptance or Stable qualification is claimed.
+- Draft PR #46 remains a separate unmerged hardening candidate.
 
-## Verified transport integration
+## Verified Search transport integration
 
-PR #38 remains historical integration provenance for the Contract 0.4/V1.6 source line. PR #41 then integrated the dormant fixed-origin authenticated GoreeCloud Search HTTPS client on exact runtime-bearing main `7b84ef011a8701f90e737a1ae340d8db09d58e78`. Post-merge Platform Contract run `35625546653` and Android Index foundation run `35625545378` passed on that exact revision.
+PR #41 integrated the dormant fixed-origin authenticated GoreeCloud Search HTTPS client on runtime-bearing main checkpoint `7b84ef011a8701f90e737a1ae340d8db09d58e78`. Post-merge Platform Contract run `35625546653` and Android Index foundation run `35625545378` passed on that exact revision.
 
-The client discovers `search.query` through Search status, uses bounded JSON POST to the fixed Search origin, carries separately supplied Privacy Shield capability and GoreeCloud Identity requester evidence, refuses redirects, bounds response size, validates media/status responses, and redacts wire data from debug rendering. It remains dormant and unregistered in Development source controls.
+The client discovers Search capability state, uses bounded JSON POST to the fixed Search origin, carries separately supplied Privacy Shield capability and GoreeCloud Identity requester evidence, refuses redirects, bounds response size, validates media/status responses, and redacts sensitive wire data. It remains dormant and unregistered in Development source controls.
 
-## Search cycle-safety readiness
+## Search cycle-safety contract
 
-A future Search capability must prove `goreecloud.search-index-delegation.v1` with `external_only` mode, Index-provider re-entry disabled, and fallback disabled before the Index Search provider will dispatch. This prevents a future `Index → Search → Index` recursion while preserving Search's ordinary ability to use Index for non-Index-originated callers.
+PR #40 integrated the cycle-safe delegation requirement: a Search capability used for Index-originated delegation must prove `goreecloud.search-index-delegation.v1`, `external_only` mode, Index-provider re-entry disabled, and delegation fallback disabled before Index will dispatch.
 
-Paired GoreeCloud Search PR #23 is integrated on its authoritative Development line with the cycle-safe authenticated HTTP boundary. Index still does not register Search in its Development UI, and no Identity/Privacy Shield runtime acceptance is created by either source integration.
+This prevents an `Index → Search → Index` recursion while preserving Search's separately governed behavior for other callers. It does not create live connectivity or runtime authority by itself.
 
-## 2026-09-21 — Search runtime readiness gate candidate
+## Search runtime readiness gate
 
-The current Index candidate adds a separate production-only Search runtime-readiness preflight against the fixed `https://search.goreecloud.com/readyz` endpoint. Capability validation still runs first; a non-ready Search runtime then fails closed before Index asks Privacy Shield for an operation capability or GoreeCloud Identity for a requester credential. The preflight carries no authorization material or query content.
+PR #45 integrated a separate Production-only Search runtime-readiness preflight against fixed `https://search.goreecloud.com/readyz`.
 
-The paired Search PR #28 currently defines readiness as accepted authority transports plus at least one enabled external provider, while still advertising `production_accepted=false`. Index remains dormant/unregistered in Development source controls, so this candidate does not activate remote Search or create runtime acceptance.
+Capability validation runs first. A valid `ready` result permits progression to later authority gates; a valid not-ready result fails closed before Index asks Privacy Shield for an operation capability, asks GoreeCloud Identity for a requester credential, or sends a Search query. Invalid service identity, inconsistent status/body, unsupported status/media type, or oversized response fails as a transport error.
+
+The readiness request carries no authorization material, query text, local results, application inventory, or other user data.
 
 ## Runtime Boundary
 
 - Development source selection is local-only and limited to Applications, Settings, and Contacts.
 - Contacts permission review is Android-owned and cannot satisfy Privacy Shield/Identity.
-- Live GoreeCloud Search remains unregistered. Android `INTERNET` permission is now present only so the dormant fixed-origin HTTPS client can function if a later governed registration is accepted; the permission alone does not enable remote Search or grant authority.
-- Production Search source requires independent Privacy Shield and Identity evidence.
+- Live GoreeCloud Search remains unregistered.
+- Android `INTERNET` permission is present only so the dormant fixed-origin HTTPS client can function if a later governed registration is accepted; the permission alone does not enable remote Search or grant authority.
+- Production Search source requires cycle-safe capability evidence, positive runtime readiness, independent Privacy Shield authorization, and independent Identity requester evidence.
 - No production credentials or concrete Identity registration are invented locally.
+
+## Repository-native migration
+
+The September 22 migration branch replaces the legacy dual repository/Drive roadmap and Drive-hosted changelog model with root `IMPLEMENTED-FEATURES.md`, `PLANNED-FEATURES.md`, and `CHANGELOGS.md`, plus repository-local historical changelog content.
+
+Until the migration is accepted and verified on authoritative `main`, the legacy Drive roadmap/changelog and root `FEATURE-ROADMAP.md` remain migration sources only and are not yet eligible for deletion.
 
 ## Open Work
 
-Canonical Drive DOCX reconciliation; live Identity/Privacy Shield authority transport and governed Search registration/user controls; accepted platform-runtime integrations; V1.6 rendered/native application acceptance; representative-device accessibility/performance/OEM evidence; additional providers; recovery/rollback; protected signing/distribution; Release Candidate; production; and Stable qualification.
+Live Identity/Privacy Shield authority transport and governed Search registration/user controls; accepted external-provider execution; Contacts runtime enablement; accepted platform-runtime integrations; GLAZE UI V1.6 rendered/native application acceptance; representative-device accessibility/performance/OEM evidence; additional providers; durable preferences/indexing; recovery/rollback; protected signing/distribution; Release Candidate; Production Acceptance; production deployment; and Stable qualification.

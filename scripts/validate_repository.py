@@ -6,7 +6,8 @@ ROOT = Path(__file__).resolve().parents[1]
 required = [
     "README.md", "SPECIFICATIONS.md", "FEATURES.md", "BENEFITS.md",
     "COMPETITIVE-OBJECTIVES.md", "CAPABILITIES.md", "ARCHITECTURE.md",
-    "CONFORMANCE.md", "USER-MANUAL.md", "FEATURE-ROADMAP.md",
+    "CONFORMANCE.md", "USER-MANUAL.md", "IMPLEMENTED-FEATURES.md",
+    "PLANNED-FEATURES.md", "CHANGELOGS.md",
     "PRIVACY POLICY.md", "NOTES.md", "SECURITY.md", ".editorconfig",
     "goreecloud.platform.yaml", "app/build.gradle.kts",
     "app/src/main/AndroidManifest.xml",
@@ -34,6 +35,10 @@ required = [
 missing = [path for path in required if not (ROOT / path).is_file()]
 if missing:
     raise SystemExit(f"Missing required repository files: {', '.join(missing)}")
+if (ROOT / "FEATURE-ROADMAP.md").exists():
+    raise SystemExit(
+        "FEATURE-ROADMAP.md is retired; use IMPLEMENTED-FEATURES.md and PLANNED-FEATURES.md"
+    )
 
 privacy_manifest = json.loads(
     (ROOT / "goreecloud/privacy-shield.application-manifest.json").read_text(encoding="utf-8")
@@ -391,18 +396,22 @@ for expected in [
         raise SystemExit(f"Missing platform authority adapter test: {expected}")
 
 documents = [
-    "README.md", "SPECIFICATIONS.md", "FEATURES.md", "FEATURE-ROADMAP.md",
-    "CAPABILITIES.md", "ARCHITECTURE.md", "CONFORMANCE.md", "USER-MANUAL.md",
-    "PRIVACY POLICY.md", "NOTES.md", "SECURITY.md", "BENEFITS.md",
-    "COMPETITIVE-OBJECTIVES.md",
+    "README.md", "SPECIFICATIONS.md", "FEATURES.md", "IMPLEMENTED-FEATURES.md",
+    "PLANNED-FEATURES.md", "CHANGELOGS.md", "CAPABILITIES.md", "ARCHITECTURE.md",
+    "CONFORMANCE.md", "USER-MANUAL.md", "PRIVACY POLICY.md", "NOTES.md", "SECURITY.md",
+    "BENEFITS.md", "COMPETITIVE-OBJECTIVES.md",
 ]
 for document in documents:
     text = (ROOT / document).read_text(encoding="utf-8")
     normalized = text.lower().replace("*", "")
-    if document not in {".editorconfig"} and "release lifecycle" not in normalized and document not in {
-        "FEATURE-ROADMAP.md", "PRIVACY POLICY.md", "NOTES.md", "SECURITY.md"
+    if "release lifecycle" not in normalized and document not in {
+        "IMPLEMENTED-FEATURES.md", "PLANNED-FEATURES.md", "CHANGELOGS.md",
+        "PRIVACY POLICY.md", "NOTES.md", "SECURITY.md",
     }:
         raise SystemExit(f"{document} missing Development lifecycle state")
+    if document in {"IMPLEMENTED-FEATURES.md", "PLANNED-FEATURES.md", "CHANGELOGS.md"}:
+        if "lifecycle:" not in normalized:
+            raise SystemExit(f"{document} missing repository-native lifecycle state")
     if "GoreeCloud/goreecloud-index" in text:
         raise SystemExit(f"{document} still references the superseded repository namespace")
 
@@ -436,7 +445,10 @@ for document in documents:
         if prohibited in text:
             raise SystemExit(f"Unsupported provider/integration/release claim in {document}: {prohibited}")
 
-for document in ["README.md", "SPECIFICATIONS.md", "FEATURE-ROADMAP.md", "CONFORMANCE.md", "NOTES.md"]:
+for document in [
+    "README.md", "SPECIFICATIONS.md", "IMPLEMENTED-FEATURES.md",
+    "PLANNED-FEATURES.md", "CHANGELOGS.md", "CONFORMANCE.md", "NOTES.md",
+]:
     text = (ROOT / document).read_text(encoding="utf-8")
     if "GoreeCloud/index" not in text:
         raise SystemExit(f"{document} missing canonical repository identity")
