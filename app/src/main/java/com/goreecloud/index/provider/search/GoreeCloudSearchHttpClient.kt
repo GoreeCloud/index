@@ -188,6 +188,9 @@ class AuthenticatedGoreeCloudSearchHttpClient(
             "GoreeCloud Search initial HTTP transport accepts only the general category"
         }
         require(request.query.isNotBlank()) { "GoreeCloud Search query must not be blank" }
+        require(request.query.none { character -> character.code < 32 || character.code == 127 }) {
+            "GoreeCloud Search query must not contain control characters"
+        }
 
         val body = JSONObject()
             .put("query", request.query)

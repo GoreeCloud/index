@@ -202,6 +202,32 @@ class GoreeCloudSearchHttpClientTest {
     }
 
     @Test
+    fun controlBearingQueriesFailBeforeNetworkExchange() = runTest {
+        listOf("goreecloud\nmail", "goreecloud\tmail", "goreecloud\rmail", "goreecloud\u007fmail").forEach { query ->
+            val exchange = RecordingExchange(response = jsonResponse("{}"))
+            val client = AuthenticatedGoreeCloudSearchHttpClient(exchange)
+
+            val failure = runCatching {
+                client.search(
+                    GoreeCloudSearchRequest(
+                        query = query,
+                        limit = 1,
+                        privacyCapabilityReference = "psc_test_reference",
+                        requesterBearerCredential = "identity_test_token",
+                    ),
+                )
+            }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+            assertEquals(
+                "GoreeCloud Search query must not contain control characters",
+                failure?.message,
+            )
+            assertTrue(exchange.requests.isEmpty())
+        }
+    }
+
+    @Test
     fun transportRejectsNonSuccessWithoutSurfacingResponseBody() = runTest {
         val exchange = RecordingExchange(
             response = GoreeCloudSearchHttpResponse(
