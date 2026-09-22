@@ -47,7 +47,7 @@
 - Query/category/limit minimization, response binding, degradation propagation, URL/action validation, response/media/size validation, redirect refusal, and sensitive rendering/wire-data controls.
 - Separate credential-free fixed-origin `/readyz` runtime-readiness gate before Privacy Shield authorization, Identity requester acquisition, or Search query dispatch.
 - A not-ready runtime fails closed without authority acquisition or query transmission.
-- No live Search registration in Development; Android `INTERNET` permission is present only for the dormant fixed-origin client and does not make remote Search user-enableable.
+- Android `INTERNET` permission is present only for the dormant fixed-origin HTTPS client and does not make remote Search user-enableable; live Search registration remains absent in Development.
 
 ### GLAZE UI V1.6 Source Adoption
 
