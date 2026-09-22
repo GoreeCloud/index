@@ -3,29 +3,69 @@
 **Record type:** Repository change history  
 **Repository:** `GoreeCloud/index`  
 **Lifecycle:** Development / nonconformant  
-**Migration state:** Candidate on `migration/repository-feature-records`; becomes authoritative only after accepted merge and default-branch readback.  
-**Evidence baseline:** authoritative `main` at `8de424217d475662d49da9714452b63285ee08d0` (PR #45 merged September 21, 2026).  
+**Migration state:** **Authoritative on `main` after PR #47 merged as `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e` and default-branch readback verified this record and its imported history. Legacy Index Drive roadmap/changelog retirement was subsequently verified.**  
+**Repository authority baseline:** `main` at `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e` (PR #47 merged September 22, 2026).  
+**Latest application/runtime baseline:** `8de424217d475662d49da9714452b63285ee08d0` (PR #45); PR #47 is governance/documentation/validator migration and does not promote runtime state.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Migration control
 
-This file is the candidate repository-local human-readable change history for GoreeCloud Index.
+This file is the authoritative repository-local human-readable change history for GoreeCloud Index.
 
-Legacy migration sources:
+Retired legacy migration sources:
 
-- `GoreeCloud/Changelogs/Change Log — Index.docx` — Drive file ID `1kJoLlfMZgI6acRljuUXr0RFDcs2TLDXO`;
-- `GoreeCloud/Feature Roadmap/GoreeCloud Index/FEATURE-ROADMAP.docx` — Drive file ID `1cyAD_VhZ5MyYPdNhNtOf8y2Oma8s0z95`; and
-- repository `FEATURE-ROADMAP.md`.
+- `GoreeCloud/Changelogs/Change Log — Index.docx` — former Drive file ID `1kJoLlfMZgI6acRljuUXr0RFDcs2TLDXO`;
+- `GoreeCloud/Feature Roadmap/GoreeCloud Index/FEATURE-ROADMAP.docx` — former Drive file ID `1cyAD_VhZ5MyYPdNhNtOf8y2Oma8s0z95`; and
+- retired repository root `FEATURE-ROADMAP.md`.
 
-The Drive changelog's meaningful chronology from August 31 through September 21, 2026 is preserved in [the migrated historical record](docs/changelog-history/legacy-drive-history.md). The source Office document contained 16 material historical checkpoints after structural review, including the approved Index visual-identity entry that was not represented as a Markdown heading in the converted source.
+The Drive changelog's meaningful chronology from August 31 through September 21, 2026 is preserved in [the migrated historical record](docs/changelog-history/legacy-drive-history.md). The source Office document contained 16 material historical checkpoints after structural review, including the approved Index visual-identity entry that was not represented as a converted Markdown heading.
 
 The import is normalized rather than byte-for-byte. It preserves event dates, material capability changes, PR/commit/CI evidence, authority boundaries, lifecycle state, supersession, and material privacy/security/governance context without carrying Drive-as-authority maintenance instructions forward as current governance.
 
-The Drive records remain **migration-source-only** until this repository migration is merged, the required root records and history are read back from authoritative `main`, root `FEATURE-ROADMAP.md` is verified absent, and the Drive deletion gate is satisfied.
+After PR #47 merged and authoritative `main` readback verified the three required root records, imported history, migrated validator, and absence of root `FEATURE-ROADMAP.md`, the two legacy Index Drive files were permanently deleted. Both former file IDs now return not found, no `Change Log — Index.docx` remains in the canonical GoreeCloud Changelogs folder, and the dedicated Index roadmap folder is empty.
 
 ## Historical chronology
 
 - [Migrated August 31–September 21, 2026 history](docs/changelog-history/legacy-drive-history.md)
+
+## September 22, 2026 — PR #47 established repository-native feature/changelog authority and Drive retirement was verified
+
+**Change type:** Governance; source-of-truth migration; validator migration; documentation reconciliation; legacy Drive retirement.
+
+PR #47, **Migrate Index feature tracking and changelog governance**, completed the repository-side migration required by **Standard — Repository Feature Tracking and Changelog Governance v1.0**.
+
+Repository-native authority established:
+
+- added root `IMPLEMENTED-FEATURES.md`;
+- added root `PLANNED-FEATURES.md`;
+- added root `CHANGELOGS.md`;
+- imported the complete meaningful legacy Drive chronology into `docs/changelog-history/legacy-drive-history.md`;
+- explicitly dispositioned every legacy roadmap item `FR-001` through `FR-014`;
+- reconciled README, `FEATURES.md`, `CAPABILITIES.md`, and `NOTES.md` to the verified PR #45 runtime line;
+- retired root `FEATURE-ROADMAP.md`; and
+- migrated `scripts/validate_repository.py` to require the three new repository-native records and to fail closed if a root `FEATURE-ROADMAP.md` is reintroduced, while retaining the existing privacy, authority, Search, branding, Platform Contract, build, and runtime-source checks.
+
+Validation history:
+
+- initial migration head `a0455b6dc5c096df4d9161ec94a21ab0b5ff555f` failed Android Index foundation run #237 / `35726709403` at repository-contract validation because the validator still required `FEATURE-ROADMAP.md`; no build/test/runtime step ran on that failed head;
+- the validator was migrated rather than bypassed;
+- an intermediate exact head exposed one dormant-HTTPS wording mismatch in `FEATURES.md`, which was corrected without weakening validation; and
+- final exact head `0f3e5ce0cab24716bb78b03203b88fe60f0941aa` passed Platform Contract run #104 / `35727458531` and Android Index foundation validation run #239 / `35727458037`, including repository contract validation, Settings/branding guards, unit tests, lint, Development APK assembly, APK identity verification, and evidence upload.
+
+Promotion and authoritative readback:
+
+- PR #47 squash-merged as verified `main` commit `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e`;
+- authoritative readback verified `IMPLEMENTED-FEATURES.md`, `PLANNED-FEATURES.md`, `CHANGELOGS.md`, `docs/changelog-history/legacy-drive-history.md`, and the migrated validator;
+- root `FEATURE-ROADMAP.md` returned not found on authoritative `main`.
+
+Drive retirement after repository authority was established:
+
+- former `Change Log — Index.docx` file ID `1kJoLlfMZgI6acRljuUXr0RFDcs2TLDXO` now returns 404/not found;
+- former `FEATURE-ROADMAP.docx` file ID `1cyAD_VhZ5MyYPdNhNtOf8y2Oma8s0z95` now returns 404/not found;
+- the canonical GoreeCloud Changelogs folder contains no remaining `Change Log — Index.docx`; and
+- the dedicated `GoreeCloud Index` feature-roadmap folder is empty.
+
+**Lifecycle boundary:** This completes the GoreeCloud Index repository-native feature/changelog migration only. Index remains **Development / nonconformant**. No provider was newly enabled, no new runtime authority was granted, and no Release Candidate, Production Acceptance, deployment, or Stable state was established. The broader GoreeCloud estate migration remains open.
 
 ## September 21, 2026 — PR #40 required cycle-safe GoreeCloud Search delegation capability
 
@@ -112,7 +152,7 @@ Validation and integration:
 - exact candidate `65b3e397b8c80b8bc21e801fcd4314d12f37c46c`;
 - Platform Contract run `35651653575` — success;
 - Android Index foundation validation run `35651652655` — success;
-- authoritative current `main` after merge: `8de424217d475662d49da9714452b63285ee08d0`.
+- runtime baseline after merge: `8de424217d475662d49da9714452b63285ee08d0`.
 
 **Boundary:** Search remains dormant/unregistered in the Development UI. Live Identity/Privacy Shield authority, approved external-provider execution, governed user controls, target-runtime transport acceptance, deployment, Production Acceptance, and Stable qualification remain open.
 
@@ -124,15 +164,15 @@ Branch `migration/repository-feature-records` was created from exact authoritati
 
 The candidate migration:
 
-- adds root `IMPLEMENTED-FEATURES.md`;
-- adds root `PLANNED-FEATURES.md`;
-- adds root `CHANGELOGS.md`;
-- imports the complete meaningful legacy Drive chronology into `docs/changelog-history/legacy-drive-history.md`;
-- reconciles feature state through PR #45 while keeping Draft PR #46 as candidate-only evidence;
-- supersedes the old repository/Drive synchronization obligation; and
-- preserves Index Development/nonconformant lifecycle boundaries.
+- added root `IMPLEMENTED-FEATURES.md`;
+- added root `PLANNED-FEATURES.md`;
+- added root `CHANGELOGS.md`;
+- imported the complete meaningful legacy Drive chronology into `docs/changelog-history/legacy-drive-history.md`;
+- reconciled feature state through PR #45 while keeping Draft PR #46 as candidate-only evidence;
+- superseded the old repository/Drive synchronization obligation; and
+- preserved Index Development/nonconformant lifecycle boundaries.
 
-Legacy repository/Drive roadmap and Drive changelog sources are not eligible for deletion until migration comparison, final branch validation, accepted merge, authoritative-main readback, and removal verification are complete.
+At this historical checkpoint the legacy repository/Drive roadmap and Drive changelog sources were not yet eligible for deletion. PR #47 later completed the repository-side migration and the verified Drive retirement recorded above; this section preserves the contemporaneous pre-merge boundary.
 
 ## Historical integrity rule
 
@@ -142,6 +182,6 @@ Corrections must be additive and traceable; do not silently rewrite accepted his
 
 ## Changelog maintenance rule
 
-After migration acceptance, meaningful Index changes must be recorded in repository-local `CHANGELOGS.md`, with supporting history under `docs/changelog-history/` when useful for volume. Google Drive must not receive a synchronized, mirrored, backup, convenience, or canonical Index changelog copy.
+Meaningful Index changes must be recorded in repository-local `CHANGELOGS.md`, with supporting history under `docs/changelog-history/` when useful for volume. Google Drive must not receive a synchronized, mirrored, backup, convenience, historical-shadow, or canonical Index changelog copy.
 
 A commit, pull request, CI run, APK, or emulator signal alone is not proof of production deployment or lifecycle acceptance. Each entry must preserve the actual evidence-backed state.

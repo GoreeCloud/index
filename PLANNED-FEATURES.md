@@ -3,8 +3,9 @@
 **Record type:** Repository planned/open feature inventory  
 **Repository:** `GoreeCloud/index`  
 **Lifecycle:** Development / nonconformant  
-**Migration state:** Candidate on `migration/repository-feature-records`; becomes authoritative only after accepted merge and default-branch readback.  
-**Evidence baseline:** authoritative `main` at `8de424217d475662d49da9714452b63285ee08d0` (PR #45 merged September 21, 2026).  
+**Migration state:** **Authoritative on `main` after PR #47 merged as `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e` and default-branch readback verified this record. Legacy Drive roadmap/changelog retirement was subsequently verified.**  
+**Repository authority baseline:** `main` at `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e` (PR #47 merged September 22, 2026).  
+**Latest application/runtime baseline:** `8de424217d475662d49da9714452b63285ee08d0` (PR #45); PR #47 did not promote runtime state.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose
@@ -15,16 +16,18 @@ A partially implemented capability remains open here until its intended implemen
 
 ## Migration reconciliation
 
-This candidate is being migrated from:
+This inventory was migrated from:
 
-- repository `FEATURE-ROADMAP.md`;
-- `GoreeCloud/Feature Roadmap/GoreeCloud Index/FEATURE-ROADMAP.docx`;
+- retired repository `FEATURE-ROADMAP.md`;
+- retired `GoreeCloud/Feature Roadmap/GoreeCloud Index/FEATURE-ROADMAP.docx`;
 - the authoritative repository implementation/PR state; and
 - existing GoreeCloud Tasks Management obligations, including the Index/Search stabilization task line.
 
-Both legacy roadmap copies are stale relative to current `main`: their current-state narrative ends before the PR #45 Search runtime-readiness gate. Verified repository state controls where those records disagree with newer evidence.
+The legacy roadmap copies were stale relative to PR #45 and were reconciled to verified repository evidence during PR #47. PR #47 final exact head `0f3e5ce0cab24716bb78b03203b88fe60f0941aa` passed Platform Contract run #104 / `35727458531` and Android Index foundation validation run #239 / `35727458037` before merge as `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e`.
 
-The former Drive/repository roadmap synchronization requirement is superseded by **Standard — Repository Feature Tracking and Changelog Governance v1.0**. After this migration is accepted and verified, no active or mirrored Index feature roadmap is to remain in Google Drive.
+After authoritative `main` readback verified the three repository-native records, imported history, migrated validator, and absence of root `FEATURE-ROADMAP.md`, the legacy Index Drive changelog and roadmap were deleted. Their former file IDs now return not found, no Index changelog remains in the canonical GoreeCloud Changelogs folder, and the dedicated Index roadmap folder is empty.
+
+The former Drive/repository roadmap synchronization requirement is superseded by **Standard — Repository Feature Tracking and Changelog Governance v1.0**. No active, mirrored, backup, convenience, or historical-shadow Index feature roadmap is authorized in Google Drive.
 
 ## Active implementation and acceptance obligations
 
@@ -40,9 +43,9 @@ The former Drive/repository roadmap synchronization requirement is superseded by
 
 ### Open Draft PR #46 candidate
 
-Draft PR #46, **Keep control-bearing queries off Search transport**, is an active Development candidate based on current `main`. Its exact head `d223bed56a508023503b3cf2e498734def0c2fa6` passed Platform Contract run `35666837083` and Android Index foundation validation run `35666836688`.
+Draft PR #46, **Keep control-bearing queries off Search transport**, is an active Development candidate based on the pre-migration runtime line. Its exact head `d223bed56a508023503b3cf2e498734def0c2fa6` passed Platform Contract run `35666837083` and Android Index foundation validation run `35666836688`.
 
-The candidate rejects C0 control characters and DEL from Index-originated Search queries before network exchange. It remains **unmerged candidate evidence** and must not be represented as implemented until accepted into authoritative `main` and read back there.
+The candidate rejects C0 control characters and DEL from Index-originated Search queries before network exchange. It remains **unmerged candidate evidence** and must not be represented as implemented until reconciled to current authoritative `main`, revalidated if needed, accepted, and read back there.
 
 ### Providers and local indexing
 
@@ -101,7 +104,7 @@ The V1.6 source projection is implemented, but Index-specific acceptance remains
 
 | Legacy ID | Feature / obligation | Migrated disposition |
 | --- | --- | --- |
-| `FR-001` | Keep repository and Drive roadmap controls synchronized with verified reality. | **Superseded by governance standard.** Repository-native `IMPLEMENTED-FEATURES.md` and `PLANNED-FEATURES.md` replace the dual-roadmap model. Legacy Drive roadmap becomes migration-source-only until verified deletion. |
+| `FR-001` | Keep repository and Drive roadmap controls synchronized with verified reality. | **Superseded and retired.** Repository-native `IMPLEMENTED-FEATURES.md` and `PLANNED-FEATURES.md` replaced the dual-roadmap model. The successfully migrated Drive roadmap has been deleted after authoritative verification. |
 | `FR-002` | Keep actionable Index obligations in GoreeCloud Tasks Management. | **Ongoing governance.** Existing Index/Search stabilization task records remain the task authority; do not duplicate them. |
 | `FR-003` | Preserve Development/nonconformant state until release gates have evidence. | **Ongoing.** Index remains Development/nonconformant. |
 | `FR-004` | Adopt current GLAZE UI V1.6 source and complete application acceptance. | **Partial.** Source adoption implemented; rendered/native/accessibility/device/performance/rollback/production acceptance remains open. |
@@ -114,11 +117,11 @@ The V1.6 source projection is implemented, but Index-specific acceptance remains
 | `FR-011` | Complete accessibility, localization/RTL, form-factor, performance, and representative-device qualification. | **Open.** Source-level reliability behavior exists; representative qualification remains open. |
 | `FR-012` | Complete signing/provenance, rollback/recovery, RC, production, and Stable gates. | **Open.** |
 | `FR-013` | Retire stale PR #35/#36 after unique work preservation. | **Complete historical disposition.** PR #38 preserved/replaced valid work; #35/#36 closed superseded. |
-| `FR-014` | Maintain Contract 0.4, nine-system declarations, mandatory root controls, and current-state validation. | **Implemented control / ongoing maintenance.** |
+| `FR-014` | Maintain Contract 0.4, nine-system declarations, mandatory root controls, and current-state validation. | **Implemented control / ongoing maintenance.** PR #47 migrated the repository validator to require the three new root records and reject reintroduced `FEATURE-ROADMAP.md`. |
 
 ## Sequencing
 
-1. Finish and disposition the current Search hardening candidate(s) against authoritative `main`, with fresh exact-head validation for every changed candidate.
+1. Finish and disposition current Search hardening candidate(s) against authoritative `main`, with fresh exact-head validation for every changed candidate.
 2. Keep the remote Search path dormant until producer-owned authority and explicit user control are accepted end to end.
 3. Runtime-enable private/local providers only through their explicit Android + GoreeCloud authority requirements.
 4. Complete GLAZE UI V1.6 and representative-device acceptance before lifecycle promotion.

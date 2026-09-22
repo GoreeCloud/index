@@ -3,8 +3,9 @@
 **Record type:** Repository implemented-feature inventory  
 **Repository:** `GoreeCloud/index`  
 **Lifecycle:** Development / nonconformant  
-**Migration state:** Candidate on `migration/repository-feature-records`; becomes authoritative only after accepted merge and default-branch readback.  
-**Evidence baseline:** authoritative `main` at `8de424217d475662d49da9714452b63285ee08d0` (PR #45 merged September 21, 2026).  
+**Migration state:** **Authoritative on `main` after PR #47 merged as `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e` and default-branch readback verified this record. Legacy Drive roadmap/changelog retirement was subsequently verified.**  
+**Repository authority baseline:** `main` at `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e` (PR #47 merged September 22, 2026).  
+**Latest application/runtime baseline:** `8de424217d475662d49da9714452b63285ee08d0` (PR #45 merged September 21, 2026); PR #47 is governance/documentation/validator migration and does not promote runtime state.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation
@@ -15,7 +16,9 @@ Partially implemented capabilities remain open in `PLANNED-FEATURES.md` until th
 
 ## Current verified source baseline
 
-Current authoritative `main` is `8de424217d475662d49da9714452b63285ee08d0`, the verified merge of PR #45, **Gate production Search delegation on runtime readiness**. PR #45 exact head `65b3e397b8c80b8bc21e801fcd4314d12f37c46c` passed Platform Contract run `35651653575` and Android Index foundation validation run `35651652655` before integration.
+The latest application/runtime baseline remains `8de424217d475662d49da9714452b63285ee08d0`, the verified merge of PR #45, **Gate production Search delegation on runtime readiness**. PR #45 exact head `65b3e397b8c80b8bc21e801fcd4314d12f37c46c` passed Platform Contract run `35651653575` and Android Index foundation validation run `35651652655` before integration.
+
+PR #47 established repository-native feature/changelog authority and migrated the repository validator. Final exact head `0f3e5ce0cab24716bb78b03203b88fe60f0941aa` passed Platform Contract run #104 / `35727458531` and Android Index foundation validation run #239 / `35727458037` before squash merge to `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e`. That migration does not itself change application runtime capability.
 
 PR #46 is a separate open Draft candidate at `d223bed56a508023503b3cf2e498734def0c2fa6`; its green CI is candidate evidence only and is not represented here as implemented on `main`.
 
@@ -128,7 +131,8 @@ No current implemented code path makes this dormant Search integration a product
 | PR #39 | exact head `4c66e542aea094384c60248c00b2ab6fcf402731`; runs `35602837175` / `35602836347`; merge `0230a57fd3e96c217ba8908262140ebfd83bee1c` | Current-line documentation reconciliation and Unicode regressions |
 | PR #40 | exact head `7026f1fdc9b064e8871bfb50545743fa6ea113e6`; runs `35606889502` / `35606888807`; merge `34446cc519afb87bca27b0c3e6639db01ff114b8` | Cycle-safe Search delegation capability gate |
 | PR #41 | integrated runtime checkpoint `7b84ef011a8701f90e737a1ae340d8db09d58e78`; post-merge runs `35625546653` / `35625545378` | Dormant authenticated fixed-origin Search HTTPS client and Development `INTERNET` permission |
-| PR #45 | exact head `65b3e397b8c80b8bc21e801fcd4314d12f37c46c`; runs `35651653575` / `35651652655`; current `main` `8de424217d475662d49da9714452b63285ee08d0` | Separate fail-closed Search runtime-readiness gate before authority acquisition |
+| PR #45 | exact head `65b3e397b8c80b8bc21e801fcd4314d12f37c46c`; runs `35651653575` / `35651652655`; runtime baseline `8de424217d475662d49da9714452b63285ee08d0` | Separate fail-closed Search runtime-readiness gate before authority acquisition |
+| PR #47 | exact head `0f3e5ce0cab24716bb78b03203b88fe60f0941aa`; Platform #104 / `35727458531`; Android #239 / `35727458037`; merge `e70a3b699810f83bc3277a1b56fa2580a3f0fc4e` | Repository-native feature/changelog authority and migrated validator; no runtime promotion |
 
 ## Material limitations
 
