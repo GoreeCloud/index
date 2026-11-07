@@ -192,16 +192,70 @@ class IndexTests(unittest.TestCase):
         self.assertEqual(search_files(self.store, "secret"), [])
         self.assertTrue(relocated.is_file())
 
-    def test_open_result_rejects_parent_symlink_redirect(self) -> None:
-        from goreecloud_index.apps import open_path
-
+    def test_pinned_open_rejects_parent_symlink_redirect(self) -> None:
         outside = self.base / "outside"
         outside.mkdir()
         (outside / "document.txt").write_text("outside-canary", encoding="utf-8")
-        redirected = self.files / "redirected"
-        redirected.symlink_to(outside, target_is_directory=True)
-        with self.assertRaisesRegex(ValueError, "unsafe"):
-            open_path(str(redirected / "document.txt"))
+        linked = self.files / "linked"
+        linked.symlink_to(outside, target_is_directory=True)
+        root = self.store.add_root(self.files)
+        scan_root(self.store, root)
+        with self.assertRaisesRegex(ValueError, "unindexed"):
+            self.store.open_authorized_result_fd(linked / "document.txt")
+
+    def test_fd_handoff_stays_on_original_inode_after_path_replacement(self) -> None:
+        import os
+        first = self.files / "file.txt"
+        first.write_text("original")
+        root = self.store.add_root(self.files)
+        scan_root(self.store, root)
+        fd = self.store.open_authorized_result_fd(first)
+        try:
+            pinned = os.fstat(fd)
+            moved = self.base / "moved-original.txt"
+            first.rename(moved)
+            first.write_text("replacement")
+            self.assertNotEqual(first.stat().st_ino, pinned.st_ino)
+            self.assertEqual((pinned.st_dev, pinned.st_ino),
+                             (moved.stat().st_dev, moved.stat().st_ino))
+            self.assertEqual(os.fstat(fd).st_ino, pinned.st_ino)
+            with self.assertRaisesRegex(ValueError, "replaced"):
+                self.store.open_authorized_result_fd(first)
+            scan_root(self.store, root)
+            newer = self.store.open_authorized_result_fd(first)
+            try:
+                self.assertEqual(os.fstat(newer).st_ino, first.stat().st_ino)
+            finally:
+                os.close(newer)
+        finally:
+            os.close(fd)
+
+    def test_pinned_open_rejects_unauthorized_or_replaced_roots(self) -> None:
+        import os
+        child = self.files / "private"
+        child.mkdir()
+        item = child / "file.md"
+        item.write_text("content")
+        root = self.store.add_root(self.files)
+        scan_root(self.store, root)
+        fd = self.store.open_authorized_result_fd(item)
+        os.close(fd)
+        self.store.add_exclusion(root.path, child)
+        with self.assertRaisesRegex(ValueError, "unindexed"):
+            self.store.open_authorized_result_fd(item)
+        self.store.remove_exclusion(root.path, child)
+        scan_root(self.store, root)
+        previous = self.base / "original-root"
+        self.files.rename(previous)
+        self.files.mkdir()
+        (self.files / "private").mkdir()
+        (self.files / "private" / "file.md").write_text("unapproved")
+        with self.assertRaisesRegex(ValueError, "root identity"):
+            self.store.open_authorized_result_fd(item)
+        self.store.remove_root(root.path)
+        with self.assertRaisesRegex(ValueError, "unindexed"):
+            self.store.open_authorized_result_fd(item)
+
 
     def test_recovers_deletions_on_successful_rescan(self) -> None:
         file = self.files / "obsolete.txt"

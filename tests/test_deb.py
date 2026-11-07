@@ -37,7 +37,7 @@ class DebianPackageTests(unittest.TestCase):
             first = inspect(rev1)
             second = inspect(rev2)
             self.assertEqual(first["file_count"], len(expected_payload()))
-            self.assertEqual(first["file_count"], 15)
+            self.assertEqual(first["file_count"], 16)
             self.assertEqual(first["files"], second["files"])
             self.assertEqual(first["version"], "0.1.0-1")
             self.assertEqual(second["version"], "0.1.0-2")

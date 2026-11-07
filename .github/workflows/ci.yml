@@ -84,7 +84,7 @@ jobs:
       - name: Install native GTK runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 xvfb libxtst6
+          sudo apt-get install -y --no-install-recommends python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 xvfb libxtst6 dbus
       - name: Smoke-test GTK window lifecycle under Xvfb
         shell: bash
         run: |
@@ -106,3 +106,10 @@ jobs:
           # The test refuses the normal live desktop display and never runs
           # user applications or changes global keyboard bindings.
           GOREECLOUD_INDEX_PRIVATE_XVFB=1 xvfb-run -a /usr/bin/python3 tools/smoke_keyboard_x11.py
+          # Test actual SCM_RIGHTS D-Bus fd transfer on a private session
+          # bus with only a fake portal; never start desktop apps or connect
+          # to the runner's normal portal service.
+          for response in 0 1 2 error; do
+            GOREECLOUD_INDEX_PORTAL_ISOLATED=1 GOREECLOUD_INDEX_FAKE_PORTAL="$response" \
+              dbus-run-session -- /usr/bin/python3 tools/smoke_portal_fd.py
+          done

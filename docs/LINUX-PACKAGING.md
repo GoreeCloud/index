@@ -29,7 +29,7 @@ software or modifies the system configuration.
 ## First-party package integrity inventory (unsigned)
 
 The standard-library-only `tools/package_manifest.py` verifies that the
-`.deb` contains exactly the allowlisted 15 original source, desktop,
+`.deb` contains exactly the allowlisted 16 original source, desktop,
 executable and license/README payload files. It rejects non-regular files,
 unexpected or duplicate entries, non-root archive ownership, unapproved
 modes, oversized payloads, and symlinked input packages. It records
@@ -123,3 +123,20 @@ remove/rollback checks; distribution matrix; SBOM, signing and supply-chain
 checks; independent deterministic-build reproduction; support documentation.
 
 Windows support is separate. This .deb does not establish Windows readiness.
+
+## Desktop file opening requirements
+
+The Linux desktop preview now submits an inode-pinned file descriptor to
+`org.freedesktop.portal.OpenURI.OpenFile` over the user's **local D-Bus session**
+only after explicit activation. The Debian package declares
+`xdg-desktop-portal (>= 1.8)` as a runtime dependency. A functional
+GNOME/KDE/other backend and session bus are also required for that feature;
+package installation alone cannot verify backend availability. If the portal
+is unavailable or denies a request, Index reports the failure and **does not**
+fall back to a pathname URI. No host-wide installation or live application
+opening was performed for this change.
+
+An isolated first-party fake portal receives the actual SCM_RIGHTS Unix fd
+and verifies the file identity under a same-path replacement, including
+accept/cancel/reject/error outcomes. This is not real-compositor or external
+handler acceptance, nor is the package signed or a Stable release.
