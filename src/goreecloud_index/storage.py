@@ -104,17 +104,58 @@ class IndexStore:
             if root != other and (root in other.parents or other in root.parents):
                 raise ValueError("Indexed directories cannot overlap")
         with self.connect() as conn:
+            # Lock before reading consent, so concurrent scans and consent
+            # changes are serialized. A downgrade may not leave indexed text
+            # behind even if the caller never requests a follow-up scan.
+            conn.execute("BEGIN IMMEDIATE")
+            previous = conn.execute(
+                "SELECT include_content FROM roots WHERE path = ?", (str(root),)
+            ).fetchone()
             conn.execute(
                 """INSERT INTO roots(path, include_content) VALUES (?, ?)
                    ON CONFLICT(path) DO UPDATE SET include_content=excluded.include_content""",
                 (str(root), int(include_content)),
             )
+            if not include_content and previous is not None:
+                conn.execute(
+                    "UPDATE items SET content = '' WHERE root = ? AND content != ''",
+                    (str(root),),
+                )
+        if not include_content and previous is not None and bool(previous["include_content"]):
+            self._compact_deleted_index()
         return Root(str(root), bool(include_content))
 
     def roots(self) -> list[Root]:
         with self.connect() as conn:
             return [Root(row["path"], bool(row["include_content"])) for row in
                     conn.execute("SELECT path, include_content FROM roots ORDER BY path")]
+
+    def set_root_content(self, path: str | Path, include_content: bool) -> Root:
+        """Change consent on an existing root only, never silently add a root.
+
+        Downgrading deletes indexed text before the operation returns, without
+        deleting the source files, paths, or searchable filename metadata.
+        """
+        normalized = os.path.abspath(os.path.expanduser(str(path)))
+        with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            previous = conn.execute(
+                "SELECT include_content FROM roots WHERE path = ?", (normalized,)
+            ).fetchone()
+            if previous is None:
+                raise ValueError("Directory is not authorized for indexing")
+            conn.execute(
+                "UPDATE roots SET include_content = ? WHERE path = ?",
+                (int(include_content), normalized),
+            )
+            if not include_content:
+                conn.execute(
+                    "UPDATE items SET content = '' WHERE root = ? AND content != ''",
+                    (normalized,),
+                )
+        if bool(previous["include_content"]) and not include_content:
+            self._compact_deleted_index()
+        return Root(normalized, bool(include_content))
 
     def remove_root(self, path: str | Path) -> bool:
         normalized = os.path.abspath(os.path.expanduser(str(path)))

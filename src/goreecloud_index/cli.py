@@ -21,6 +21,11 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("directory")
     add.add_argument("--content", action="store_true", help="Also index bounded text contents")
     commands.add_parser("list", help="Show explicitly configured index roots")
+    consent = commands.add_parser("consent", help="Change content permission of an indexed root")
+    consent.add_argument("directory")
+    modes = consent.add_mutually_exclusive_group(required=True)
+    modes.add_argument("--content", action="store_true", help="Opt in to small-text content indexing")
+    modes.add_argument("--metadata-only", action="store_true", help="Immediately purge stored text")
     commands.add_parser("scan", help="Refresh configured index roots")
     search = commands.add_parser("search", help="Search the local index")
     search.add_argument("query", nargs="*", help="Terms and kind:/ext:/path: filters")
@@ -62,6 +67,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "list":
             for root in store.roots():
                 print(f"{root.path}  contents={'on' if root.include_content else 'off'}")
+        elif args.command == "consent":
+            root = store.set_root_content(args.directory, args.content)
+            if root.include_content:
+                report = scan_root(store, root)
+                print(f"Text indexing enabled for {root.path}; scanned {report.indexed} entries.")
+                return 0 if not report.errors and not report.truncated else 1
+            print(f"Text indexing disabled for {root.path}; indexed text purged immediately.")
         elif args.command == "scan":
             for report in scan_all(store):
                 print(f"{report.root}: {report.indexed} items, {report.errors} errors, "

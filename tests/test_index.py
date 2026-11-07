@@ -44,6 +44,77 @@ class IndexTests(unittest.TestCase):
         scan_root(self.store, root)
         self.assertEqual(len(search_files(self.store, "canary")), 1)
 
+    def test_downgrade_scrubs_existing_text_without_rescan(self) -> None:
+        file = self.files / "invoice.md"
+        file.write_text("unlisted-sensitivity-canary", encoding="utf-8")
+        root = self.store.add_root(self.files, include_content=True)
+        scan_root(self.store, root)
+        self.assertEqual(len(search_files(self.store, "sensitivity")), 1)
+        downgraded = self.store.add_root(self.files, include_content=False)
+        self.assertFalse(downgraded.include_content)
+        self.assertEqual(search_files(self.store, "sensitivity"), [])
+        self.assertEqual([r.name for r in search_files(self.store, "invoice")], ["invoice.md"])
+        with self.store.connect() as conn:
+            content = conn.execute(
+                "SELECT content FROM items WHERE root = ?", (str(self.files),)
+            ).fetchone()[0]
+        self.assertEqual(content, "")
+        self.assertTrue(file.is_file())
+        scan_root(self.store, root)  # old Root snapshot must not restore text
+        self.assertEqual(search_files(self.store, "sensitivity"), [])
+
+    def test_concurrent_scan_downgrade_never_restores_text(self) -> None:
+        import threading
+        from unittest.mock import patch
+        from goreecloud_index import scanner
+
+        file = self.files / "private.md"
+        file.write_text("confidential-canary", encoding="utf-8")
+        root = self.store.add_root(self.files, include_content=True)
+        opened = threading.Event()
+        release = threading.Event()
+        failures: list[Exception] = []
+        original = scanner._read_text
+
+        def wait_once(path, size, enabled):
+            opened.set()
+            if not release.wait(timeout=5):
+                raise RuntimeError("Timed out waiting to finish test scan")
+            return original(path, size, enabled)
+
+        def scan():
+            try:
+                scan_root(self.store, root)
+            except Exception as exc:
+                failures.append(exc)
+
+        def downgrade():
+            try:
+                self.store.add_root(self.files, include_content=False)
+            except Exception as exc:
+                failures.append(exc)
+
+        with patch.object(scanner, "_read_text", side_effect=wait_once):
+            worker = threading.Thread(target=scan)
+            worker.start()
+            try:
+                self.assertTrue(opened.wait(timeout=5))
+                changed = threading.Thread(target=downgrade)
+                changed.start()
+                # Downgrade must finish after in-flight scan commits.
+                changed.join(timeout=0.12)
+                self.assertTrue(changed.is_alive(), "Downgrade must wait for the scan")
+            finally:
+                release.set()
+                worker.join(timeout=5)
+                if "changed" in locals():
+                    changed.join(timeout=5)
+        self.assertFalse(worker.is_alive())
+        self.assertFalse(changed.is_alive())
+        self.assertEqual(failures, [])
+        self.assertEqual(search_files(self.store, "canary"), [])
+        self.assertEqual(self.store.count(), 1)
+
     def test_hidden_credential_and_symlink_are_skipped(self) -> None:
         (self.files / ".env").write_text("secret")
         (self.files / "safe.txt").write_text("public")

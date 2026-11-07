@@ -426,7 +426,22 @@ class IndexApplication(Adw.Application):
             detail.add_css_class("index-description")
             labels.append(detail)
             content.append(labels)
+            consent = Gtk.Button(
+                label="Names only" if root.include_content else "Include text"
+            )
+            consent.set_valign(Gtk.Align.CENTER)
+            consent.set_sensitive(not self.busy)
+            consent.set_tooltip_text(
+                "Stop retaining indexed file contents" if root.include_content
+                else "Explicitly allow small plain-text content indexing"
+            )
+            consent.connect(
+                "clicked", self._confirm_content_change,
+                root.path, not root.include_content,
+            )
+            content.append(consent)
             revoke = Gtk.Button(label="Remove access")
+            revoke.set_sensitive(not self.busy)
             revoke.add_css_class("destructive-action")
             revoke.set_valign(Gtk.Align.CENTER)
             revoke.set_tooltip_text("Remove this folder and its local index entries")
@@ -434,6 +449,45 @@ class IndexApplication(Adw.Application):
             content.append(revoke)
             row.set_child(content)
             self.roots_list.append(row)
+
+    def _confirm_content_change(
+        self, _button: Gtk.Button, path: str, enable_text: bool
+    ) -> None:
+        if self.window is None or self.busy:
+            return
+        dialog = Adw.MessageDialog.new(
+            self.roots_window or self.window,
+            "Index text inside this folder?" if enable_text
+            else "Remove indexed text from this folder?",
+            (f"{path}\n\nSupported small text files will be read locally, "
+             "including potentially private content. No data is uploaded."
+             if enable_text else
+             f"{path}\n\nPreviously indexed text will be removed immediately. "
+             "Names and metadata remain searchable; original files remain untouched."),
+        )
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("apply", "Enable text" if enable_text else "Names only")
+        dialog.set_default_response("cancel")
+        dialog.set_close_response("cancel")
+        dialog.connect("response", self._content_change_response, path, enable_text)
+        dialog.present()
+
+    def _content_change_response(
+        self, _dialog, response: str, path: str, enable_text: bool
+    ) -> None:
+        if response != "apply" or self.store is None or self.busy:
+            return
+        try:
+            updated = self.store.set_root_content(path, enable_text)
+        except (OSError, ValueError) as exc:
+            self._set_status(f"Could not change indexed text permission: {exc}")
+            return
+        if enable_text:
+            self._scan_selected(updated)
+        else:
+            self._refresh()
+            self._set_status("Indexed text removed; filenames and original files remain.")
+        self._render_roots()
 
     def _confirm_remove_root(self, _button: Gtk.Button, path: str) -> None:
         if self.window is None:
@@ -495,6 +549,7 @@ class IndexApplication(Adw.Application):
         if self.busy or self.store is None:
             return
         self.busy = True
+        self._render_roots()
         self._set_status("Indexing selected folder…")
         store = self.store
 
@@ -513,6 +568,7 @@ class IndexApplication(Adw.Application):
         if self.busy or self.store is None:
             return
         self.busy = True
+        self._render_roots()
         self._set_status("Refreshing selected folders…")
         store = self.store
 
@@ -531,5 +587,6 @@ class IndexApplication(Adw.Application):
     def _scan_finished(self, message: str) -> bool:
         self.busy = False
         self._refresh()
+        self._render_roots()
         self._set_status(message)
         return GLib.SOURCE_REMOVE

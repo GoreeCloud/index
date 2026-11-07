@@ -27,6 +27,32 @@ class CliTests(unittest.TestCase):
                 self.assertIn("receipt.txt", capture.getvalue())
                 self.assertTrue((folder / "receipt.txt").exists())
 
+    def test_content_consent_downgrade_via_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as location:
+            base = Path(location)
+            directory = base / "documents"
+            directory.mkdir()
+            source = directory / "notes.md"
+            source.write_text("private-canary-data", encoding="utf-8")
+            with patch.dict(os.environ, {"XDG_DATA_HOME": str(base / "data")}):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(["add", str(directory), "--content"]), 0)
+                check = io.StringIO()
+                with contextlib.redirect_stdout(check):
+                    self.assertEqual(main(["search", "canary"]), 0)
+                self.assertIn("notes.md", check.getvalue())
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(["consent", str(directory), "--metadata-only"]), 0)
+                after = io.StringIO()
+                with contextlib.redirect_stdout(after):
+                    self.assertEqual(main(["search", "canary"]), 0)
+                self.assertNotIn("notes.md", after.getvalue())
+                self.assertTrue(source.is_file())
+                with contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(
+                        main(["consent", str(base / "not-authorized"), "--content"]), 2
+                    )
+
     def test_clear_requires_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as base:
             with patch.dict(os.environ, {"XDG_DATA_HOME": str(Path(base) / "data")}):

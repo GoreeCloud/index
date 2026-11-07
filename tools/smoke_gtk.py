@@ -12,6 +12,8 @@ gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, GLib  # noqa: E402
 
 from goreecloud_index.ui import Adw, Gtk, IndexApplication  # noqa: E402
+from goreecloud_index.scanner import scan_root  # noqa: E402
+from goreecloud_index.search import search_files  # noqa: E402
 
 
 def main() -> int:
@@ -21,7 +23,7 @@ def main() -> int:
         test_directory = home / "selected-folder"
         test_directory.mkdir()
         original = test_directory / "original.txt"
-        original.write_text("do-not-delete", encoding="utf-8")
+        original.write_text("do-not-delete canary-private", encoding="utf-8")
 
         app = IndexApplication()
         state: dict[str, object] = {"passed": False, "error": None}
@@ -35,15 +37,35 @@ def main() -> int:
                 assert app._key_pressed(None, Gdk.KEY_3, 0, Gdk.ModifierType.CONTROL_MASK)
                 assert app.mode == "files" and app.mode_buttons["files"].get_active()
 
-                root = app.store.add_root(test_directory)
+                root = app.store.add_root(test_directory, include_content=True)
+                scan_root(app.store, root)
+                assert len(search_files(app.store, "canary")) == 1
                 app._show_roots()
                 assert app.roots_window is not None
                 assert app.roots_list is not None
                 assert app.roots_list.get_row_at_index(0) is not None
+                app._confirm_content_change(None, root.path, False)
+                permission_dialog = [
+                    w for w in Gtk.Window.list_toplevels()
+                    if isinstance(w, Adw.MessageDialog)
+                ][-1]
+                permission_dialog.response("cancel")
+                assert len(search_files(app.store, "canary")) == 1
+                app._confirm_content_change(None, root.path, False)
+                permission_dialog = [
+                    w for w in Gtk.Window.list_toplevels()
+                    if isinstance(w, Adw.MessageDialog)
+                ][-1]
+                permission_dialog.response("apply")
+                assert search_files(app.store, "canary") == []
+                assert len(search_files(app.store, "original")) == 1
+                assert not app.store.roots()[0].include_content
+
                 app._confirm_remove_root(None, root.path)
                 confirm = next(
                     w for w in Gtk.Window.list_toplevels()
                     if isinstance(w, Adw.MessageDialog)
+                    and w.get_heading() == "Stop indexing this folder?"
                 )
                 assert len(app.store.roots()) == 1, "Confirmation must not remove automatically"
                 confirm.response("cancel")
@@ -53,13 +75,16 @@ def main() -> int:
                 confirm = [
                     w for w in Gtk.Window.list_toplevels()
                     if isinstance(w, Adw.MessageDialog)
+                    and w.get_heading() == "Stop indexing this folder?"
+                    and w.get_visible()
                 ][-1]
                 confirm.response("remove")
                 assert len(app.store.roots()) == 0
-                assert original.read_text(encoding="utf-8") == "do-not-delete"
+                assert original.read_text(encoding="utf-8") == "do-not-delete canary-private"
                 state["passed"] = True
-            except Exception as exc:  # Print any GTK callback exceptions as a failed test.
-                state["error"] = repr(exc)
+            except Exception:  # Surface exact GTK callback failure location.
+                import traceback
+                state["error"] = traceback.format_exc()
             finally:
                 app.quit()
             return GLib.SOURCE_REMOVE

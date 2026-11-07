@@ -18,6 +18,10 @@ Status: **Linux development preview**, not an audited security product.
 - A native in-app folder manager lists approved indexing roots and metadata-only
   versus opt-in text access. Revocation requires confirmation and removes only
   indexed metadata; it never deletes or changes original source files.
+- The native folder manager and CLI can switch a previously authorized root
+  back to **metadata-only** access. This immediately replaces stored text with
+  empty values, updates the FTS index, and compacts SQLite; a follow-up rescan
+  is not required. The original files and searchable filenames are preserved.
 - The CLI also supports removing a root or clearing the index. SQLite secure
   deletion, FTS rebuild and VACUUM reduce ordinary database remnants, not
   storage snapshots, backups or SSD forensic recoverability.
@@ -33,8 +37,11 @@ Status: **Linux development preview**, not an audited security product.
 - Scans do not follow symbolic links or cross filesystem devices.
 - Overlapping indexed roots are rejected to prevent conflicting content-access
   permissions and stale-entry ownership.
-- Scan workers re-check stored root authorization and current content consent
-  before indexing, preventing queued scans from reviving already-revoked roots.
+- Scans acquire a SQLite writer transaction **before** checking stored
+  root authorization and content consent. Permission changes and scans are
+  serialized, preventing an in-flight scan from restoring text after a
+  downgrade returns. Scans may temporarily delay permission changes while
+  the index is busy; subsequent asynchronous cancellation remains planned.
 - Plain-text extraction is bounded to 64 KiB and limited to selected suffixes.
 - Scan failures do not trigger bulk stale-record deletions.
 - Recursive scans have a hard limit of 20,000 entries per selected root.

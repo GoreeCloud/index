@@ -16,6 +16,8 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 - Consent-based indexing of named local directories with SQLite FTS5.
 - Native indexed-folder manager that shows approved roots and their content
   access level, with confirmation before revoking access and deleting index data.
+- Per-folder text indexing consent can be enabled or changed back to metadata-only
+  in the GTK interface or CLI; a downgrade immediately purges retained text.
 - Default metadata search; explicit optional text extraction for supported small
   UTF-8-ish source and document formats.
 - Search terms and basic `kind:`, `ext:`, and `path:` filters.
@@ -77,6 +79,8 @@ goreecloud-index gui             Native desktop interface
 goreecloud-index add DIR         Index chosen directory (metadata only)
 goreecloud-index add DIR --content  Opt in to bounded text indexing
 goreecloud-index list            Show indexed root permissions
+goreecloud-index consent DIR --content       Opt in to bounded text and rescan
+goreecloud-index consent DIR --metadata-only Purge stored text without rescan
 goreecloud-index scan            Manually rescan all chosen roots
 goreecloud-index search TERMS    Search local files
 goreecloud-index search --json TERMS
