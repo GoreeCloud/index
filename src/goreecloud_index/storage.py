@@ -21,6 +21,11 @@ CREATE TABLE IF NOT EXISTS roots (
     path TEXT PRIMARY KEY,
     include_content INTEGER NOT NULL DEFAULT 0 CHECK (include_content IN (0, 1))
 );
+CREATE TABLE IF NOT EXISTS exclusions (
+    root TEXT NOT NULL REFERENCES roots(path) ON DELETE CASCADE,
+    path TEXT NOT NULL,
+    PRIMARY KEY(root, path)
+);
 CREATE TABLE IF NOT EXISTS items (
     path TEXT PRIMARY KEY,
     root TEXT NOT NULL,
@@ -156,6 +161,63 @@ class IndexStore:
         if bool(previous["include_content"]) and not include_content:
             self._compact_deleted_index()
         return Root(normalized, bool(include_content))
+
+    def exclusions(self, root_path: str | Path) -> list[str]:
+        root = os.path.abspath(os.path.expanduser(str(root_path)))
+        with self.connect() as conn:
+            return [
+                str(row["path"]) for row in conn.execute(
+                    "SELECT path FROM exclusions WHERE root = ? ORDER BY path", (root,)
+                )
+            ]
+
+    def add_exclusion(self, root_path: str | Path, directory: str | Path) -> str:
+        """Exclude an existing subdirectory; immediately purge matching index entries."""
+        root = os.path.abspath(os.path.expanduser(str(root_path)))
+        raw = Path(os.path.abspath(os.path.expanduser(str(directory))))
+        base = Path(root)
+        if raw == base or base not in raw.parents:
+            raise ValueError("Exclusion must be a subdirectory inside an indexed root")
+        # Check the *original* path before resolving symlinks; resolving first
+        # would hide a symlink that redirects to another subtree.
+        candidate = base
+        for part in raw.relative_to(base).parts:
+            candidate = candidate / part
+            if candidate.is_symlink():
+                raise ValueError("Symbolic-link folders cannot be excluded")
+        target = raw.resolve(strict=True)
+        if target == base or base not in target.parents or not target.is_dir():
+            raise ValueError("Exclusion must be a real subdirectory within the root")
+        target_path = str(target)
+        with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            if conn.execute(
+                "SELECT 1 FROM roots WHERE path = ?", (root,)
+            ).fetchone() is None:
+                raise ValueError("Root is not authorized for indexing")
+            conn.execute(
+                "INSERT OR IGNORE INTO exclusions(root, path) VALUES (?, ?)",
+                (root, target_path),
+            )
+            purged = conn.execute(
+                """DELETE FROM items WHERE root = ? AND (
+                       path = ? OR substr(path, 1, ?) = ?)""",
+                (root, target_path, len(target_path) + 1, target_path + os.sep),
+            ).rowcount
+        if purged:
+            self._compact_deleted_index()
+        return target_path
+
+    def remove_exclusion(self, root_path: str | Path, directory: str | Path) -> bool:
+        root = os.path.abspath(os.path.expanduser(str(root_path)))
+        path = os.path.abspath(os.path.expanduser(str(directory)))
+        with self.connect() as conn:
+            deleted = conn.execute(
+                "DELETE FROM exclusions WHERE root = ? AND path = ?", (root, path)
+            ).rowcount
+        # Do not silently re-index previously excluded files; the user
+        # controls when to refresh this source again.
+        return bool(deleted)
 
     def remove_root(self, path: str | Path) -> bool:
         normalized = os.path.abspath(os.path.expanduser(str(path)))

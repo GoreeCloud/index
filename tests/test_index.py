@@ -164,6 +164,123 @@ class IndexTests(unittest.TestCase):
         self.assertEqual([r.name for r in search_files(self.store, "kind:folder")], ["directory"])
         self.assertEqual(len(search_files(self.store, "path:notes.md")), 1)
 
+    def test_subfolder_exclusion_purges_and_prevents_reindex(self) -> None:
+        excluded = self.files / "personal"
+        unrelated = self.files / "personal-notes"
+        excluded.mkdir()
+        unrelated.mkdir()
+        private = excluded / "canary.txt"
+        unrelated_file = unrelated / "safe.txt"
+        private.write_text("private-only-secret", encoding="utf-8")
+        unrelated_file.write_text("safe-public", encoding="utf-8")
+        root = self.store.add_root(self.files, include_content=True)
+        scan_root(self.store, root)
+        self.assertEqual(len(search_files(self.store, "private")), 1)
+        self.assertEqual(len(search_files(self.store, "safe")), 1)
+        self.assertEqual(self.store.add_exclusion(root.path, excluded), str(excluded))
+        self.assertEqual(self.store.exclusions(root.path), [str(excluded)])
+        self.assertEqual(search_files(self.store, "private"), [])
+        matching = search_files(self.store, "personal")
+        self.assertTrue(matching)
+        self.assertTrue(all(
+            r.path != str(excluded) and not r.path.startswith(str(excluded) + "/")
+            for r in matching
+        ))
+        self.assertEqual(len(search_files(self.store, "safe")), 1)
+        scan_root(self.store, root)
+        self.assertEqual(search_files(self.store, "canary"), [])
+        self.assertTrue(private.is_file())
+        self.assertTrue(self.store.remove_exclusion(root.path, excluded))
+        self.assertEqual(self.store.exclusions(root.path), [])
+        self.assertEqual(search_files(self.store, "canary"), [])
+        scan_root(self.store, root)
+        self.assertEqual(len(search_files(self.store, "canary")), 1)
+        self.assertTrue(private.is_file())
+
+    def test_exclusion_rejects_root_outside_and_symlink_paths(self) -> None:
+        root = self.store.add_root(self.files)
+        child = self.files / "child"
+        child.mkdir()
+        other = self.base / "other"
+        other.mkdir()
+        with self.assertRaisesRegex(ValueError, "subdirectory"):
+            self.store.add_exclusion(root.path, self.files)
+        with self.assertRaisesRegex(ValueError, "inside"):
+            self.store.add_exclusion(root.path, other)
+        link = self.files / "link"
+        link.symlink_to(child, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "Symbolic-link"):
+            self.store.add_exclusion(root.path, link)
+        self.assertEqual(self.store.exclusions(root.path), [])
+        self.store.remove_root(root.path)
+        with self.assertRaisesRegex(ValueError, "not authorized"):
+            self.store.add_exclusion(root.path, child)
+
+    def test_exclusion_added_during_scan_purges_inflight_results(self) -> None:
+        import threading
+        from unittest.mock import patch
+        from goreecloud_index import scanner
+
+        nested = self.files / "excluded"
+        nested.mkdir()
+        (nested / "secrets.md").write_text("sensitive-canary", encoding="utf-8")
+        root = self.store.add_root(self.files, include_content=True)
+        opened = threading.Event()
+        resume = threading.Event()
+        errors: list[Exception] = []
+        original = scanner._read_text
+
+        def pause(path, size, enabled):
+            opened.set()
+            if not resume.wait(timeout=5):
+                raise RuntimeError("Test scan was not resumed")
+            return original(path, size, enabled)
+
+        def scanning():
+            try:
+                scan_root(self.store, root)
+            except Exception as exc:
+                errors.append(exc)
+
+        def excluding():
+            try:
+                self.store.add_exclusion(root.path, nested)
+            except Exception as exc:
+                errors.append(exc)
+
+        with patch.object(scanner, "_read_text", side_effect=pause):
+            scan_worker = threading.Thread(target=scanning)
+            scan_worker.start()
+            exclusion_worker = None
+            try:
+                self.assertTrue(opened.wait(timeout=5))
+                exclusion_worker = threading.Thread(target=excluding)
+                exclusion_worker.start()
+                exclusion_worker.join(timeout=0.12)
+                self.assertTrue(exclusion_worker.is_alive())
+            finally:
+                resume.set()
+                scan_worker.join(timeout=5)
+                if exclusion_worker is not None:
+                    exclusion_worker.join(timeout=5)
+        self.assertFalse(scan_worker.is_alive())
+        self.assertIsNotNone(exclusion_worker)
+        self.assertFalse(exclusion_worker.is_alive())
+        self.assertEqual(errors, [])
+        self.assertEqual(search_files(self.store, "canary"), [])
+        self.assertEqual(self.store.exclusions(root.path), [str(nested)])
+        self.assertTrue((nested / "secrets.md").is_file())
+
+    def test_exclusions_are_deleted_with_root(self) -> None:
+        root = self.store.add_root(self.files)
+        child = self.files / "subdir"
+        child.mkdir()
+        self.store.add_exclusion(root.path, child)
+        self.assertEqual(len(self.store.exclusions(root.path)), 1)
+        self.store.remove_root(root.path)
+        self.assertEqual(self.store.exclusions(root.path), [])
+        self.assertTrue(child.is_dir())
+
     def test_malicious_query_is_data_not_sql(self) -> None:
         (self.files / "ordinary.txt").write_text("hello")
         scan_root(self.store, self.store.add_root(self.files))

@@ -21,6 +21,14 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("directory")
     add.add_argument("--content", action="store_true", help="Also index bounded text contents")
     commands.add_parser("list", help="Show explicitly configured index roots")
+    exclude = commands.add_parser("exclude", help="Exclude and purge a subfolder of an indexed root")
+    exclude.add_argument("root")
+    exclude.add_argument("directory")
+    unexclude = commands.add_parser("unexclude", help="Allow a previously excluded subfolder")
+    unexclude.add_argument("root")
+    unexclude.add_argument("directory")
+    exclusions = commands.add_parser("exclusions", help="List a root's excluded subfolders")
+    exclusions.add_argument("root")
     consent = commands.add_parser("consent", help="Change content permission of an indexed root")
     consent.add_argument("directory")
     modes = consent.add_mutually_exclusive_group(required=True)
@@ -67,6 +75,17 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "list":
             for root in store.roots():
                 print(f"{root.path}  contents={'on' if root.include_content else 'off'}")
+        elif args.command == "exclude":
+            excluded = store.add_exclusion(args.root, args.directory)
+            print(f"Excluded and purged {excluded}; source files were not changed.")
+        elif args.command == "unexclude":
+            if store.remove_exclusion(args.root, args.directory):
+                print("Exclusion removed. Run 'scan' to index the subfolder again.")
+            else:
+                print("Directory was not in the root's exclusion list.")
+        elif args.command == "exclusions":
+            for excluded in store.exclusions(args.root):
+                print(excluded)
         elif args.command == "consent":
             root = store.set_root_content(args.directory, args.content)
             if root.include_content:

@@ -440,6 +440,11 @@ class IndexApplication(Adw.Application):
                 root.path, not root.include_content,
             )
             content.append(consent)
+            exclude = Gtk.Button(label="Exclude subfolder…")
+            exclude.set_valign(Gtk.Align.CENTER)
+            exclude.set_sensitive(not self.busy)
+            exclude.connect("clicked", self._choose_excluded_folder, root.path)
+            content.append(exclude)
             revoke = Gtk.Button(label="Remove access")
             revoke.set_sensitive(not self.busy)
             revoke.add_css_class("destructive-action")
@@ -447,8 +452,70 @@ class IndexApplication(Adw.Application):
             revoke.set_tooltip_text("Remove this folder and its local index entries")
             revoke.connect("clicked", self._confirm_remove_root, root.path)
             content.append(revoke)
-            row.set_child(content)
+            wrapper = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+            wrapper.append(content)
+            for excluded in self.store.exclusions(root.path):
+                item = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+                item.set_margin_start(24)
+                item.set_margin_end(12)
+                item.set_margin_bottom(5)
+                name = Gtk.Label(label="Excluded: " + excluded, xalign=0, ellipsize=3)
+                name.set_hexpand(True)
+                name.set_selectable(True)
+                item.append(name)
+                allow = Gtk.Button(label="Allow again")
+                allow.set_sensitive(not self.busy)
+                allow.set_tooltip_text("Remove this exclusion; a manual rescan is required")
+                allow.connect("clicked", self._remove_exclusion, root.path, excluded)
+                item.append(allow)
+                wrapper.append(item)
+            row.set_child(wrapper)
             self.roots_list.append(row)
+
+    def _choose_excluded_folder(self, _button: Gtk.Button, root_path: str) -> None:
+        if self.window is None or self.busy:
+            return
+        dialog = Gtk.FileChooserNative.new(
+            "Select a subfolder to exclude", self.roots_window or self.window,
+            Gtk.FileChooserAction.SELECT_FOLDER, "_Exclude folder", "_Cancel"
+        )
+        dialog.set_current_folder(Gio.File.new_for_path(root_path))
+        dialog.connect("response", self._excluded_folder_chosen, root_path)
+        dialog.show()
+
+    def _excluded_folder_chosen(
+        self, dialog: Gtk.FileChooserNative, response: int, root_path: str
+    ) -> None:
+        if response != Gtk.ResponseType.ACCEPT or self.store is None or self.busy:
+            dialog.destroy()
+            return
+        folder = dialog.get_file()
+        dialog.destroy()
+        if folder is None or folder.get_path() is None:
+            self._set_status("Only local subfolders can be excluded")
+            return
+        try:
+            excluded = self.store.add_exclusion(root_path, folder.get_path())
+        except (OSError, ValueError) as exc:
+            self._set_status(f"Could not exclude directory: {exc}")
+            return
+        self._render_roots()
+        self._refresh()
+        self._set_status(f"Excluded {excluded}; source files were not changed.")
+
+    def _remove_exclusion(
+        self, _button: Gtk.Button, root_path: str, excluded_path: str
+    ) -> None:
+        if self.store is None or self.busy:
+            return
+        try:
+            self.store.remove_exclusion(root_path, excluded_path)
+        except (OSError, ValueError) as exc:
+            self._set_status(f"Could not remove exclusion: {exc}")
+            return
+        self._render_roots()
+        self._refresh()
+        self._set_status("Exclusion removed. Use Refresh to index the subfolder again.")
 
     def _confirm_content_change(
         self, _button: Gtk.Button, path: str, enable_text: bool
