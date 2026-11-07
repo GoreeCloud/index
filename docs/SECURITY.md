@@ -46,6 +46,17 @@ Status: **Linux development preview**, not an audited security product.
 - Explicit file opening rejects paths containing visible symlink ancestors
   before using Gio; pathname-based URI handlers still have inherent race
   limitations and require a user activation.
+- Authorizations pin the top-level root's filesystem device and inode.
+  Every scan checks that identity against its opened root descriptor, and
+  each search hides cached results from missing, replaced, or legacy
+  unbound roots. No path-only migration grants root authorization.
+- Directory opens verify each path component with `O_NOFOLLOW`.
+  Older databases migrate to nullable identity columns, leaving old roots
+  unbound until the user explicitly reauthorizes them.
+- Explicit reauthorization resets text permission to metadata-only, clears
+  indexed metadata and prior exclusion rules, and leaves original files
+  untouched. File-system inode reuse and a race between URI validation
+  and opening an external application are remaining limitations.
 - Scans do not follow symbolic links or cross filesystem devices.
 - Overlapping indexed roots are rejected to prevent conflicting content-access
   permissions and stale-entry ownership. User-selected exclusion folders must

@@ -7,19 +7,23 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import database_path, safe_root
+from .config import database_path, safe_root, root_identity
 
 
 @dataclass(frozen=True)
 class Root:
     path: str
     include_content: bool
+    device: int | None = None
+    inode: int | None = None
 
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS roots (
     path TEXT PRIMARY KEY,
-    include_content INTEGER NOT NULL DEFAULT 0 CHECK (include_content IN (0, 1))
+    include_content INTEGER NOT NULL DEFAULT 0 CHECK (include_content IN (0, 1)),
+    device INTEGER,
+    inode INTEGER
 );
 CREATE TABLE IF NOT EXISTS exclusions (
     root TEXT NOT NULL REFERENCES roots(path) ON DELETE CASCADE,
@@ -90,6 +94,12 @@ class IndexStore:
             self.path.chmod(0o600)
         with self.connect() as conn:
             conn.executescript(SCHEMA)
+            # Conservative legacy migration: existing roots get NULL identity.
+            # No old opt-in is silently assigned to a replacement directory.
+            cols = {row["name"] for row in conn.execute("PRAGMA table_info(roots)")}
+            for column in ("device", "inode"):
+                if column not in cols:
+                    conn.execute(f"ALTER TABLE roots ADD COLUMN {column} INTEGER")
 
     def connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=10.0)
@@ -101,54 +111,106 @@ class IndexStore:
 
     def add_root(self, path: str | Path, include_content: bool = False) -> Root:
         root = safe_root(path)
-        # Overlapping roots would share the same item paths but disagree on
-        # permissions and stale-entry ownership. Reject the overlap rather
-        # than accidentally indexing child files with the parent's consent.
-        for existing in self.roots():
-            other = Path(existing.path)
-            if root != other and (root in other.parents or other in root.parents):
-                raise ValueError("Indexed directories cannot overlap")
+        device, inode = root_identity(root)
+        # Overlapping permissions are ambiguous. Validate again in the
+        # write transaction to avoid concurrently added overlapping roots.
         with self.connect() as conn:
-            # Lock before reading consent, so concurrent scans and consent
-            # changes are serialized. A downgrade may not leave indexed text
-            # behind even if the caller never requests a follow-up scan.
             conn.execute("BEGIN IMMEDIATE")
+            existing = list(conn.execute(
+                "SELECT path FROM roots ORDER BY path"
+            ))
+            for entry in existing:
+                other = Path(entry["path"])
+                if root != other and (root in other.parents or other in root.parents):
+                    raise ValueError("Indexed directories cannot overlap")
             previous = conn.execute(
-                "SELECT include_content FROM roots WHERE path = ?", (str(root),)
+                "SELECT include_content, device, inode FROM roots WHERE path = ?", (str(root),)
             ).fetchone()
-            conn.execute(
-                """INSERT INTO roots(path, include_content) VALUES (?, ?)
-                   ON CONFLICT(path) DO UPDATE SET include_content=excluded.include_content""",
-                (str(root), int(include_content)),
-            )
-            if not include_content and previous is not None:
+            if previous is not None and (
+                previous["device"] != device or previous["inode"] != inode
+            ):
+                raise ValueError("Root identity changed or is unbound; explicitly reauthorize it")
+            if previous is None:
                 conn.execute(
-                    "UPDATE items SET content = '' WHERE root = ? AND content != ''",
-                    (str(root),),
+                    "INSERT INTO roots(path, include_content, device, inode) "
+                    "VALUES (?, ?, ?, ?)",
+                    (str(root), int(include_content), device, inode),
                 )
+            else:
+                conn.execute(
+                    "UPDATE roots SET include_content = ? WHERE path = ?",
+                    (int(include_content), str(root)),
+                )
+                if not include_content:
+                    conn.execute(
+                        "UPDATE items SET content = '' WHERE root = ? AND content != ''",
+                        (str(root),),
+                    )
         if not include_content and previous is not None and bool(previous["include_content"]):
             self._compact_deleted_index()
-        return Root(str(root), bool(include_content))
+        return Root(str(root), bool(include_content), device, inode)
 
     def roots(self) -> list[Root]:
         with self.connect() as conn:
-            return [Root(row["path"], bool(row["include_content"])) for row in
-                    conn.execute("SELECT path, include_content FROM roots ORDER BY path")]
+            return [
+                Root(row["path"], bool(row["include_content"]), row["device"], row["inode"])
+                for row in conn.execute(
+                    "SELECT path, include_content, device, inode FROM roots ORDER BY path"
+                )
+            ]
+
+    @staticmethod
+    def root_is_current(root: Root) -> bool:
+        """Fail closed for unbound legacy roots and replaced or missing paths."""
+        if root.device is None or root.inode is None:
+            return False
+        try:
+            return root_identity(root.path) == (root.device, root.inode)
+        except (OSError, ValueError, RuntimeError):
+            return False
+
+    def reauthorize_root(self, path: str | Path) -> Root:
+        """Explicit consent renewal after replacement or legacy schema migration.
+
+        Conservative reset: metadata-only, no retained indexed entries or
+        exclusions, and original files are untouched. Never called by a scan.
+        """
+        root = safe_root(path)
+        device, inode = root_identity(root)
+        with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            if conn.execute(
+                "SELECT 1 FROM roots WHERE path = ?", (str(root),)
+            ).fetchone() is None:
+                raise ValueError("Directory is not a configured root; add it instead")
+            conn.execute(
+                "UPDATE roots SET include_content = 0, device = ?, inode = ? WHERE path = ?",
+                (device, inode, str(root)),
+            )
+            conn.execute("DELETE FROM exclusions WHERE root = ?", (str(root),))
+            conn.execute("DELETE FROM items WHERE root = ?", (str(root),))
+        self._compact_deleted_index()
+        return Root(str(root), False, device, inode)
 
     def set_root_content(self, path: str | Path, include_content: bool) -> Root:
-        """Change consent on an existing root only, never silently add a root.
+        """Change consent on an existing identity-bound root only.
 
-        Downgrading deletes indexed text before the operation returns, without
-        deleting the source files, paths, or searchable filename metadata.
+        Downgrading always remains permitted, even if a root is unavailable.
         """
         normalized = os.path.abspath(os.path.expanduser(str(path)))
+        expected = root_identity(normalized) if include_content else None
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             previous = conn.execute(
-                "SELECT include_content FROM roots WHERE path = ?", (normalized,)
+                "SELECT include_content, device, inode FROM roots WHERE path = ?", (normalized,)
             ).fetchone()
             if previous is None:
                 raise ValueError("Directory is not authorized for indexing")
+            if include_content and (
+                previous["device"] is None or
+                expected != (previous["device"], previous["inode"])
+            ):
+                raise ValueError("Root identity changed or is unbound; explicitly reauthorize it")
             conn.execute(
                 "UPDATE roots SET include_content = ? WHERE path = ?",
                 (int(include_content), normalized),
@@ -160,7 +222,7 @@ class IndexStore:
                 )
         if bool(previous["include_content"]) and not include_content:
             self._compact_deleted_index()
-        return Root(normalized, bool(include_content))
+        return Root(normalized, bool(include_content), previous["device"], previous["inode"])
 
     def exclusions(self, root_path: str | Path) -> list[str]:
         root = os.path.abspath(os.path.expanduser(str(root_path)))

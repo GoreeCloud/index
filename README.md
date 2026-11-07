@@ -13,6 +13,10 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 - Native GTK4/libadwaita window with keyboard search, selectable results and
   Applications / Files / Actions modes. Clipboard history is visibly off.
 - Application listing and launching through Gio/freedesktop app registry.
+- Identity-bound consent for each authorized root (filesystem device + inode);
+  stored search hits are hidden if a root is replaced or unbound.
+- Explicit reauthorization in GTK or CLI resets the root to metadata-only and
+  clears the old index/exclusions, without touching original files.
 - Consent-based indexing of named local directories with SQLite FTS5.
 - Native indexed-folder manager that shows approved roots and their content
   access level, with confirmation before revoking access and deleting index data.
@@ -94,7 +98,8 @@ system-wide installation.
 goreecloud-index gui             Native desktop interface
 goreecloud-index add DIR         Index chosen directory (metadata only)
 goreecloud-index add DIR --content  Opt in to bounded text indexing
-goreecloud-index list            Show indexed root permissions
+goreecloud-index list            Show roots and identity verification status
+goreecloud-index reauthorize DIR --yes  Rebind a root with metadata-only reset
 goreecloud-index consent DIR --content       Opt in to bounded text and rescan
 goreecloud-index consent DIR --metadata-only Purge stored text without rescan
 goreecloud-index exclude ROOT SUBDIR         Exclude and purge a subfolder
@@ -108,6 +113,17 @@ goreecloud-index remove DIR      Remove root and indexed entries, not files
 goreecloud-index clear --yes     Clear indexed entries, not original files
 goreecloud-index status          Indexed count, root count, DB location
 ```
+
+A previously approved top-level directory is bound to its device/inode identity.
+On first launch after upgrading older unbound database records, or after a
+directory is replaced, it will be shown as **Reauthorization required**.
+The old root is not scanned and its cached search entries are hidden. To
+resume, explicitly review the folder and use the GTK Reauthorize control or
+`goreecloud-index reauthorize DIR --yes`. Reauthorization resets indexing to
+**metadata only** and clears the old index and exclusion rules. The original
+files are never changed. Restore any desired subfolder exclusions before
+enabling content indexing. It does not authorize an unrelated directory
+automatically.
 
 Filesystem data is indexed **only after explicit selection**. Hidden files,
 credential folders, symlink targets and different filesystem devices are never

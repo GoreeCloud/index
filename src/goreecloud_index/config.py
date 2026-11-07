@@ -41,17 +41,48 @@ def database_path() -> Path:
     return data_directory() / "index.sqlite3"
 
 
-def safe_root(path: str | Path) -> Path:
-    """Validate user-selected directory; never permit protected credential trees."""
-    p = Path(path).expanduser()
-    if p.is_symlink():
-        raise ValueError("Symbolic-link roots cannot be indexed")
-    resolved = p.resolve(strict=True)
-    if not resolved.is_dir():
-        raise ValueError("Select an existing directory")
-    if resolved == Path("/") or any(part in PROTECTED_PARTS for part in resolved.parts):
+def open_root_directory(path: str | Path) -> int:
+    """Open every absolute-path component with O_NOFOLLOW; caller closes fd.
+
+    Unlike a plain Path.resolve, this also disallows symlinked ancestors.
+    The opened descriptor's st_dev/st_ino is the authority for root consent.
+    """
+    p = Path(os.path.abspath(os.path.expanduser(str(path))))
+    if p == Path("/") or any(part in PROTECTED_PARTS for part in p.parts):
         raise ValueError("System and credential directories cannot be indexed")
-    return resolved
+    if os.name != "posix" or not hasattr(os, "O_DIRECTORY") or not hasattr(os, "O_NOFOLLOW"):
+        raise RuntimeError("Secure root directory access requires Linux/POSIX")
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+    fd = os.open("/", flags)
+    try:
+        for part in p.parts[1:]:
+            child_fd = os.open(part, flags, dir_fd=fd)
+            os.close(fd)
+            fd = child_fd
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def root_identity(path: str | Path) -> tuple[int, int]:
+    """Identity of a real, non-symlink root and its non-symlink ancestors."""
+    fd = open_root_directory(path)
+    try:
+        st = os.fstat(fd)
+        return st.st_dev, st.st_ino
+    finally:
+        os.close(fd)
+
+
+def safe_root(path: str | Path) -> Path:
+    """Validate a user-selected directory without following symlinked ancestors."""
+    p = Path(os.path.abspath(os.path.expanduser(str(path))))
+    try:
+        root_identity(p)
+    except OSError as exc:
+        raise ValueError(f"Root must be a real accessible directory: {p}") from exc
+    return p
 
 
 def skip_name(name: str) -> bool:

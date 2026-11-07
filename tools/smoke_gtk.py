@@ -77,6 +77,40 @@ def main() -> int:
                 scan_root(app.store, app.store.roots()[0])
                 assert search_files(app.store, "excluded")
 
+                # A different real directory at the same path must not
+                # inherit previous permission without explicit GUI consent.
+                another = home / "replacement-root"
+                another.mkdir()
+                replacement_root = app.store.add_root(another, include_content=True)
+                previous = home / "previous-root"
+                another.rename(previous)
+                another.mkdir()
+                (another / "new.md").write_text("unapproved-canary", encoding="utf-8")
+                app._render_roots()
+                assert not app.store.root_is_current(replacement_root)
+                assert search_files(app.store, "unapproved") == []
+                app._confirm_reauthorize_root(None, str(another))
+                renew_dialog = [
+                    w for w in Gtk.Window.list_toplevels()
+                    if isinstance(w, Adw.MessageDialog)
+                    and w.get_heading() == "Reauthorize this indexed folder?"
+                    and w.get_visible()
+                ][-1]
+                renew_dialog.response("cancel")
+                assert not app.store.root_is_current(replacement_root)
+                app._confirm_reauthorize_root(None, str(another))
+                renew_dialog = [
+                    w for w in Gtk.Window.list_toplevels()
+                    if isinstance(w, Adw.MessageDialog)
+                    and w.get_heading() == "Reauthorize this indexed folder?"
+                    and w.get_visible()
+                ][-1]
+                renew_dialog.response("reauthorize")
+                assert app.store.root_is_current(app.store.roots()[1])
+                assert not app.store.roots()[1].include_content
+                assert (another / "new.md").is_file()
+                app.store.remove_root(another)
+
                 app._confirm_remove_root(None, root.path)
                 confirm = next(
                     w for w in Gtk.Window.list_toplevels()

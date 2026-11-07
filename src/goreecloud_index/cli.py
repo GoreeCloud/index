@@ -20,7 +20,10 @@ def build_parser() -> argparse.ArgumentParser:
     add = commands.add_parser("add", help="Opt in a directory for local indexing")
     add.add_argument("directory")
     add.add_argument("--content", action="store_true", help="Also index bounded text contents")
-    commands.add_parser("list", help="Show explicitly configured index roots")
+    commands.add_parser("list", help="Show configured roots and identity verification")
+    renewal = commands.add_parser("reauthorize", help="Explicitly rebind an old or replaced folder")
+    renewal.add_argument("directory")
+    renewal.add_argument("--yes", action="store_true", help="Confirm metadata-only reset and index purge")
     exclude = commands.add_parser("exclude", help="Exclude and purge a subfolder of an indexed root")
     exclude.add_argument("root")
     exclude.add_argument("directory")
@@ -74,7 +77,14 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if not report.errors and not report.truncated else 1
         if args.command == "list":
             for root in store.roots():
-                print(f"{root.path}  contents={'on' if root.include_content else 'off'}")
+                status = "verified" if store.root_is_current(root) else "REAUTHORIZATION REQUIRED"
+                print(f"{root.path}  contents={'on' if root.include_content else 'off'}  {status}")
+        elif args.command == "reauthorize":
+            if not args.yes:
+                raise ValueError("Pass --yes to confirm reauthorization and metadata purge")
+            root = store.reauthorize_root(args.directory)
+            print(f"Reauthorized {root.path} for metadata only; prior indexed data "
+                  "and exclusions cleared. Run 'scan' when ready.")
         elif args.command == "exclude":
             excluded = store.add_exclusion(args.root, args.directory)
             print(f"Excluded and purged {excluded}; source files were not changed.")
