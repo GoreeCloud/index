@@ -420,17 +420,25 @@ class IndexApplication(Adw.Application):
             label = Gtk.Label(label=root.path, xalign=0, ellipsize=3)
             label.set_selectable(True)
             labels.append(label)
-            level = ("Names and small text contents" if root.include_content
-                     else "Names and file metadata only")
+            verified = self.store.root_is_current(root)
+            level = (("Names and small text contents" if root.include_content
+                      else "Names and file metadata only") if verified
+                     else "Identity changed or legacy permission · Reauthorization required")
             detail = Gtk.Label(label=level, xalign=0)
             detail.add_css_class("index-description")
             labels.append(detail)
             content.append(labels)
+            if not verified:
+                renewal = Gtk.Button(label="Reauthorize…")
+                renewal.set_valign(Gtk.Align.CENTER)
+                renewal.set_sensitive(not self.busy)
+                renewal.connect("clicked", self._confirm_reauthorize_root, root.path)
+                content.append(renewal)
             consent = Gtk.Button(
                 label="Names only" if root.include_content else "Include text"
             )
             consent.set_valign(Gtk.Align.CENTER)
-            consent.set_sensitive(not self.busy)
+            consent.set_sensitive(not self.busy and verified)
             consent.set_tooltip_text(
                 "Stop retaining indexed file contents" if root.include_content
                 else "Explicitly allow small plain-text content indexing"
@@ -442,7 +450,7 @@ class IndexApplication(Adw.Application):
             content.append(consent)
             exclude = Gtk.Button(label="Exclude subfolder…")
             exclude.set_valign(Gtk.Align.CENTER)
-            exclude.set_sensitive(not self.busy)
+            exclude.set_sensitive(not self.busy and verified)
             exclude.connect("clicked", self._choose_excluded_folder, root.path)
             content.append(exclude)
             revoke = Gtk.Button(label="Remove access")
@@ -555,6 +563,36 @@ class IndexApplication(Adw.Application):
             self._refresh()
             self._set_status("Indexed text removed; filenames and original files remain.")
         self._render_roots()
+
+    def _confirm_reauthorize_root(self, _button: Gtk.Button, path: str) -> None:
+        if self.window is None or self.busy:
+            return
+        dialog = Adw.MessageDialog.new(
+            self.roots_window or self.window,
+            "Reauthorize this indexed folder?",
+            f"{path}\n\nThe original directory identity has changed or predates "
+            "identity checks. Only the folder currently at this path will be approved. "
+            "Existing indexed data and subfolder exclusions will be cleared, and "
+            "text indexing will reset to off. Source files are never altered.",
+        )
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("reauthorize", "Reauthorize folder")
+        dialog.set_default_response("cancel")
+        dialog.set_close_response("cancel")
+        dialog.connect("response", self._reauthorize_root_response, path)
+        dialog.present()
+
+    def _reauthorize_root_response(self, _dialog, response: str, path: str) -> None:
+        if response != "reauthorize" or self.store is None or self.busy:
+            return
+        try:
+            self.store.reauthorize_root(path)
+        except (OSError, ValueError, RuntimeError) as exc:
+            self._set_status(f"Could not reauthorize folder: {exc}")
+            return
+        self._render_roots()
+        self._refresh()
+        self._set_status("Folder reauthorized for metadata only; previous index cleared. Refresh to scan.")
 
     def _confirm_remove_root(self, _button: Gtk.Button, path: str) -> None:
         if self.window is None:

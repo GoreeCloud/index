@@ -82,6 +82,38 @@ class CliTests(unittest.TestCase):
                 self.assertIn("hidden.md", allowed.getvalue())
                 self.assertTrue(source.is_file())
 
+    def test_reauthorization_requires_explicit_cli_confirmation(self) -> None:
+        with tempfile.TemporaryDirectory() as location:
+            base = Path(location)
+            selected = base / "documents"
+            selected.mkdir()
+            (selected / "original.md").write_text("original-private-canary")
+            with patch.dict(os.environ, {"XDG_DATA_HOME": str(base / "data")}):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(["add", str(selected), "--content"]), 0)
+                relocated = base / "relocated"
+                selected.rename(relocated)
+                selected.mkdir()
+                (selected / "new.md").write_text("unauthorized-canary")
+                with contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(main(["scan"]), 2)
+                    self.assertEqual(main(["reauthorize", str(selected)]), 2)
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(["reauthorize", str(selected), "--yes"]), 0)
+                status = io.StringIO()
+                with contextlib.redirect_stdout(status):
+                    self.assertEqual(main(["list"]), 0)
+                    self.assertEqual(main(["scan"]), 0)
+                    self.assertEqual(main(["search", "new"]), 0)
+                self.assertIn("contents=off", status.getvalue())
+                self.assertIn("verified", status.getvalue())
+                self.assertIn("new.md", status.getvalue())
+                private = io.StringIO()
+                with contextlib.redirect_stdout(private):
+                    self.assertEqual(main(["search", "canary"]), 0)
+                self.assertEqual(private.getvalue(), "")
+                self.assertTrue((relocated / "original.md").is_file())
+
     def test_clear_requires_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as base:
             with patch.dict(os.environ, {"XDG_DATA_HOME": str(Path(base) / "data")}):

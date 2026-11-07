@@ -9,7 +9,7 @@ from pathlib import Path
 from goreecloud_index.config import safe_root
 from goreecloud_index.scanner import scan_root
 from goreecloud_index.search import parse_query, search_files
-from goreecloud_index.storage import IndexStore
+from goreecloud_index.storage import IndexStore, Root
 
 
 class IndexTests(unittest.TestCase):
@@ -375,6 +375,97 @@ class IndexTests(unittest.TestCase):
         link.symlink_to(self.files)
         with self.assertRaises(ValueError):
             safe_root(link)
+
+    def test_replaced_root_cannot_scan_or_expose_cached_results(self) -> None:
+        original = self.files / "original.md"
+        original.write_text("consented-canary", encoding="utf-8")
+        authorized = self.store.add_root(self.files, include_content=True)
+        scan_root(self.store, authorized)
+        self.assertEqual(len(search_files(self.store, "consented")), 1)
+        old_directory = self.base / "relocated"
+        self.files.rename(old_directory)
+        self.files.mkdir()
+        injected = self.files / "injected.md"
+        injected.write_text("unapproved-canary", encoding="utf-8")
+        self.assertFalse(self.store.root_is_current(authorized))
+        self.assertEqual(search_files(self.store, "consented"), [])
+        self.assertEqual(search_files(self.store, "injected"), [])
+        with self.assertRaisesRegex(ValueError, "identity changed"):
+            scan_root(self.store, authorized)
+        with self.assertRaisesRegex(ValueError, "reauthorize"):
+            self.store.add_root(self.files, include_content=True)
+        with self.assertRaisesRegex(ValueError, "reauthorize"):
+            self.store.set_root_content(self.files, include_content=True)
+        self.assertEqual(self.store.count(), 1)  # hidden until explicitly reauthorized
+        changed = self.store.reauthorize_root(self.files)
+        self.assertFalse(changed.include_content)
+        self.assertTrue(self.store.root_is_current(changed))
+        self.assertEqual(self.store.count(), 0)
+        scan_root(self.store, changed)
+        self.assertEqual(search_files(self.store, "unapproved"), [])
+        self.assertEqual([v.name for v in search_files(self.store, "injected")], ["injected.md"])
+        self.assertTrue((old_directory / "original.md").is_file())
+
+    def test_legacy_schema_is_not_silently_reauthorized(self) -> None:
+        import sqlite3
+        old_db = self.base / "legacy.sqlite3"
+        with sqlite3.connect(old_db) as conn:
+            conn.execute(
+                "CREATE TABLE roots (path TEXT PRIMARY KEY, "
+                "include_content INTEGER NOT NULL DEFAULT 0)"
+            )
+            conn.execute(
+                "INSERT INTO roots(path, include_content) VALUES (?, 1)",
+                (str(self.files),),
+            )
+        restored = IndexStore(old_db)
+        old = restored.roots()[0]
+        self.assertIsNone(old.device)
+        self.assertIsNone(old.inode)
+        self.assertFalse(restored.root_is_current(old))
+        with self.assertRaisesRegex(ValueError, "unbound"):
+            scan_root(restored, old)
+        with self.assertRaisesRegex(ValueError, "reauthorize"):
+            restored.add_root(self.files)
+        refreshed = restored.reauthorize_root(self.files)
+        self.assertFalse(refreshed.include_content)
+        self.assertEqual((refreshed.device, refreshed.inode),
+                         (self.files.stat().st_dev, self.files.stat().st_ino))
+        self.assertTrue(restored.root_is_current(refreshed))
+        scan_root(restored, refreshed)
+
+    def test_reauthorization_discards_old_exclusions_and_contents(self) -> None:
+        hidden = self.files / "private"
+        hidden.mkdir()
+        (hidden / "secret.md").write_text("sensitive-canary", encoding="utf-8")
+        root = self.store.add_root(self.files, include_content=True)
+        scan_root(self.store, root)
+        self.store.add_exclusion(root.path, hidden)
+        self.assertTrue(self.store.exclusions(root.path))
+        renewed = self.store.reauthorize_root(self.files)
+        self.assertFalse(renewed.include_content)
+        self.assertEqual(self.store.exclusions(renewed.path), [])
+        self.assertEqual(self.store.count(), 0)
+        scan_root(self.store, renewed)
+        self.assertEqual(search_files(self.store, "sensitive"), [])
+        self.assertTrue((hidden / "secret.md").exists())
+
+    def test_symlinked_ancestor_is_not_a_valid_index_root(self) -> None:
+        original_parent = self.base / "real-parent"
+        original_parent.mkdir()
+        child = original_parent / "inside"
+        child.mkdir()
+        alias = self.base / "alias"
+        alias.symlink_to(original_parent, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "real accessible"):
+            self.store.add_root(alias / "inside")
+        root = self.store.add_root(child)
+        scan_root(self.store, root)
+        original_parent.rename(self.base / "parent-renamed")
+        alias.unlink()
+        alias.symlink_to(self.base / "parent-renamed", target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "open indexed directory"):
+            scan_root(self.store, Root(str(alias / "inside"), False))
 
     def test_bad_query_is_rejected(self) -> None:
         with self.assertRaises(ValueError):

@@ -47,9 +47,14 @@ def search_files(store: IndexStore, query: str = "", limit: int = 40) -> list[Fi
     if not 1 <= limit <= MAX_RESULTS:
         raise ValueError("Result limit outside permitted range")
     terms, filters = parse_query(query)
+    # Never surface cached results from roots whose approved directory inode
+    # has disappeared or been replaced, even before the next manual scan.
+    trusted = [r.path for r in store.roots() if store.root_is_current(r)]
+    if not trusted:
+        return []
     joins = ""
-    clauses = []
-    params: list[object] = []
+    clauses = ["i.root IN (" + ", ".join("?" for _ in trusted) + ")"]
+    params: list[object] = list(trusted)
     sort = "i.mtime_ns DESC, i.name COLLATE NOCASE"
     words = re.findall(r"[^\W_]+", " ".join(terms), flags=re.UNICODE)[:12]
     if words:

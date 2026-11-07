@@ -15,7 +15,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import MAX_FILES_PER_ROOT, MAX_TEXT_BYTES, TEXT_SUFFIXES, skip_name
+from .config import MAX_FILES_PER_ROOT, MAX_TEXT_BYTES, TEXT_SUFFIXES, skip_name, open_root_directory
 from .storage import IndexStore, Root
 
 
@@ -79,11 +79,7 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
         raise RuntimeError("Secure directory-fd scanning requires Linux/POSIX support")
 
     try:
-        flags = (
-            os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
-            | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
-        )
-        root_fd = os.open(path, flags)
+        root_fd = open_root_directory(path)
     except OSError as exc:
         raise ValueError(f"Cannot safely open indexed directory: {path}") from exc
 
@@ -107,10 +103,17 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
             # Serialize with root and exclusion consent changes before scanning.
             conn.execute("BEGIN IMMEDIATE")
             consent = conn.execute(
-                "SELECT include_content FROM roots WHERE path = ?", (root.path,)
+                "SELECT include_content, device, inode FROM roots WHERE path = ?",
+                (root.path,),
             ).fetchone()
             if consent is None:
                 raise ValueError(f"Index permission was revoked for {root.path}")
+            if (consent["device"], consent["inode"]) != (
+                root_stat.st_dev, root_stat.st_ino
+            ):
+                raise ValueError(
+                    f"Root identity changed or is unbound; reauthorize before scanning: {root.path}"
+                )
             include_content = bool(consent["include_content"])
             excluded = tuple(
                 str(row["path"]) for row in conn.execute(
