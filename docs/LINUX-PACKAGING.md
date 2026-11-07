@@ -26,6 +26,29 @@ owner/group normalization and a deterministic default SOURCE_DATE_EPOCH=0.
 Delete the temporary extraction directory afterwards. Neither command installs
 software or modifies the system configuration.
 
+## First-party package integrity inventory (unsigned)
+
+The standard-library-only `tools/package_manifest.py` verifies that the
+`.deb` contains exactly the allowlisted 15 original source, desktop,
+executable and license/README payload files. It rejects non-regular files,
+unexpected or duplicate entries, non-root archive ownership, unapproved
+modes, oversized payloads, and symlinked input packages. It records
+package SHA-256, declared dependencies, and each installed payload file's
+mode, byte count and SHA-256 in deterministic JSON. Comparing revisions
+also ensures packaging-only version changes do not alter the installed
+source payload.
+
+Run after building both revisions, with no installation or network access:
+
+    python3 -m tools.package_manifest dist/goreecloud-index_0.1.0-1_all.deb \
+      --compare-payload dist/goreecloud-index_0.1.0-2_all.deb \
+      --output dist/goreecloud-index-package-inventory.json
+
+The GitHub `deb-package` job runs the same verifier. This inventory is
+**unsigned static integrity data**, not an SPDX/CycloneDX SBOM, formal
+provenance attestation, vulnerability scan or signed release. Verify the
+package publisher and provenance separately before any external release.
+
 ## Ephemeral package lifecycle test (development only)
 
 The local `tools/verify_deb_lifecycle.py` script uses an **already downloaded**

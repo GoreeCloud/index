@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 from tools.build_deb import build
+from tools.package_manifest import inspect, expected_payload
 
 
 @unittest.skipUnless(shutil.which("dpkg-deb"), "Debian packaging tools are unavailable")
@@ -27,6 +28,48 @@ class DebianPackageTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 2)
         self.assertIn("Refusing apt installation", result.stderr)
+
+    def test_unsigned_payload_inventory_and_revisions(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            rev1 = build(root / "first", revision=1)
+            rev2 = build(root / "second", revision=2)
+            first = inspect(rev1)
+            second = inspect(rev2)
+            self.assertEqual(first["file_count"], len(expected_payload()))
+            self.assertEqual(first["file_count"], 15)
+            self.assertEqual(first["files"], second["files"])
+            self.assertEqual(first["version"], "0.1.0-1")
+            self.assertEqual(second["version"], "0.1.0-2")
+            self.assertEqual(first["archive_sha256"],
+                             hashlib.sha256(rev1.read_bytes()).hexdigest())
+            self.assertTrue(all(len(item["sha256"]) == 64 for item in first["files"]))
+            self.assertIn("not an SBOM", first["scope"])
+
+    def test_inventory_rejects_unexpected_package_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            candidate = build(root / "first")
+            stage = root / "stage"
+            subprocess.run(["dpkg-deb", "--raw-extract", str(candidate), str(stage)],
+                           check=True, capture_output=True)
+            unexpected = stage / "usr/share/goreecloud-index/unapproved"
+            unexpected.parent.mkdir(parents=True, exist_ok=True)
+            unexpected.write_text("unexpected", encoding="utf-8")
+            modified = root / "modified.deb"
+            subprocess.run(["dpkg-deb", "--root-owner-group", "--build",
+                            str(stage), str(modified)], check=True, capture_output=True)
+            with self.assertRaisesRegex(ValueError, "Unexpected or duplicate"):
+                inspect(modified)
+
+    def test_inventory_rejects_package_symlink(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            candidate = build(root / "first")
+            linked = root / "linked.deb"
+            linked.symlink_to(candidate)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                inspect(linked)
 
     def test_revision_build_and_invalid_revision(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
