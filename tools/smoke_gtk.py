@@ -74,6 +74,33 @@ def main() -> int:
                 app.search_entry.set_text("")
                 app._select_mode("files")
 
+                # The native folder picker defaults to metadata-only consent;
+                # text requires a second, per-root confirmation in Manage.
+                from gi.repository import Gio
+                metadata_only = home / "metadata-default"
+                metadata_only.mkdir()
+                content = metadata_only / "note.md"
+                content.write_text("uniquecanaryprivacytoken", encoding="utf-8")
+
+                class DummyChooser:
+                    def get_file(self):
+                        return Gio.File.new_for_path(str(metadata_only))
+
+                    def destroy(self):
+                        pass
+
+                with patch.object(app, "_scan_selected") as queued:
+                    app._folder_chosen(DummyChooser(), Gtk.ResponseType.ACCEPT)
+                    queued.assert_called_once()
+                root_added = next(
+                    r for r in app.store.roots() if r.path == str(metadata_only)
+                )
+                assert not root_added.include_content
+                scan_root(app.store, root_added)
+                assert search_files(app.store, "uniquecanaryprivacytoken") == []
+                app.store.remove_root(root_added.path)
+                assert content.is_file()
+
                 root = app.store.add_root(test_directory, include_content=True)
                 scan_root(app.store, root)
                 assert len(search_files(app.store, "canary")) == 1

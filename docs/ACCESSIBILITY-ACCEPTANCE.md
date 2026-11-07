@@ -23,7 +23,7 @@ Do not infer adoption of GC UI Foundations tokens or completed GC UI migration.
 | Result accessible label | Identifies the kind, name and subtitle as plain text (no markup execution) |
 | Result feedback | Position and title of the current selection appear in a GTK accessibility status role |
 | Indexing status | Summary and action feedback use a GTK accessibility status role |
-| Folder consent | Explicit confirmation for content permission changes, root replacement reauthorization and root revocation |
+| Folder consent | Native folder additions default to metadata-only; changing content permission, root replacement reauthorization and root revocation require explicit separate confirmation |
 
 The desktop application has **no** global invoke shortcut, clipboard recording
 or background search activity. File opening still invokes the system handler
@@ -38,7 +38,20 @@ Run from the checkout in a Linux environment with GTK4/libadwaita and Xvfb:
 
 The GTK smoke covers selection movement and wrap, modifier filtering, focus
 preservation, selected-Enter activation dispatch, no-result behavior, status
-roles, search modes and the existing indexing consent/reauthorization dialogs.
+roles, search modes, metadata-only new-root consent and the existing indexing
+consent/reauthorization dialogs. An additional isolated X11/Xvfb layout smoke
+checks initial 390 px and 440 px window widths and basic large-font behavior
+without reading a user's real files:
+
+    GDK_BACKEND=x11 PYTHONPATH=src xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 390
+    GDK_BACKEND=x11 PYTHONPATH=src xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 440
+
+Source-reviewed, synthetic [light](screenshots/linux-compact-light.png) and
+[dark](screenshots/linux-compact-dark.png) screenshots provide initial visual
+evidence at approximately 430x630. GTK semantic appearance follows the OS;
+neither image specifies a mandatory GoreeCloud palette. Compact result rows
+may require vertical scrolling; these checks do not measure contrast ratios,
+test screen-reader announcements or establish final premium design approval.
 The test invokes the registered keyboard handler directly under GTK/Xvfb; it is
 **not** a hardware-keyboard or assistive-technology end-to-end test. Linux CI
 performs the same isolated smoke. Python unit tests address core code, not

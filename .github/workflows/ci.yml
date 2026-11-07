@@ -90,4 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH=src
+          export GDK_BACKEND=x11
           xvfb-run -a /usr/bin/python3 tools/smoke_gtk.py
+          xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 390
+          xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 440

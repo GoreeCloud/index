@@ -5,8 +5,10 @@ Status: **Linux development preview**, not an audited security product.
 ## GoreeShield / privacy requirements
 
 - No local folder is indexed until the user explicitly adds it.
-- Filename and directory metadata are indexed by default; supported text content
-  is indexed only if the user separately requests the optional content flag.
+- Filename and directory metadata are indexed by default. New roots chosen
+  through the native GTK folder picker are always metadata-only; text indexing
+  requires a separate explicit approval in Manage indexed folders.
+  The CLI's `add DIR --content` flag is also an explicit opt-in.
 - The database is stored under the XDG data directory with owner-only access on
   POSIX. Initial creation reserves mode 0600 before SQLite opens the file.
   Direct database/directory symlinks are refused to prevent accidental writes

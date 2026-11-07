@@ -36,11 +36,11 @@ class IndexApplication(Adw.Application):
         self.store: IndexStore | None = None
         self.window: Adw.ApplicationWindow | None = None
         self.list_box: Gtk.ListBox | None = None
+        self.page_scroll: Gtk.ScrolledWindow | None = None
         self.results_scroll: Gtk.ScrolledWindow | None = None
         self.search_entry: Gtk.SearchEntry | None = None
         self.status_label: Gtk.Label | None = None
         self.selection_label: Gtk.Label | None = None
-        self.content_check: Gtk.CheckButton | None = None
         self.roots_window: Gtk.Window | None = None
         self.roots_list: Gtk.ListBox | None = None
         self.mode = "all"
@@ -85,20 +85,40 @@ class IndexApplication(Adw.Application):
         heading = Gtk.Label(label="Index")
         heading.add_css_class("heading")
         header.set_title_widget(heading)
-        add = Gtk.Button(icon_name="folder-new-symbolic", tooltip_text="Add an indexed folder")
+        add = Gtk.Button(
+            icon_name="folder-new-symbolic",
+            tooltip_text="Add a folder (metadata only; enable text later in Manage folders)",
+        )
+        add.update_property(
+            [Gtk.AccessibleProperty.LABEL], ["Add a local search folder"]
+        )
         add.connect("clicked", self._choose_folder)
         header.pack_end(add)
         refresh = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text="Rescan selected directories")
         refresh.connect("clicked", self._scan)
         header.pack_end(refresh)
-        roots = Gtk.Button(icon_name="folder-symbolic", tooltip_text="Manage indexed folders")
+        roots = Gtk.Button(
+            icon_name="folder-symbolic",
+            tooltip_text="Manage indexed folders, exclusions and text permissions",
+        )
+        roots.update_property(
+            [Gtk.AccessibleProperty.LABEL], ["Manage indexed folder permissions"]
+        )
         roots.connect("clicked", self._show_roots)
         header.pack_end(roots)
         toolbar.add_top_bar(header)
 
+        # The entire page remains vertically reachable on compact displays
+        # and with larger system fonts, even when the results pane is short.
+        page = Gtk.ScrolledWindow()
+        page.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        page.set_vexpand(True)
+        page.set_propagate_natural_height(False)
+        toolbar.set_content(page)
+        self.page_scroll = page
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         outer.add_css_class("index-shell")
-        toolbar.set_content(outer)
+        page.set_child(outer)
 
         title_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         eyebrow = Gtk.Label(label="GOREECLOUD  /  DISCOVER", xalign=0)
@@ -106,6 +126,7 @@ class IndexApplication(Adw.Application):
         title_area.append(eyebrow)
         title = Gtk.Label(label="Find anything. Stay in control.", xalign=0)
         title.add_css_class("index-heading")
+        title.set_wrap(True)
         title_area.append(title)
         description = Gtk.Label(
             label="Search your selected files, launch applications, or calculate instantly.",
@@ -136,9 +157,15 @@ class IndexApplication(Adw.Application):
         outer.append(search)
         self.search_entry = search
 
-        modes = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        modes = Gtk.FlowBox()
+        modes.set_selection_mode(Gtk.SelectionMode.NONE)
+        modes.set_min_children_per_line(1)
+        modes.set_max_children_per_line(4)
+        modes.set_row_spacing(6)
+        modes.set_column_spacing(6)
+        modes.set_homogeneous(False)
         modes.add_css_class("index-modes")
-        for label, value in (("All", "all"), ("Applications", "apps"),
+        for label, value in (("All", "all"), ("Apps", "apps"),
                              ("Files", "files"), ("Actions", "actions")):
             b = Gtk.ToggleButton(label=label)
             b.add_css_class("index-mode")
@@ -151,14 +178,12 @@ class IndexApplication(Adw.Application):
             b.connect("toggled", self._switch_mode, value)
             b.update_property(
                 [Gtk.AccessibleProperty.LABEL],
-                [f"Show {label.lower()} search results"],
+                [f"Show {'applications' if value == 'apps' else label.lower()} search results"],
             )
             self.mode_buttons[value] = b
-            modes.append(b)
-        clipboard = Gtk.Button(label="Clipboard · Off")
-        clipboard.set_sensitive(False)
-        clipboard.set_tooltip_text("Clipboard recording is disabled; no history is stored")
-        modes.append(clipboard)
+            modes.insert(b, -1)
+        # History is a privacy state, not a selectable search mode.
+        # Expose it in the accessible status text below the results.
         outer.append(modes)
 
         scroll = Gtk.ScrolledWindow()
@@ -175,34 +200,27 @@ class IndexApplication(Adw.Application):
         scroll.set_child(self.list_box)
         outer.append(scroll)
 
-        controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        choose = Gtk.Button(label="Add search folder…")
-        choose.connect("clicked", self._choose_folder)
-        controls.append(choose)
-        self.content_check = Gtk.CheckButton(label="Include small text contents")
-        self.content_check.set_tooltip_text(
-            "Opt in to reading supported plain-text files in the next folder you add"
-        )
-        controls.append(self.content_check)
-        manage = Gtk.Button(label="Manage indexed folders")
-        manage.connect("clicked", self._show_roots)
-        controls.append(manage)
-        outer.append(controls)
-        footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        footer = Gtk.FlowBox()
+        footer.set_selection_mode(Gtk.SelectionMode.NONE)
+        footer.set_min_children_per_line(1)
+        footer.set_max_children_per_line(2)
+        footer.set_row_spacing(4)
+        footer.set_column_spacing(10)
+        footer.set_homogeneous(False)
         status = Gtk.Label(xalign=0, label="Local only · No folder selected")
         status.add_css_class("index-footer")
         status.set_accessible_role(Gtk.AccessibleRole.STATUS)
         status.set_hexpand(True)
-        footer.append(status)
+        footer.insert(status, -1)
         selected = Gtk.Label(label="No result selected", xalign=1)
         selected.set_ellipsize(3)
         selected.set_max_width_chars(46)
         selected.add_css_class("index-footer")
         selected.set_accessible_role(Gtk.AccessibleRole.STATUS)
-        footer.append(selected)
+        footer.insert(selected, -1)
         outer.append(footer)
         help_text = Gtk.Label(
-            label="↑ ↓ choose result · Enter open selected · Ctrl+1–4 change mode",
+            label="↑ ↓ select · Enter open · Ctrl+1–4 modes",
             xalign=0,
         )
         help_text.add_css_class("index-footer")
@@ -399,7 +417,7 @@ class IndexApplication(Adw.Application):
         if self.status_label is None or self.store is None:
             return
         summary = (f"{self.store.count()} indexed items · {len(self.store.roots())} folders"
-                   " · local only")
+                   " · local only · clipboard history off")
         self.status_label.set_text(info or summary)
 
     def _activate_first(self, *_unused) -> None:
@@ -748,8 +766,9 @@ class IndexApplication(Adw.Application):
             self._set_status("Only local directories can be indexed")
             return
         try:
-            include_content = bool(self.content_check and self.content_check.get_active())
-            root = self.store.add_root(folder.get_path(), include_content)
+            # New roots are always metadata-only. The explicit per-root
+            # confirmation in Manage folders is the sole native text opt-in.
+            root = self.store.add_root(folder.get_path(), include_content=False)
         except (OSError, ValueError) as exc:
             self._set_status(f"Folder not added: {exc}")
             return
