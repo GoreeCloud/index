@@ -11,7 +11,10 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 ## Implemented today
 
 - Native GTK4/libadwaita window with keyboard search, selectable results and
-  Applications / Files / Actions modes. Clipboard history is visibly off.
+  Applications / Files / Actions modes. Up/Down moves selection without
+  losing search focus; Enter opens the selected result. Result rows and
+  selection/status feedback expose accessible names and roles. Clipboard
+  history is visibly off.
 - Application listing and launching through Gio/freedesktop app registry.
 - Identity-bound consent for each authorized root (filesystem device + inode);
   stored search hits are hidden if a root is replaced or unbound.
@@ -49,6 +52,19 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 Not yet implemented: PDF/OCR extraction, file monitoring, content provider
 plugins, remote/cloud search, AI, Quick Keys, global hotkeys, clipboard capture
 or history, advanced workflows, and Windows application support.
+
+## Keyboard controls and accessibility
+
+Use **↑ / ↓** while typing in the search field to move through matching
+results without losing typing focus; the highlighted item scrolls into view
+when the list is laid out. Typing updates matches immediately. **Enter** opens the highlighted result;
+**Ctrl+1–4** switches search modes; **Escape** clears the query, or closes
+the window when the search is empty.
+
+The current native GTK headless tests verify the keyboard handler, selection
+feedback and accessible status roles. Real Orca screen-reader, large-text,
+high-contrast, Wayland/X11 and GC UI design acceptance remains **open**.
+See [Linux accessibility acceptance](docs/ACCESSIBILITY-ACCEPTANCE.md).
 
 ## Run on Ubuntu / Debian
 

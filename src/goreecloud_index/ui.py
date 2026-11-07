@@ -36,8 +36,10 @@ class IndexApplication(Adw.Application):
         self.store: IndexStore | None = None
         self.window: Adw.ApplicationWindow | None = None
         self.list_box: Gtk.ListBox | None = None
+        self.results_scroll: Gtk.ScrolledWindow | None = None
         self.search_entry: Gtk.SearchEntry | None = None
         self.status_label: Gtk.Label | None = None
+        self.selection_label: Gtk.Label | None = None
         self.content_check: Gtk.CheckButton | None = None
         self.roots_window: Gtk.Window | None = None
         self.roots_list: Gtk.ListBox | None = None
@@ -117,8 +119,20 @@ class IndexApplication(Adw.Application):
         search = Gtk.SearchEntry()
         search.set_placeholder_text("Search apps, files, calculations…")
         search.add_css_class("index-search")
-        search.connect("search-changed", self._refresh)
+        search.update_property(
+            [Gtk.AccessibleProperty.LABEL],
+            ["Search local applications, indexed files, and actions"],
+        )
+        # Immediate editable changes prevent Enter from opening stale results
+        # while GtkSearchEntry's debounced "search-changed" is pending.
+        search.connect("changed", self._refresh)
         search.connect("activate", self._activate_first)
+        keys = Gtk.EventControllerKey()
+        # Capture before the SearchEntry's internal text handler so Up/Down
+        # always moves result selection rather than the insertion cursor.
+        keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        keys.connect("key-pressed", self._search_key_pressed)
+        search.add_controller(keys)
         outer.append(search)
         self.search_entry = search
 
@@ -135,6 +149,10 @@ class IndexApplication(Adw.Application):
             if value == "all":
                 self._first_button = b
             b.connect("toggled", self._switch_mode, value)
+            b.update_property(
+                [Gtk.AccessibleProperty.LABEL],
+                [f"Show {label.lower()} search results"],
+            )
             self.mode_buttons[value] = b
             modes.append(b)
         clipboard = Gtk.Button(label="Clipboard · Off")
@@ -147,11 +165,13 @@ class IndexApplication(Adw.Application):
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.set_vexpand(True)
         scroll.add_css_class("index-results")
+        self.results_scroll = scroll
         self.list_box = Gtk.ListBox()
         self.list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.list_box.set_activate_on_single_click(True)
         self.list_box.add_css_class("boxed-list")
         self.list_box.connect("row-activated", self._activate_row)
+        self.list_box.connect("row-selected", self._selection_changed)
         scroll.set_child(self.list_box)
         outer.append(scroll)
 
@@ -171,10 +191,23 @@ class IndexApplication(Adw.Application):
         footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         status = Gtk.Label(xalign=0, label="Local only · No folder selected")
         status.add_css_class("index-footer")
+        status.set_accessible_role(Gtk.AccessibleRole.STATUS)
         status.set_hexpand(True)
         footer.append(status)
-        footer.append(Gtk.Label(label="Enter to open · Ctrl+1–4 to switch modes"))
+        selected = Gtk.Label(label="No result selected", xalign=1)
+        selected.set_ellipsize(3)
+        selected.set_max_width_chars(46)
+        selected.add_css_class("index-footer")
+        selected.set_accessible_role(Gtk.AccessibleRole.STATUS)
+        footer.append(selected)
         outer.append(footer)
+        help_text = Gtk.Label(
+            label="↑ ↓ choose result · Enter open selected · Ctrl+1–4 change mode",
+            xalign=0,
+        )
+        help_text.add_css_class("index-footer")
+        outer.append(help_text)
+        self.selection_label = selected
         self.status_label = status
 
         controller = Gtk.EventControllerKey()
@@ -198,6 +231,65 @@ class IndexApplication(Adw.Application):
                 self.window.close()
             return True
         return False
+
+    def _search_key_pressed(self, _controller, keyval, _keycode, state) -> bool:
+        """Navigate search results while keeping typing focus in the search field."""
+        if state & (Gdk.ModifierType.CONTROL_MASK |
+                    Gdk.ModifierType.ALT_MASK |
+                    Gdk.ModifierType.SUPER_MASK):
+            return False
+        if keyval == Gdk.KEY_Down:
+            return self._move_selection(1)
+        if keyval == Gdk.KEY_Up:
+            return self._move_selection(-1)
+        return False
+
+    def _move_selection(self, delta: int) -> bool:
+        if self.list_box is None or not self.hits:
+            return False
+        selected = self.list_box.get_selected_row()
+        current = selected.get_index() if selected is not None else 0
+        index = (current + delta) % len(self.hits)
+        row = self.list_box.get_row_at_index(index)
+        if row is None:
+            return False
+        self.list_box.select_row(row)
+        self._ensure_row_visible(row)
+        # Selection remains in the list while keyboard focus stays on input.
+        return True
+
+    def _ensure_row_visible(self, row: Gtk.ListBoxRow) -> None:
+        """Scroll the selected row into view without moving keyboard focus."""
+        if self.results_scroll is None or self.list_box is None:
+            return
+        height = row.get_allocated_height()
+        if height <= 0:
+            return  # Freshly rebuilt lists have not been laid out yet.
+        y = row.get_allocation().y
+        adjustment = self.results_scroll.get_vadjustment()
+        top = adjustment.get_value()
+        bottom = top + adjustment.get_page_size()
+        if y < top:
+            adjustment.set_value(max(adjustment.get_lower(), y))
+        elif y + height > bottom:
+            adjustment.set_value(
+                min(adjustment.get_upper() - adjustment.get_page_size(),
+                    y + height - adjustment.get_page_size())
+            )
+
+    def _selection_changed(self, _list_box, selected_row) -> None:
+        if self.selection_label is None:
+            return
+        if selected_row is None or not self.hits:
+            self.selection_label.set_text("No result selected")
+            return
+        index = selected_row.get_index()
+        if 0 <= index < len(self.hits):
+            self.selection_label.set_text(
+                f"{index + 1} of {len(self.hits)} · {self.hits[index].title}"
+            )
+        else:
+            self.selection_label.set_text("No result selected")
 
     def _select_mode(self, mode: str) -> None:
         if mode not in {"all", "apps", "files", "actions"}:
@@ -260,6 +352,10 @@ class IndexApplication(Adw.Application):
         for hit in self.hits:
             row = Gtk.ListBoxRow()
             row.add_css_class("index-result")
+            row.update_property(
+                [Gtk.AccessibleProperty.LABEL],
+                [f"{hit.kind}: {hit.title}. {hit.subtitle}"],
+            )
             content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=13)
             content.set_margin_top(5)
             content.set_margin_bottom(5)
@@ -291,6 +387,12 @@ class IndexApplication(Adw.Application):
             empty.add_css_class("index-empty")
             row.set_child(empty)
             self.list_box.append(row)
+        if self.hits:
+            first = self.list_box.get_row_at_index(0)
+            if first is not None:
+                self.list_box.select_row(first)
+        else:
+            self._selection_changed(self.list_box, None)
         self._set_status()
 
     def _set_status(self, info: str = "") -> None:
@@ -303,7 +405,9 @@ class IndexApplication(Adw.Application):
     def _activate_first(self, *_unused) -> None:
         if self.list_box is None or not self.hits:
             return
-        row = self.list_box.get_row_at_index(0)
+        row = self.list_box.get_selected_row()
+        if row is None:
+            row = self.list_box.get_row_at_index(0)
         if row:
             self._activate_row(self.list_box, row)
 

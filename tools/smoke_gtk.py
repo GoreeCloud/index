@@ -36,6 +36,43 @@ def main() -> int:
                 assert app.mode == "apps" and app.mode_buttons["apps"].get_active()
                 assert app._key_pressed(None, Gdk.KEY_3, 0, Gdk.ModifierType.CONTROL_MASK)
                 assert app.mode == "files" and app.mode_buttons["files"].get_active()
+                # Keyboard navigation keeps search input focused, exposes
+                # the selected result count, and Enter activates that result.
+                app._select_mode("actions")
+                assert len(app.hits) >= 2
+                assert app.list_box is not None
+                assert app.search_entry is not None
+                assert app.selection_label is not None
+                assert app.selection_label.get_accessible_role() == Gtk.AccessibleRole.STATUS
+                assert app.status_label.get_accessible_role() == Gtk.AccessibleRole.STATUS
+                assert app.list_box.get_selected_row().get_index() == 0
+                first_text = app.search_entry.get_text()
+                original_focus = app.window.get_focus()
+                assert app._search_key_pressed(None, Gdk.KEY_Down, 0, 0)
+                assert app.list_box.get_selected_row().get_index() == 1
+                assert app.selection_label.get_text().startswith("2 of ")
+                assert app.search_entry.get_text() == first_text
+                assert app.window.get_focus() is original_focus
+                assert not app._search_key_pressed(
+                    None, Gdk.KEY_Down, 0, Gdk.ModifierType.CONTROL_MASK
+                )
+                assert app.list_box.get_selected_row().get_index() == 1
+                from unittest.mock import patch
+                with patch.object(IndexApplication, "_activate_row") as activate:
+                    app._activate_first()
+                    assert activate.call_count == 1
+                    assert activate.call_args.args[-1].get_index() == 1
+                assert app._search_key_pressed(None, Gdk.KEY_Up, 0, 0)
+                assert app.list_box.get_selected_row().get_index() == 0
+                assert app._search_key_pressed(None, Gdk.KEY_Up, 0, 0)
+                assert app.list_box.get_selected_row().get_index() == len(app.hits) - 1
+                app.search_entry.set_text("no-matching-actions-123456")
+                assert app.hits == [], "Search results must update before Enter"
+
+                assert "No result selected" == app.selection_label.get_text()
+                assert not app._search_key_pressed(None, Gdk.KEY_Down, 0, 0)
+                app.search_entry.set_text("")
+                app._select_mode("files")
 
                 root = app.store.add_root(test_directory, include_content=True)
                 scan_root(app.store, root)
