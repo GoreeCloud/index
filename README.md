@@ -70,7 +70,9 @@ Use **↑ / ↓** while typing in the search field to move through matching
 results without losing typing focus; the highlighted item scrolls into view
 when the list is laid out. Typing updates matches immediately. **Enter** opens the highlighted result;
 **Ctrl+1–4** switches search modes; **Escape** clears the query, or closes
-the window when the search is empty.
+the window when the search is empty. GTK SearchEntry's native `stop-search`
+signal is handled explicitly, so Escape works even when the search field
+consumes the key event before the window controller.
 
 The floating palette has compact icon-only mode buttons with accessible
 names and tooltips. Use the gear button to manage explicitly approved folders;
