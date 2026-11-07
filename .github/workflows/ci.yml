@@ -58,6 +58,19 @@ jobs:
           python3 tools/verify_deb_lifecycle.py --engine docker \
             --image docker.io/library/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b
 
+  deb-dependency-checked:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build revision 1 and revision 2 Debian candidates
+        run: |
+          python3 tools/build_deb.py --output-dir dist --revision 1
+          python3 tools/build_deb.py --output-dir dist --revision 2
+      - name: Check signed Ubuntu dependency resolution, GTK runtime, upgrade, rollback and purge
+        shell: bash
+        run: bash tools/verify_deb_apt_runner.sh
+
   linux-gtk:
     runs-on: ubuntu-24.04
     timeout-minutes: 10

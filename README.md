@@ -41,6 +41,9 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 - Reproducible, rootlessly assembled Debian/Ubuntu .deb development package.
 - Offline disposable-container dpkg install/upgrade/rollback/purge lifecycle validation
   (dependency checks intentionally bypassed; not distro acceptance).
+- GitHub-hosted disposable Ubuntu 24.04 apt acceptance gate for a real
+  dependency-checked install, installed GTK smoke, upgrade, downgrade and purge;
+  it never installs the package on the owner's laptop.
 - Index database symlink protections and prohibition on overlapping search roots.
 
 Not yet implemented: PDF/OCR extraction, file monitoring, content provider
