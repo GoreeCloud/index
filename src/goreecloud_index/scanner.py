@@ -72,9 +72,19 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
         if consent is None:
             raise ValueError(f"Index permission was revoked for {root.path}")
         include_content = bool(consent["include_content"])
+        excluded = tuple(
+            str(row["path"]) for row in conn.execute(
+                "SELECT path FROM exclusions WHERE root = ?", (root.path,)
+            )
+        )
+
+        def is_excluded(candidate: Path) -> bool:
+            value = str(candidate)
+            return any(value == base or value.startswith(base + os.sep) for base in excluded)
+
         for directory, names, files in os.walk(path, topdown=True, followlinks=False, onerror=on_error):
             current = Path(directory)
-            if current.is_symlink():
+            if current.is_symlink() or is_excluded(current):
                 names[:] = []
                 continue
             kept = []
@@ -82,7 +92,8 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
                 child = current / name
                 try:
                     st = child.stat(follow_symlinks=False)
-                    if (not skip_name(name) and stat.S_ISDIR(st.st_mode)
+                    if (not skip_name(name) and not is_excluded(child)
+                            and stat.S_ISDIR(st.st_mode)
                             and st.st_dev == root_device):
                         kept.append(name)
                 except OSError:

@@ -18,6 +18,9 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   access level, with confirmation before revoking access and deleting index data.
 - Per-folder text indexing consent can be enabled or changed back to metadata-only
   in the GTK interface or CLI; a downgrade immediately purges retained text.
+- Approved roots can exclude individual subfolders from indexing, managed through
+  GTK or CLI. Adding an exclusion immediately deletes matching local index
+  results without touching source files; removing it requires a manual rescan.
 - Default metadata search; explicit optional text extraction for supported small
   UTF-8-ish source and document formats.
 - Search terms and basic `kind:`, `ext:`, and `path:` filters.
@@ -81,6 +84,9 @@ goreecloud-index add DIR --content  Opt in to bounded text indexing
 goreecloud-index list            Show indexed root permissions
 goreecloud-index consent DIR --content       Opt in to bounded text and rescan
 goreecloud-index consent DIR --metadata-only Purge stored text without rescan
+goreecloud-index exclude ROOT SUBDIR         Exclude and purge a subfolder
+goreecloud-index exclusions ROOT             List excluded subfolders
+goreecloud-index unexclude ROOT SUBDIR       Allow again; then rescan
 goreecloud-index scan            Manually rescan all chosen roots
 goreecloud-index search TERMS    Search local files
 goreecloud-index search --json TERMS

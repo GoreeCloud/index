@@ -61,6 +61,22 @@ def main() -> int:
                 assert len(search_files(app.store, "original")) == 1
                 assert not app.store.roots()[0].include_content
 
+                excluded = test_directory / "excluded-dir"
+                excluded.mkdir()
+                kept = excluded / "unchanged.txt"
+                kept.write_text("unchanged", encoding="utf-8")
+                scan_root(app.store, app.store.roots()[0])
+                assert search_files(app.store, "excluded")
+                app.store.add_exclusion(root.path, excluded)
+                app._render_roots()
+                assert app.store.exclusions(root.path) == [str(excluded)]
+                assert search_files(app.store, "excluded") == []
+                assert kept.is_file()
+                app._remove_exclusion(None, root.path, str(excluded))
+                assert app.store.exclusions(root.path) == []
+                scan_root(app.store, app.store.roots()[0])
+                assert search_files(app.store, "excluded")
+
                 app._confirm_remove_root(None, root.path)
                 confirm = next(
                     w for w in Gtk.Window.list_toplevels()

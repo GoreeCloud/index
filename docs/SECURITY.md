@@ -14,6 +14,11 @@ Status: **Linux development preview**, not an audited security product.
   clipboard history.
 - Dotfiles, common credential stores, source-control internals and symlinks
   are skipped even inside an approved directory.
+- A root owner can exclude existing nested folders without revoking the parent
+  directory. Excluded subtrees are persisted in the local database, omitted
+  from future scans, and any previously indexed results are purged immediately
+  with boundary-safe path comparisons. The original files are never removed.
+  Removing an exclusion does not re-index until a later explicit rescan.
 - The source code has **no network search, telemetry, account login, or cloud sync**.
 - A native in-app folder manager lists approved indexing roots and metadata-only
   versus opt-in text access. Revocation requires confirmation and removes only
@@ -36,12 +41,15 @@ Status: **Linux development preview**, not an audited security product.
   default URI handler only after user interaction.
 - Scans do not follow symbolic links or cross filesystem devices.
 - Overlapping indexed roots are rejected to prevent conflicting content-access
-  permissions and stale-entry ownership.
+  permissions and stale-entry ownership. User-selected exclusion folders must
+  be real subdirectories beneath a configured root (not symlinks), and SQL
+  deletes match exact directory boundaries, not similarly prefixed siblings.
 - Scans acquire a SQLite writer transaction **before** checking stored
-  root authorization and content consent. Permission changes and scans are
-  serialized, preventing an in-flight scan from restoring text after a
-  downgrade returns. Scans may temporarily delay permission changes while
-  the index is busy; subsequent asynchronous cancellation remains planned.
+  root authorization, content consent and subfolder exclusions. Permission
+  changes and scans serialize, preventing an in-flight scan from restoring
+  text or files excluded after the change returns. Scans may temporarily
+  delay permission changes while the index is busy; asynchronous cancellation
+  remains planned.
 - Plain-text extraction is bounded to 64 KiB and limited to selected suffixes.
 - Scan failures do not trigger bulk stale-record deletions.
 - Recursive scans have a hard limit of 20,000 entries per selected root.
