@@ -40,6 +40,7 @@ class IndexApplication(Adw.Application):
         self.status_label: Gtk.Label | None = None
         self.content_check: Gtk.CheckButton | None = None
         self.mode = "all"
+        self.mode_buttons: dict[str, Gtk.ToggleButton] = {}
         self.apps: list[Application] = []
         self.hits: list[Hit] = []
         self.busy = False
@@ -129,6 +130,7 @@ class IndexApplication(Adw.Application):
             if value == "all":
                 self._first_button = b
             b.connect("toggled", self._switch_mode, value)
+            self.mode_buttons[value] = b
             modes.append(b)
         clipboard = Gtk.Button(label="Clipboard · Off")
         clipboard.set_sensitive(False)
@@ -192,9 +194,13 @@ class IndexApplication(Adw.Application):
     def _select_mode(self, mode: str) -> None:
         if mode not in {"all", "apps", "files", "actions"}:
             return
-        self.mode = mode
+        button = self.mode_buttons.get(mode)
+        if button is not None:
+            button.set_active(True)
+        else:
+            self.mode = mode
+            self._refresh()
         assert self.search_entry is not None
-        self._refresh()
         self.search_entry.grab_focus()
 
     def _switch_mode(self, button: Gtk.ToggleButton, mode: str) -> None:
