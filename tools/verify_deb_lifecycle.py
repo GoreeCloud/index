@@ -21,6 +21,8 @@ from build_deb import build
 SCRIPT = r"""
 set -eu
 package=goreecloud-index
+stage=install
+trap 'status=$?; if [ "$status" -ne 0 ]; then echo "container failure at stage: $stage" >&2; for file in /tmp/gc-*.log; do if test -f "$file"; then cat "$file" >&2; fi; done; fi' EXIT
 
 dpkg --force-depends -i /packages/goreecloud-index_0.1.0-1_all.deb >/tmp/gc-install.log 2>&1
 dpkg -s "$package" | grep -q '^Status: install ok installed$'
@@ -30,6 +32,7 @@ test -x /usr/bin/goreecloud-index
 PYTHONPATH=/usr/lib/python3/dist-packages python3 -m goreecloud_index calc '12% of 75' | grep -qx 9
 printf 'initial_install=pass\n'
 
+stage=upgrade
 dpkg --force-depends -i /packages/goreecloud-index_0.1.0-2_all.deb >/tmp/gc-upgrade.log 2>&1
 dpkg -s "$package" | grep -q '^Version: 0.1.0-2$'
 # Debian slim base images intentionally exclude parts of /usr/share/doc.
@@ -40,12 +43,14 @@ test -x /usr/bin/goreecloud-index
 PYTHONPATH=/usr/lib/python3/dist-packages python3 -m goreecloud_index calc '5 km in m' | grep -qx '5000 m'
 printf 'upgrade=pass\n'
 
+stage=rollback
 dpkg --force-depends -i /packages/goreecloud-index_0.1.0-1_all.deb >/tmp/gc-rollback.log 2>&1
 dpkg -s "$package" | grep -q '^Version: 0.1.0-1$'
 test -f /usr/lib/python3/dist-packages/goreecloud_index/cli.py
 test -x /usr/bin/goreecloud-index
 printf 'rollback=pass\n'
 
+stage=purge
 dpkg --purge "$package" >/tmp/gc-purge.log 2>&1
 test ! -e /usr/bin/goreecloud-index
 test ! -e /usr/share/applications/com.goreecloud.Index.desktop
@@ -76,6 +81,11 @@ def verify(engine: str, image: str) -> None:
         raise ValueError("Provide an exact, previously approved container image")
     with tempfile.TemporaryDirectory(prefix="gc-index-deb-lifecycle-") as tmp:
         directory = Path(tmp)
+        # Docker's root user with all capabilities dropped cannot traverse a
+        # temp directory owned by the host runner with mode 0700. Only public
+        # first-party .deb artifacts are staged here, and the container mount
+        # remains read-only with networking and capabilities disabled.
+        directory.chmod(0o755)
         a = build(directory, revision=1)
         b = build(directory, revision=2)
         before = {
