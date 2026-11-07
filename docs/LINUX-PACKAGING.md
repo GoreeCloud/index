@@ -54,6 +54,27 @@ To run when the approved image is already cached:
 CI pulls that same pinned test image before running its network-disabled
 container, but does not install the package on the runner itself.
 
+## Full-dependency installation checks in disposable GitHub runner
+
+The `deb-dependency-checked` Linux CI job builds revision 1 and revision 2
+from first-party source and invokes `tools/verify_deb_apt_runner.sh`. The
+script refuses to run unless it sees a GitHub-hosted Ubuntu 24.04 runner, runs
+as a non-root user, and has a runner-only temporary directory.
+
+Within **that disposable CI virtual machine only**, it installs official,
+signed Ubuntu dependencies through apt, installs the local .deb normally,
+runs the installed CLI and GTK application under Xvfb, upgrades to revision
+2, downgrades to revision 1, and purges the application. It then inspects
+remaining executable/source/desktop/bytecode paths. This is **not** an
+installation on the owner's computer, a published installer, or acceptance
+for every Linux distribution. The runner is discarded after the job.
+
+The existing offline `deb-isolated-lifecycle` job still tests low-level
+package mechanics without dependencies; do not conflate the two.
+A successful full-dependency CI job covers an ephemeral Ubuntu 24.04
+environment only. Real interactive Wayland, KDE, screen readers and
+multi-distribution acceptance remain separate work.
+
 ## Installation — manual user choice, NOT automated
 
 On a supported Debian/Ubuntu host, with the package verified beforehand:

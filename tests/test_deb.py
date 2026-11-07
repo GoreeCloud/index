@@ -16,6 +16,18 @@ from tools.build_deb import build
 
 @unittest.skipUnless(shutil.which("dpkg-deb"), "Debian packaging tools are unavailable")
 class DebianPackageTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("bash"), "Bash is unavailable")
+    def test_dependency_install_guard_refuses_non_ci_host(self) -> None:
+        script = Path(__file__).resolve().parents[1] / "tools/verify_deb_apt_runner.sh"
+        subprocess.run(["bash", "-n", str(script)], check=True)
+        env = dict(os.environ, GITHUB_ACTIONS="false",
+                   RUNNER_OS="Linux", RUNNER_ENVIRONMENT="github-hosted")
+        result = subprocess.run(
+            ["bash", str(script)], env=env, capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Refusing apt installation", result.stderr)
+
     def test_revision_build_and_invalid_revision(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
