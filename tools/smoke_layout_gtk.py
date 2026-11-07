@@ -50,6 +50,10 @@ def check_layout(width: int, height: int) -> None:
                     for i in range(24)
                 ]
                 app._select_mode("all")
+                # The All mode can already be active on launch. Selecting an
+                # active toggle does not emit "toggled", so explicitly refresh
+                # after replacing the live desktop registry with test fixtures.
+                app._refresh()
                 GLib.timeout_add(360, check_geometry)
             except Exception:
                 fail()
