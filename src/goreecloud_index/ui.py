@@ -105,9 +105,16 @@ class IndexApplication(Adw.Application):
         search.set_hexpand(True)
         search.set_width_chars(1)
         search.add_css_class("spotlight-query")
+        # GTK 4.14 does not yet expose AccessibleProperty.HELP_TEXT.
+        # DESCRIPTION is the compatible way to explain our custom arrow-key
+        # interaction until that newer property is available everywhere.
         search.update_property(
-            [Gtk.AccessibleProperty.LABEL],
-            ["Search local applications, indexed files, and actions"],
+            [Gtk.AccessibleProperty.LABEL, Gtk.AccessibleProperty.DESCRIPTION],
+            [
+                "Search local applications, indexed files, and actions",
+                "Use the Up and Down arrows to choose a result while typing. "
+                "Press Enter to open it. Escape clears search or closes Index.",
+            ],
         )
         # Use the immediate 'changed' signal so Enter cannot act on a stale
         # result while SearchEntry's debounced search signal is pending.
@@ -147,8 +154,10 @@ class IndexApplication(Adw.Application):
                 button.set_group(first_button)
             button.connect("toggled", self._switch_mode, mode)
             button.update_property(
-                [Gtk.AccessibleProperty.LABEL],
-                [f"Show {names[mode].lower()} search results"],
+                [Gtk.AccessibleProperty.LABEL,
+                 Gtk.AccessibleProperty.KEY_SHORTCUTS],
+                [f"Show {names[mode].lower()} search results",
+                 f"Control+{shortcut}"],
             )
             self.mode_buttons[mode] = button
             modes.append(button)
@@ -322,14 +331,29 @@ class IndexApplication(Adw.Application):
             return
         if selected_row is None or not self.hits:
             self.selection_label.set_text("No result selected")
+            if self.search_entry is not None:
+                self.search_entry.reset_relation(
+                    Gtk.AccessibleRelation.ACTIVE_DESCENDANT
+                )
             return
         index = selected_row.get_index()
         if 0 <= index < len(self.hits):
             self.selection_label.set_text(
                 f"{index + 1} of {len(self.hits)} · {self.hits[index].title}"
             )
+            # The keyboard focus stays on the search box, so expose its
+            # actual highlighted result as active descendant to AT clients.
+            if self.search_entry is not None:
+                self.search_entry.update_relation(
+                    [Gtk.AccessibleRelation.ACTIVE_DESCENDANT],
+                    [selected_row],
+                )
         else:
             self.selection_label.set_text("No result selected")
+            if self.search_entry is not None:
+                self.search_entry.reset_relation(
+                    Gtk.AccessibleRelation.ACTIVE_DESCENDANT
+                )
 
     def _select_mode(self, mode: str) -> None:
         if mode not in {"all", "apps", "files", "actions"}:
