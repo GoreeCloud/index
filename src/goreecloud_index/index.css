@@ -1,17 +1,132 @@
-/* GoreeCloud Index native GTK presentation.
-   Follow libadwaita's user/system semantic colors; do not impose a brand palette. */
-.index-shell { padding: 24px; }
-.index-heading { font-size: 29px; font-weight: 800; letter-spacing: -0.6px; }
-.index-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; opacity: 0.67; }
+/* Spotlight-inspired, first-party GTK search presentation.
+   Use GTK/libadwaita semantic colors; no copied Apple assets or forced palette. */
+window.spotlight-window {
+  background-color: transparent;
+}
+.spotlight-panel {
+  background-color: alpha(@window_bg_color, 0.97);
+  color: @window_fg_color;
+  border: 1px solid alpha(@window_fg_color, 0.10);
+  border-radius: 20px;
+  box-shadow: 0 18px 48px alpha(black, 0.24);
+}
+.spotlight-top {
+  min-height: 70px;
+  padding: 8px 14px;
+}
+.spotlight-query {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  min-height: 50px;
+  min-width: 96px;
+  border-radius: 12px;
+  padding: 0 4px;
+  font-size: 21px;
+  font-weight: 450;
+}
+.spotlight-query:focus {
+  background: transparent;
+  /* Retain GTK's inner search-entry focus indicator. */
+}
+.spotlight-filter-bar {
+  padding: 0 16px 12px;
+}
+.spotlight-filter-label {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 1.1px;
+  opacity: 0.66;
+}
+.spotlight-mode-group {
+  padding: 2px;
+  background-color: alpha(@window_fg_color, 0.05);
+  border-radius: 12px;
+}
+.spotlight-mode, .spotlight-tool {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  min-height: 36px;
+  min-width: 34px;
+  padding: 4px;
+  border-radius: 9px;
+}
+.spotlight-mode:checked {
+  background-color: alpha(@window_fg_color, 0.12);
+}
+.spotlight-mode:focus-visible, .spotlight-tool:focus-visible {
+  outline: 2px solid @accent_bg_color;
+  outline-offset: -2px;
+}
+.spotlight-mode:hover, .spotlight-tool:hover {
+  background-color: alpha(@window_fg_color, 0.11);
+}
+.spotlight-tools-divider {
+  margin: 12px 2px;
+  opacity: 0.42;
+}
+.spotlight-divider { opacity: 0.36; }
+.spotlight-body { min-height: 160px; }
+.spotlight-section-title {
+  margin: 14px 19px 7px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 1.3px;
+  opacity: 0.69;
+}
+.spotlight-results-scroll {
+  min-height: 170px;
+  border: none;
+}
+.spotlight-results {
+  background: transparent;
+  padding: 0 10px 10px;
+}
+.spotlight-result {
+  padding: 5px 8px;
+  border-radius: 11px;
+  background: transparent;
+  min-height: 48px;
+}
+.spotlight-result:selected {
+  background-color: alpha(@accent_bg_color, 0.24);
+  color: @window_fg_color;
+}
+.spotlight-result:hover {
+  background-color: alpha(@window_fg_color, 0.08);
+}
+.spotlight-result:selected:hover {
+  background-color: alpha(@accent_bg_color, 0.30);
+}
+.spotlight-result-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.spotlight-result-subtitle {
+  font-size: 12px;
+  opacity: 0.75;
+}
+.spotlight-kind {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  opacity: 0.68;
+}
+.spotlight-footer {
+  padding: 9px 18px 3px;
+}
+.spotlight-muted {
+  font-size: 11px;
+  opacity: 0.74;
+}
+.spotlight-hint {
+  padding: 0 18px 12px;
+  font-size: 11px;
+  opacity: 0.58;
+}
+.spotlight-empty {
+  padding: 22px;
+  opacity: 0.78;
+}
 .index-description { font-size: 14px; opacity: 0.88; }
-.index-search { min-height: 50px; font-size: 17px; border-radius: 16px; padding: 2px 12px; }
-.index-modes { margin-top: 6px; }
-.index-mode { border-radius: 12px; min-height: 42px; padding: 0 16px; }
-.index-result { border-radius: 14px; padding: 10px; }
-.index-result-title { font-size: 14px; font-weight: 650; }
-.index-result-subtitle { font-size: 12px; opacity: 0.84; }
-.index-result-icon { -gtk-icon-size: 26px; }
-.index-footer { font-size: 12px; opacity: 0.83; }
-.index-results { border-radius: 18px; }
-.index-empty { padding: 34px; }
-.index-action { font-size: 11px; opacity: 0.85; }
