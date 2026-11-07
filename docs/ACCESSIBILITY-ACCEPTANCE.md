@@ -67,6 +67,20 @@ minimal GTK4 control application**, even with its private IsEnabled property
 set. This points to a probe-environment limitation, not a demonstrated Index
 defect or screen-reader success. Orca in a real GNOME desktop remains a release
 acceptance blocker; no live user accessibility settings were changed.
+A native headless `tools/smoke_text_scale_gtk.py` regression now changes
+the **test process's** GTK default font through Sans 12, 24 and 48 (nominal
+100%, 200%, 400% baseline), checks increasing measured Pango text height,
+390/440 px window containment, mapped search/filter/status controls,
+responsive decorative-caption collapse, and restores default layout. It
+also simulates a libadwaita high-contrast state to assert the corresponding
+semantic CSS class is applied and removed. The real desktop's font and
+contrast settings are never modified. These are automated layout/state
+checks, **not** validated physical 400% assistive-technology usability,
+WCAG contrast measurements or native high-contrast compositor proof.
+
+    GDK_BACKEND=x11 PYTHONPATH=src xvfb-run -a /usr/bin/python3 tools/smoke_text_scale_gtk.py --width 390
+    GDK_BACKEND=x11 PYTHONPATH=src xvfb-run -a /usr/bin/python3 tools/smoke_text_scale_gtk.py --width 440
+
 The handler smoke invokes keyboard callbacks directly under GTK/Xvfb. A second
 first-party `tools/smoke_keyboard_x11.py` now injects actual X11 key events
 into a **separate isolated Xvfb display** and verifies Up/Down, selection

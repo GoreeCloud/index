@@ -82,9 +82,17 @@ colors. True compositor background blur, global Spotlight-style invocation,
 window placement across Wayland compositors and Apple feature parity are **not**
 claimed.
 
-The current native GTK headless tests verify the keyboard handler, selection
-feedback and accessible status roles. Real Orca screen-reader, large-text,
-high-contrast, Wayland/X11 and GC UI design acceptance remains **open**.
+Native GTK CI checks now cover real isolated X11 key delivery, keyboard
+selection, accessible result roles and dynamic **100% / 200% / 400% GTK system
+text scaling** at compact 390/440 px widths. Native font-relative typography
+and a reflowing filter strip keep the floating palette from expanding
+horizontally. At large text sizes, nonessential captions and repeated result
+details collapse while the full accessible result description remains.
+The palette tracks libadwaita's high-contrast preference to replace
+translucency with a solid semantic surface and stronger selected-state contrast.
+
+These automated checks do **not** establish real Orca screen-reader, Wayland,
+KDE, system high-contrast, WCAG, or founder visual/GC UI acceptance.
 See [Linux accessibility acceptance](docs/ACCESSIBILITY-ACCEPTANCE.md).
 
 ## Spotlight-inspired Linux desktop previews
@@ -99,10 +107,11 @@ The images are **not** proof of real-desktop, Orca, Wayland, or Stable acceptanc
 | --- | --- |
 | ![GoreeCloud Index compact light screenshot](docs/screenshots/linux-compact-light.png) | ![GoreeCloud Index compact dark screenshot](docs/screenshots/linux-compact-dark.png) |
 
-The desktop content reflows at small widths, and the page is scrollable when
-larger fonts or short displays require more vertical space. The GTK CI smoke
-checks use an actual isolated X11 display at 390 px and 440 px, plus a larger
-font; see [accessibility acceptance](docs/ACCESSIBILITY-ACCEPTANCE.md).
+The search panel reflows at compact widths and uses vertically scrollable
+results when larger fonts or short displays require additional room. The
+automated GTK CI checks include 390/440 px width, 100%/200%/400% text,
+semantic high-contrast class behavior, and isolated real X11 keyboard events.
+See [accessibility acceptance](docs/ACCESSIBILITY-ACCEPTANCE.md) for limits.
 
 ## Run on Ubuntu / Debian
 
