@@ -41,6 +41,11 @@ jobs:
           dpkg-deb --field "$package" Package Version Architecture Depends
           dpkg-deb --contents "$package"
           sha256sum "$package"
+          python3 tools/build_deb.py --output-dir dist --revision 2
+          python3 -m tools.package_manifest "$package" \
+            --compare-payload dist/goreecloud-index_0.1.0-2_all.deb \
+            --output "$RUNNER_TEMP/goreecloud-index-package-inventory.json"
+          python3 -m json.tool "$RUNNER_TEMP/goreecloud-index-package-inventory.json" > /dev/null
           mkdir -p "$RUNNER_TEMP/goreecloud-index-extracted"
           dpkg-deb -x "$package" "$RUNNER_TEMP/goreecloud-index-extracted"
           PYTHONPATH="$RUNNER_TEMP/goreecloud-index-extracted/usr/lib/python3/dist-packages" \

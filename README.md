@@ -88,6 +88,16 @@ To create a separate Debian packaging revision of the same source:
 
     python3 tools/build_deb.py --output-dir dist --revision 2
 
+To generate a bounded unsigned inventory of the allowlisted package files,
+permissions, per-file SHA-256 digests and runtime dependencies:
+
+    python3 -m tools.package_manifest dist/goreecloud-index_0.1.0-1_all.deb \
+      --compare-payload dist/goreecloud-index_0.1.0-2_all.deb \
+      --output dist/goreecloud-index-package-inventory.json
+
+The inventory is **not** a cryptographically signed provenance statement,
+formal SBOM or proof of the trustworthiness of dependencies.
+
 To validate package-manager lifecycle inside a disposable rootless, network-disabled
 container (only if the pinned Python image is already present in Podman):
 
