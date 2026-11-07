@@ -11,7 +11,7 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 ## Implemented today
 
 - Native GTK4/libadwaita window with keyboard search, selectable results and
-  Applications / Files / Actions modes. Up/Down moves selection without
+  Apps / Files / Actions modes. Up/Down moves selection without
   losing search focus; Enter opens the selected result. Result rows and
   selection/status feedback expose accessible names and roles. Clipboard
   history is visibly off.
@@ -31,8 +31,10 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 - Approved roots can exclude individual subfolders from indexing, managed through
   GTK or CLI. Adding an exclusion immediately deletes matching local index
   results without touching source files; removing it requires a manual rescan.
-- Default metadata search; explicit optional text extraction for supported small
-  UTF-8-ish source and document formats.
+- New folders added through the GTK picker start **metadata-only**; enabling
+  file-content indexing requires a second explicit per-root confirmation in
+  Manage indexed folders. Optional text extraction remains bounded to supported
+  small UTF-8-ish source and document formats.
 - Search terms and basic `kind:`, `ext:`, and `path:` filters.
 - Sandboxed arithmetic, percentages, temperature and offline unit conversions.
 - Open files and folders through registered system URI handlers; no shell.
@@ -65,6 +67,21 @@ The current native GTK headless tests verify the keyboard handler, selection
 feedback and accessible status roles. Real Orca screen-reader, large-text,
 high-contrast, Wayland/X11 and GC UI design acceptance remains **open**.
 See [Linux accessibility acceptance](docs/ACCESSIBILITY-ACCEPTANCE.md).
+
+## Compact Linux desktop previews
+
+These first-party X11/Xvfb screenshots use **only synthetic application data**
+and show the app's native semantic light/dark themes; they are **not**
+production imagery or completed Orca/Wayland/accessibility acceptance.
+
+| Light appearance | Dark appearance |
+| --- | --- |
+| ![GoreeCloud Index compact light screenshot](docs/screenshots/linux-compact-light.png) | ![GoreeCloud Index compact dark screenshot](docs/screenshots/linux-compact-dark.png) |
+
+The desktop content reflows at small widths, and the page is scrollable when
+larger fonts or short displays require more vertical space. The GTK CI smoke
+checks use an actual isolated X11 display at 390 px and 440 px, plus a larger
+font; see [accessibility acceptance](docs/ACCESSIBILITY-ACCEPTANCE.md).
 
 ## Run on Ubuntu / Debian
 
