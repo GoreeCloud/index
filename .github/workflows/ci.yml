@@ -98,6 +98,10 @@ jobs:
           GTK_A11Y=test G_DEBUG=fatal-warnings xvfb-run -a /usr/bin/python3 tools/smoke_gtk.py
           xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 390
           xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 440
+          # Simulate native 100/200/400% font preferences on a private
+          # desktop. These are automated layout checks, not Orca acceptance.
+          GTK_A11Y=test G_DEBUG=fatal-warnings xvfb-run -a /usr/bin/python3 tools/smoke_text_scale_gtk.py --width 390
+          GTK_A11Y=test G_DEBUG=fatal-warnings xvfb-run -a /usr/bin/python3 tools/smoke_text_scale_gtk.py --width 440
           # Real X11 keyboard routing in a disposable Xvfb display only.
           # The test refuses the normal live desktop display and never runs
           # user applications or changes global keyboard bindings.

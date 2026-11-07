@@ -10,7 +10,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from .apps import Application, launch_application, list_applications, open_path
 from .calculator import calculate
@@ -42,6 +42,11 @@ class IndexApplication(Adw.Application):
         self.status_label: Gtk.Label | None = None
         self.selection_label: Gtk.Label | None = None
         self.results_heading: Gtk.Label | None = None
+        self.filter_caption: Gtk.Label | None = None
+        self._title_labels: list[Gtk.Label] = []
+        self._subtitle_labels: list[Gtk.Label] = []
+        self._kind_badges: list[Gtk.Label] = []
+        self._large_text = False
         self.roots_window: Gtk.Window | None = None
         self.roots_list: Gtk.ListBox | None = None
         self.mode = "all"
@@ -59,10 +64,63 @@ class IndexApplication(Adw.Application):
         self._load_styles()
         self._build_window()
         assert self.window is not None
+        # Observe the application's native GTK font setting; do not change
+        # any user-wide settings. At very large text sizes, decorative labels
+        # yield space to the search field and meaningful result titles.
+        settings = self.window.get_settings()
+        if settings is not None:
+            settings.connect("notify::gtk-font-name", self._font_changed)
+            self._font_changed(settings)
+        # High contrast is a libadwaita user/desktop preference. The custom
+        # translucent Spotlight surface must become opaque when it is enabled.
+        manager = Adw.StyleManager.get_default()
+        manager.connect("notify::high-contrast", self._sync_high_contrast)
+        self._sync_high_contrast(manager)
         self.window.present()
         assert self.search_entry is not None
         self.search_entry.grab_focus()
         self._refresh()
+
+    def _font_changed(self, settings: Gtk.Settings, *_unused) -> None:
+        """Respect large native font preferences without growing the palette.
+
+        Larger text is still inherited from the system; only redundant
+        on-screen captions and per-result repeat labels are collapsed. All
+        full result descriptions remain in their accessible row labels.
+        """
+        description = Pango.FontDescription.from_string(
+            settings.get_property("gtk-font-name") or "Sans 10"
+        )
+        large = description.get_size() / Pango.SCALE >= 22
+        self._large_text = large
+        if self.window is not None:
+            if large:
+                self.window.add_css_class("spotlight-large-type")
+            else:
+                self.window.remove_css_class("spotlight-large-type")
+        if self.filter_caption is not None:
+            self.filter_caption.set_visible(not large)
+        if self.results_heading is not None:
+            self.results_heading.set_visible(not large)
+        if self.search_entry is not None:
+            self.search_entry.set_placeholder_text(
+                "Search…" if large else "Search apps, files, and actions…"
+            )
+        for badge in self._kind_badges:
+            badge.set_visible(not large)
+        for subtitle in self._subtitle_labels:
+            subtitle.set_visible(not large)
+        for title in self._title_labels:
+            title.set_wrap(large)
+            title.set_lines(2 if large else 1)
+
+    def _sync_high_contrast(self, manager: Adw.StyleManager, *_unused) -> None:
+        if self.window is None:
+            return
+        if manager.get_high_contrast():
+            self.window.add_css_class("spotlight-high-contrast")
+        else:
+            self.window.remove_css_class("spotlight-high-contrast")
 
     def _load_styles(self) -> None:
         display = Gdk.Display.get_default()
@@ -131,11 +189,23 @@ class IndexApplication(Adw.Application):
         top.append(search)
         self.search_entry = search
 
-        filter_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        # FlowBox preserves a single slim filter row at normal font sizes but
+        # reflows at high system text scaling without widening the palette.
+        filter_bar = Gtk.FlowBox()
+        filter_bar.set_halign(Gtk.Align.FILL)
+        filter_bar.set_selection_mode(Gtk.SelectionMode.NONE)
+        filter_bar.set_max_children_per_line(2)
+        filter_bar.set_min_children_per_line(1)
+        filter_bar.set_column_spacing(12)
+        filter_bar.set_row_spacing(8)
         filter_bar.add_css_class("spotlight-filter-bar")
         filter_label = Gtk.Label(label="SEARCH IN", xalign=0)
+        filter_label.set_wrap(True)
+        filter_label.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        filter_label.set_width_chars(1)
         filter_label.add_css_class("spotlight-filter-label")
-        filter_bar.append(filter_label)
+        self.filter_caption = filter_label
+        filter_bar.insert(filter_label, -1)
         modes = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         modes.add_css_class("spotlight-mode-group")
         icon_names = {
@@ -165,7 +235,7 @@ class IndexApplication(Adw.Application):
             )
             self.mode_buttons[mode] = button
             modes.append(button)
-        filter_bar.append(modes)
+        filter_bar.insert(modes, -1)
         shell.append(filter_bar)
 
         separator = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
@@ -217,6 +287,9 @@ class IndexApplication(Adw.Application):
         page.set_child(body)
 
         heading = Gtk.Label(label="SUGGESTIONS", xalign=0)
+        heading.set_wrap(True)
+        heading.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        heading.set_width_chars(1)
         heading.add_css_class("spotlight-section-title")
         heading.update_property([Gtk.AccessibleProperty.LABEL],
                                 ["Search suggestions and results"])
@@ -260,6 +333,9 @@ class IndexApplication(Adw.Application):
         self.status_label = status
 
         hint = Gtk.Label(label="↑↓ Navigate    ↵ Open    Esc Close", xalign=0)
+        hint.set_wrap(True)
+        hint.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        hint.set_width_chars(1)
         hint.add_css_class("spotlight-hint")
         body.append(hint)
 
@@ -413,6 +489,9 @@ class IndexApplication(Adw.Application):
                                 "Explicitly choose where Index may search",
                                 "add", "folder-new-symbolic"))
         self.hits = hits[:75]
+        self._title_labels.clear()
+        self._subtitle_labels.clear()
+        self._kind_badges.clear()
         if self.results_heading is not None:
             self.results_heading.set_text(
                 "RESULTS" if query else "SUGGESTIONS"
@@ -448,15 +527,25 @@ class IndexApplication(Adw.Application):
             labels.set_hexpand(True)
             labels.set_valign(Gtk.Align.CENTER)
             name = Gtk.Label(label=hit.title, xalign=0, ellipsize=3)
+            name.set_width_chars(1)
+            name.set_wrap(self._large_text)
+            name.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+            name.set_lines(2 if self._large_text else 1)
             name.add_css_class("spotlight-result-title")
             labels.append(name)
+            self._title_labels.append(name)
             subtitle = Gtk.Label(label=hit.subtitle, xalign=0, ellipsize=3)
+            subtitle.set_width_chars(1)
+            subtitle.set_visible(not self._large_text)
             subtitle.add_css_class("spotlight-result-subtitle")
             labels.append(subtitle)
+            self._subtitle_labels.append(subtitle)
             content.append(labels)
             kind = Gtk.Label(label=hit.kind.upper())
+            kind.set_visible(not self._large_text)
             kind.add_css_class("spotlight-kind")
             content.append(kind)
+            self._kind_badges.append(kind)
             row.set_child(content)
             self.list_box.append(row)
         if not hits:

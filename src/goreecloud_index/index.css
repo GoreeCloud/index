@@ -22,7 +22,7 @@ window.spotlight-window {
   min-width: 96px;
   border-radius: 12px;
   padding: 0 4px;
-  font-size: 21px;
+  font-size: 1.5em;
   font-weight: 450;
 }
 .spotlight-query:focus {
@@ -33,7 +33,7 @@ window.spotlight-window {
   padding: 0 16px 12px;
 }
 .spotlight-filter-label {
-  font-size: 10px;
+  font-size: 0.71em;
   font-weight: 650;
   letter-spacing: 1.1px;
   opacity: 0.66;
@@ -70,7 +70,7 @@ window.spotlight-window {
 .spotlight-body { min-height: 160px; }
 .spotlight-section-title {
   margin: 14px 19px 7px;
-  font-size: 11px;
+  font-size: 0.79em;
   font-weight: 650;
   letter-spacing: 1.3px;
   opacity: 0.69;
@@ -100,15 +100,15 @@ window.spotlight-window {
   background-color: alpha(@accent_bg_color, 0.30);
 }
 .spotlight-result-title {
-  font-size: 14px;
+  font-size: 1em;
   font-weight: 600;
 }
 .spotlight-result-subtitle {
-  font-size: 12px;
+  font-size: 0.86em;
   opacity: 0.75;
 }
 .spotlight-kind {
-  font-size: 10px;
+  font-size: 0.71em;
   font-weight: 600;
   letter-spacing: 0.6px;
   opacity: 0.68;
@@ -117,16 +117,45 @@ window.spotlight-window {
   padding: 9px 18px 3px;
 }
 .spotlight-muted {
-  font-size: 11px;
+  font-size: 0.79em;
   opacity: 0.74;
 }
 .spotlight-hint {
   padding: 0 18px 12px;
-  font-size: 11px;
+  font-size: 0.79em;
   opacity: 0.58;
 }
 .spotlight-empty {
   padding: 22px;
   opacity: 0.78;
 }
-.index-description { font-size: 14px; opacity: 0.88; }
+.index-description { font-size: 1em; opacity: 0.88; }
+
+/* Keep keyboard/pointer hit targets usable under large OS text settings.
+   Label text scales with GTK's font; no mandatory GoreeCloud palette. */
+.spotlight-large-type .spotlight-query { font-size: 1em; }
+.spotlight-large-type .spotlight-mode,
+.spotlight-large-type .spotlight-tool { min-height: 44px; min-width: 44px; }
+
+/* Respect libadwaita's high-contrast state with an opaque surface and
+   solid semantic selections; never assign a mandatory app/brand hue. */
+.spotlight-high-contrast .spotlight-panel {
+  background-color: @window_bg_color;
+  border: 2px solid @window_fg_color;
+  box-shadow: none;
+}
+.spotlight-high-contrast .spotlight-result:selected,
+.spotlight-high-contrast .spotlight-result:selected:hover,
+.spotlight-high-contrast .spotlight-mode:checked {
+  background-color: @window_fg_color;
+  color: @window_bg_color;
+}
+.spotlight-high-contrast .spotlight-mode:focus-visible,
+.spotlight-high-contrast .spotlight-tool:focus-visible {
+  outline: 3px solid @window_fg_color;
+  outline-offset: 2px;
+}
+.spotlight-high-contrast .spotlight-muted,
+.spotlight-high-contrast .spotlight-hint,
+.spotlight-high-contrast .spotlight-result-subtitle,
+.spotlight-high-contrast .spotlight-kind { opacity: 1; }
