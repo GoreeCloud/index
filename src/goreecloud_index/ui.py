@@ -120,6 +120,10 @@ class IndexApplication(Adw.Application):
         # result while SearchEntry's debounced search signal is pending.
         search.connect("changed", self._refresh)
         search.connect("activate", self._activate_first)
+        # GtkSearchEntry consumes Escape and emits "stop-search" before the
+        # parent window's key controller sees the key. Handle that signal
+        # explicitly so Escape clears the query (or closes an empty palette).
+        search.connect("stop-search", self._stop_search)
         keys = Gtk.EventControllerKey()
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         keys.connect("key-pressed", self._search_key_pressed)
@@ -273,13 +277,15 @@ class IndexApplication(Adw.Application):
                 self._select_mode(mapping[keyval])
                 return True
         if keyval == Gdk.KEY_Escape:
-            assert self.search_entry is not None
-            if self.search_entry.get_text():
-                self.search_entry.set_text("")
-            elif self.window:
-                self.window.close()
+            self._stop_search()
             return True
         return False
+
+    def _stop_search(self, *_unused) -> None:
+        if self.search_entry is not None and self.search_entry.get_text():
+            self.search_entry.set_text("")
+        elif self.window is not None:
+            self.window.close()
 
     def _search_key_pressed(self, _controller, keyval, _keycode, state) -> bool:
         """Navigate search results while keeping typing focus in the search field."""

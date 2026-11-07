@@ -67,8 +67,18 @@ minimal GTK4 control application**, even with its private IsEnabled property
 set. This points to a probe-environment limitation, not a demonstrated Index
 defect or screen-reader success. Orca in a real GNOME desktop remains a release
 acceptance blocker; no live user accessibility settings were changed.
-The test invokes the registered keyboard handler directly under GTK/Xvfb; it is
-**not** a hardware-keyboard or assistive-technology end-to-end test. Linux CI
+The handler smoke invokes keyboard callbacks directly under GTK/Xvfb. A second
+first-party `tools/smoke_keyboard_x11.py` now injects actual X11 key events
+into a **separate isolated Xvfb display** and verifies Up/Down, selection
+aware Enter, literal typing, Escape clear/close and Ctrl+2 mode switching.
+The test uses only synthetic app results and refuses the live `:0`/`:1`
+display, without operating a privileged input device or launching apps.
+
+    GOREECLOUD_INDEX_PRIVATE_XVFB=1 GDK_BACKEND=x11 PYTHONPATH=src \
+      xvfb-run -a /usr/bin/python3 tools/smoke_keyboard_x11.py
+
+This catches actual GTK event routing regressions, but is **not** a physical
+keyboard, Wayland, assistive-technology or full Orca end-to-end test. Linux CI
 performs the same isolated smoke. Python unit tests address core code, not
 visual or screen-reader usability.
 

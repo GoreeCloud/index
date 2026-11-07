@@ -84,7 +84,7 @@ jobs:
       - name: Install native GTK runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 xvfb
+          sudo apt-get install -y --no-install-recommends python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 xvfb libxtst6
       - name: Smoke-test GTK window lifecycle under Xvfb
         shell: bash
         run: |
@@ -98,3 +98,7 @@ jobs:
           GTK_A11Y=test G_DEBUG=fatal-warnings xvfb-run -a /usr/bin/python3 tools/smoke_gtk.py
           xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 390
           xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 440
+          # Real X11 keyboard routing in a disposable Xvfb display only.
+          # The test refuses the normal live desktop display and never runs
+          # user applications or changes global keyboard bindings.
+          GOREECLOUD_INDEX_PRIVATE_XVFB=1 xvfb-run -a /usr/bin/python3 tools/smoke_keyboard_x11.py
