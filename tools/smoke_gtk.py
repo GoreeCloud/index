@@ -202,13 +202,26 @@ def main() -> int:
                 moved_file = home / "previous-file.md"
                 stale_hit_file.rename(moved_file)
                 stale_hit_file.write_text("new unscanned file", encoding="utf-8")
-                with patch("goreecloud_index.ui.open_path") as opener:
+                with patch("goreecloud_index.ui.request_open_fd") as opener:
                     app._activate_row(app.list_box, stale_row)
                     opener.assert_not_called()
-                assert "index permission changed" in app.status_label.get_text()
+                assert "replaced" in app.status_label.get_text() or "identity changed" in app.status_label.get_text()
                 stale_hit_file.unlink()
                 moved_file.rename(stale_hit_file)
                 assert app.store.result_is_authorized(stale_hit_file)
+                # Positive UI path: the request must receive the *pinned*
+                # inode fd, not a pathname. The fake callback consumes the fd;
+                # no desktop backend or third-party file opener is contacted.
+                def fake_portal(fd, on_result):
+                    import os
+                    assert os.fstat(fd).st_ino == stale_hit_file.stat().st_ino
+                    os.close(fd)
+                    on_result(True, "Desktop accepted the file-open request")
+
+                with patch("goreecloud_index.ui.request_open_fd", side_effect=fake_portal) as portal:
+                    app._activate_row(app.list_box, stale_row)
+                    portal.assert_called_once()
+                assert "Desktop accepted" in app.status_label.get_text()
 
                 previous = home / "previous-root"
                 another.rename(previous)
@@ -220,10 +233,10 @@ def main() -> int:
                 # A hit already present in the UI must be revalidated at
                 # activation, not only when the search was first executed.
                 from unittest.mock import patch
-                with patch("goreecloud_index.ui.open_path") as open_external:
+                with patch("goreecloud_index.ui.request_open_fd") as open_external:
                     app._activate_row(app.list_box, stale_row)
                     open_external.assert_not_called()
-                assert "index permission changed" in app.status_label.get_text()
+                assert "replaced" in app.status_label.get_text() or "identity changed" in app.status_label.get_text()
                 app._confirm_reauthorize_root(None, str(another))
                 renew_dialog = [
                     w for w in Gtk.Window.list_toplevels()

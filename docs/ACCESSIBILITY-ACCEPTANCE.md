@@ -30,8 +30,11 @@ accessible labels and shortcuts, plus separate manage/refresh/close controls.
 The undecorated GTK WindowHandle preserves draggable window behavior in
 supported desktop environments; native frame, focus and placement require
 real-compositor validation. The desktop application has **no** global invoke
-shortcut, clipboard recording or background search activity. File opening still invokes the system handler
-only through explicit user activation and current authorization checks.
+shortcut, clipboard recording or background search activity. File opening
+only occurs after explicit user activation and current index authorization:
+Index gives an inode-pinned descriptor to the desktop portal (not a file URI).
+The resulting portal chooser, cancellation, failure announcements and handler
+behavior still need a real assistive-technology and desktop-session audit.
 
 ## Automated evidence
 

@@ -12,7 +12,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from .apps import Application, launch_application, list_applications, open_path
+from .apps import Application, launch_application, list_applications
+from .portal import request_open_fd
 from .calculator import calculate
 from .scanner import scan_all, scan_root
 from .search import FileResult, search_files
@@ -589,9 +590,14 @@ class IndexApplication(Adw.Application):
             if hit.kind == "app":
                 launch_application(hit.value)
             elif hit.kind == "file":
-                if self.store is None or not self.store.result_is_authorized(hit.value):
-                    raise ValueError("File result or index permission changed; refresh search")
-                open_path(hit.value)
+                if self.store is None:
+                    raise ValueError("No authorized Index database available")
+                # Authorize and pin the exact inode before any external
+                # handoff. The fd owns the identity even if the pathname
+                # changes while the desktop portal dialog is displayed.
+                pinned_fd = self.store.open_authorized_result_fd(hit.value)
+                self._set_status("Requesting desktop file opener…")
+                request_open_fd(pinned_fd, self._file_open_result)
             elif hit.kind == "copy":
                 assert self.window is not None
                 self.window.get_clipboard().set(hit.value)
@@ -602,6 +608,12 @@ class IndexApplication(Adw.Application):
                 self._choose_folder()
         except (ValueError, RuntimeError, GLib.Error, OSError) as exc:
             self._set_status(f"Could not perform action: {exc}")
+
+    def _file_open_result(self, succeeded: bool, message: str) -> None:
+        # This callback runs from GTK/GLib's main context; no background
+        # thread may update GTK widgets. Portal success is not proof that a
+        # third-party application actually rendered the selected file.
+        self._set_status(message)
 
     def _show_roots(self, *_unused) -> None:
         """Expose and revoke explicit indexing consent without a terminal."""

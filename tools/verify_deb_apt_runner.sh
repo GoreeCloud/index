@@ -33,7 +33,7 @@ sudo apt-get update -qq
 sudo apt-get install --yes --no-install-recommends xvfb
 sudo apt-get install --yes --no-install-recommends "./$v1"
 dpkg-query -W -f='${db:Status-Abbrev} ${Version}\n' goreecloud-index
-for dep in python3 python3-gi gir1.2-gtk-4.0 gir1.2-adw-1; do
+for dep in python3 python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 xdg-desktop-portal; do
   dpkg-query -W -f='${Status}\n' "$dep" | grep -Fxq 'install ok installed'
 done
 goreecloud-index calc "12% of 75" | grep -Fxq '9'

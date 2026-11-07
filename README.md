@@ -29,9 +29,12 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   replaced at the same pathname, opening it is refused until a manual rescan
   approves the new identity. Existing databases without pinned item identity
   hide those old search results until a rescan; source files are never altered.
-- The native file-opening action rechecks both the root and the indexed item's
-  own identity through no-symlink directory descriptors. External Gio URI
-  handoff is still pathname-based and can race with later filesystem changes.
+- Selected indexed files are opened through verified Linux `O_PATH`
+  descriptors and freedesktop `OpenURI.OpenFile` over the session D-Bus.
+  Passing the pinned FD instead of a pathname prevents Index's earlier
+  pathname-substitution race. The system portal and its backend are required;
+  failures never trigger an insecure pathname-URI fallback. Real portal
+  backend and third-party handler FD semantics remain a Stable-release gate.
 - Consent-based indexing of named local directories with SQLite FTS5.
 - Native indexed-folder manager that shows approved roots and their content
   access level, with confirmation before revoking access and deleting index data.
@@ -46,7 +49,8 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   small UTF-8-ish source and document formats.
 - Search terms and basic `kind:`, `ext:`, and `path:` filters.
 - Sandboxed arithmetic, percentages, temperature and offline unit conversions.
-- Open files and folders through registered system URI handlers; no shell.
+- Submit indexed file/folder descriptors to the user-mediated desktop
+  portal, with no local shell or insecure pathname-based fallback.
 - Manual rescans, stale-entry reconciliation, revocation-aware scan permissions,
   privacy-oriented exclusions, descriptor-anchored Linux file traversal with
   inode checks against mid-scan symlink swaps, owner-only data-directory

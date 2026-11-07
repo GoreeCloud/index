@@ -17,7 +17,7 @@ PACKAGE = "goreecloud-index"
 MODULE = "goreecloud_index"
 MODULE_FILES = (
     "__init__.py", "__main__.py", "apps.py", "calculator.py", "cli.py",
-    "config.py", "scanner.py", "search.py", "storage.py", "ui.py", "index.css",
+    "config.py", "portal.py", "scanner.py", "search.py", "storage.py", "ui.py", "index.css",
 )
 BIN_SCRIPT = """#!/usr/bin/python3
 from goreecloud_index.cli import main
@@ -82,7 +82,7 @@ def build(output_directory: Path, revision: int = 1) -> Path:
             "Priority: optional\n"
             "Architecture: all\n"
             "Maintainer: GoreeCloud <295260680+GoreeCloud@users.noreply.github.com>\n"
-            "Depends: python3 (>= 3.11), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1\n"
+            "Depends: python3 (>= 3.11), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1, xdg-desktop-portal (>= 1.8)\n"
             "Description: Privacy-first local search and application launcher\n"
             " Native GTK4/libadwaita desktop search for explicitly selected folders,\n"
             " Linux applications, safe offline calculations, and local-only actions.\n",

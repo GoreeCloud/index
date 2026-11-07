@@ -70,7 +70,7 @@ def inspect(package: Path) -> dict:
         if dep is None:
             raise ValueError("Unexpected Debian dependency expression")
         direct_dependencies.add(dep.group(1))
-    if not {"python3", "python3-gi", "gir1.2-gtk-4.0", "gir1.2-adw-1"
+    if not {"python3", "python3-gi", "gir1.2-gtk-4.0", "gir1.2-adw-1", "xdg-desktop-portal"
             }.issubset(direct_dependencies):
         raise ValueError("Required declared runtime dependencies are missing")
 

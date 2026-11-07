@@ -75,11 +75,13 @@ def root_identity(path: str | Path) -> tuple[int, int]:
         os.close(fd)
 
 
-def entry_identity(root: str | Path, entry: str | Path) -> tuple[int, int, bool]:
-    """Inspect a child through pinned Linux directory descriptors.
+def open_entry_descriptor(root: str | Path, entry: str | Path) -> int:
+    """Return an O_PATH fd for a real regular file or directory under root.
 
-    No symlink component is followed. This check pins identity at the moment
-    of validation; a later pathname-based Gio handoff can still race.
+    Each path component is opened relative to a no-follow directory fd.
+    A rename/replace after this call cannot substitute a different inode
+    for the returned descriptor. The *caller owns and must close* that fd.
+    This is Linux-only; using a pathname after closing fd loses this guarantee.
     """
     import stat
 
@@ -92,7 +94,7 @@ def entry_identity(root: str | Path, entry: str | Path) -> tuple[int, int, bool]
     if not parts or any(part in {"", ".", ".."} for part in parts):
         raise ValueError("Index item must be below the selected root")
     if not hasattr(os, "O_PATH") or not hasattr(os, "O_NOFOLLOW"):
-        raise RuntimeError("Pinned entry validation requires Linux")
+        raise RuntimeError("Pinned entry opening requires Linux")
     directory_fd = open_root_directory(base)
     try:
         directory_flags = (
@@ -103,17 +105,30 @@ def entry_identity(root: str | Path, entry: str | Path) -> tuple[int, int, bool]
             next_fd = os.open(part, directory_flags, dir_fd=directory_fd)
             os.close(directory_fd)
             directory_fd = next_fd
-        final_flags = os.O_PATH | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
-        item_fd = os.open(parts[-1], final_flags, dir_fd=directory_fd)
+        flags = os.O_PATH | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+        item_fd = os.open(parts[-1], flags, dir_fd=directory_fd)
         try:
-            st = os.fstat(item_fd)
-        finally:
+            mode = os.fstat(item_fd).st_mode
+            if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode)):
+                raise ValueError("Indexed item is no longer a regular file or directory")
+            return item_fd
+        except BaseException:
             os.close(item_fd)
-        if not (stat.S_ISDIR(st.st_mode) or stat.S_ISREG(st.st_mode)):
-            raise ValueError("Indexed item is no longer a regular file or directory")
-        return st.st_dev, st.st_ino, stat.S_ISDIR(st.st_mode)
+            raise
     finally:
         os.close(directory_fd)
+
+
+def entry_identity(root: str | Path, entry: str | Path) -> tuple[int, int, bool]:
+    """Inspect a child inode using the same fd-pinned validation as opening."""
+    import stat
+
+    fd = open_entry_descriptor(root, entry)
+    try:
+        st = os.fstat(fd)
+        return st.st_dev, st.st_ino, stat.S_ISDIR(st.st_mode)
+    finally:
+        os.close(fd)
 
 
 def safe_root(path: str | Path) -> Path:

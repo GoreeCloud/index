@@ -7,7 +7,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import database_path, safe_root, root_identity, entry_identity
+from .config import database_path, safe_root, root_identity, entry_identity, open_entry_descriptor
 
 
 @dataclass(frozen=True)
@@ -183,8 +183,10 @@ class IndexStore:
 
         Reject stale UI rows after consent revocation, exclusion, root or
         item replacement, or index clearing. Item identity is checked via
-        descriptor-anchored Linux traversal. Gio URI handoff is still
-        pathname-based and can race with further filesystem changes.
+        descriptor-anchored Linux traversal. The GUI now uses the separate
+        open_authorized_result_fd method, which pins the validated inode
+        before the local desktop-portal handoff; do not use this boolean
+        check alone to authorize subsequent pathname-based opening.
         """
         item = os.path.abspath(os.path.expanduser(str(item_path)))
         with self.connect() as conn:
@@ -212,6 +214,62 @@ class IndexStore:
             (device, inode) == (row["item_device"], row["item_inode"])
             and is_dir == (row["mime"] == "inode/directory")
         )
+
+    def open_authorized_result_fd(self, item_path: str | Path) -> int:
+        """Return an inode-pinned Linux fd for an explicitly indexed result.
+
+        Permission, root and item identity are checked in one DB read
+        transaction before the descriptor is handed off. An attacker cannot
+        swap the pathname to redirect this fd; a later consent change cannot
+        retroactively revoke an already submitted user-initiated open request.
+        Caller owns and must close the returned descriptor.
+        """
+        import stat
+
+        item = os.path.abspath(os.path.expanduser(str(item_path)))
+        with self.connect() as conn:
+            conn.execute("BEGIN")
+            row = conn.execute(
+                "SELECT i.root, i.mime, i.device AS item_device, "
+                "i.inode AS item_inode, r.device AS root_device, "
+                "r.inode AS root_inode FROM items i "
+                "JOIN roots r ON r.path = i.root WHERE i.path = ?",
+                (item,),
+            ).fetchone()
+            if row is None or any(row[key] is None for key in (
+                "item_device", "item_inode", "root_device", "root_inode"
+            )):
+                raise ValueError("File result is unindexed, unbound, or no longer authorized")
+            root = row["root"]
+            if Path(root) not in Path(item).parents:
+                raise ValueError("File is outside its approved root")
+            excluded = conn.execute(
+                "SELECT 1 FROM exclusions WHERE root = ? AND "
+                "(? = path OR substr(?, 1, length(path) + 1) = path || ?) LIMIT 1",
+                (root, item, item, os.sep),
+            ).fetchone()
+            if excluded is not None:
+                raise ValueError("This file belongs to an excluded folder")
+            # open_entry_descriptor rejects every symlinked ancestor and the
+            # final symlink. Validate root before and *after* pinning its item
+            # fd so a switched same-path root cannot grant another item.
+            if root_identity(root) != (row["root_device"], row["root_inode"]):
+                raise ValueError("Indexed root identity changed")
+            fd = open_entry_descriptor(root, item)
+            try:
+                current = os.fstat(fd)
+                if (
+                    (current.st_dev, current.st_ino)
+                    != (row["item_device"], row["item_inode"])
+                    or stat.S_ISDIR(current.st_mode)
+                    != (row["mime"] == "inode/directory")
+                    or root_identity(root) != (row["root_device"], row["root_inode"])
+                ):
+                    raise ValueError("Indexed file or root was replaced; rescan")
+                return fd
+            except BaseException:
+                os.close(fd)
+                raise
 
     def reauthorize_root(self, path: str | Path) -> Root:
         """Explicit consent renewal after replacement or legacy schema migration.

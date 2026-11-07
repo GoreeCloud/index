@@ -39,15 +39,21 @@ Status: **Linux development preview**, not an audited security product.
 
 - Input is length-bounded, search uses parameterized SQLite statements.
 - No unrestricted shell execution, automatic script execution, or privilege escalation.
-- Application launches use Gio application IDs; file opening uses the associated
-  default URI handler only after user interaction.
+- Installed application launches use Gio application IDs. Indexed-file
+  activation first opens a no-follow, inode-verified Linux descriptor under
+  the authorized root and sends **that descriptor**, not the pathname, to
+  the freedesktop `org.freedesktop.portal.OpenURI.OpenFile` portal through local
+  D-Bus. No shell or pathname-URI fallback is used when the portal is absent.
 - Linux scans use descriptor-anchored `os.fwalk`, `stat(..., dir_fd=...)`
   and file-content `openat` with `O_NOFOLLOW`, device/inode checks, and
   stale-path validation. File and directory symlink swaps cannot redirect
   content extraction into outside directories; stale paths are skipped.
-- Explicit file opening rejects paths containing visible symlink ancestors
-  before using Gio; pathname-based URI handlers still have inherent race
-  limitations and require a user activation.
+- Linux indexed-file opening rejects symlinked ancestors and final links
+  while acquiring `O_PATH | O_NOFOLLOW` descriptors. The opened inode is
+  verified against current index identity and root consent before submitting
+  it to the portal. A later filename replacement cannot redirect the FD that
+  the portal receives. This does not prove that a third-party handler, after
+  the portal completes, never re-resolves a pathname internally.
 - Authorizations pin the top-level root's filesystem device and inode.
   Every scan checks that identity against its opened root descriptor, and
   each search hides cached results from missing, replaced, or legacy
@@ -62,12 +68,12 @@ Status: **Linux development preview**, not an audited security product.
   until a new scan records it. Legacy databases acquire nullable item identity
   columns and hide their previously cached results until rescanned; no
   existing file is silently assigned a new inode at migration.
-  This does not make Gio pathname-based URI handoff atomic with respect
-  to subsequent filesystem swaps.
+  The selected item's actual descriptor is now passed through the desktop
+  portal; no subsequent Gio pathname URI is constructed by Index.
 - Explicit reauthorization resets text permission to metadata-only, clears
   indexed metadata and prior exclusion rules, and leaves original files
-  untouched. File-system inode reuse and a race between URI validation
-  and opening an external application are remaining limitations.
+  untouched. Filesystem inode reuse remains a limitation: a newer file
+  can theoretically acquire the same device/inode identity after deletion.
 - Scans do not follow symbolic links or cross filesystem devices.
 - Overlapping indexed roots are rejected to prevent conflicting content-access
   permissions and stale-entry ownership. User-selected exclusion folders must
@@ -93,12 +99,21 @@ Status: **Linux development preview**, not an audited security product.
 - Native GTK application behavior needs interactive accessibility, Wayland/X11,
   packaging and distribution-specific acceptance before stable release.
 - Existing indexed entries remain stored until a rescan or explicit removal.
-- The root and individual index entries now have filesystem identity
-  checks, but filesystem inode reuse remains possible, and the external Gio
-  URI-handler launch is **not atomic** with the final pathname validation.
-  Further security review is required before claiming race-free file handoff.
-  Existing users must explicitly rescan after the item-identity migration to
-  make old files searchable/openable again; no automatic recursive scan runs.
+- The root and individual index entries have filesystem identity checks.
+  File opening uses an `O_PATH` descriptor and the local desktop portal's
+  `OpenFile` method; a private D-Bus fake-backend test confirms descriptor
+  passing survives a same-path replacement. This **eliminates Index's own
+  pathname-URI handoff race**, but does not prove that all portal backends or
+  external handlers preserve FD-only semantics internally, prevent inode
+  reuse, or refuse subsequently revoked consent. The user-initiated file
+  request is not retroactively revocable after its FD has left Index.
+- The application requires a running desktop session bus, a compatible
+  xdg-desktop-portal service and an operational native backend for indexed
+  file opening. Unavailable or rejected requests fail closed; no legacy Gio
+  path-based fallback is attempted. A real GNOME/KDE external-opening test and
+  compositor-specific policy review remain **OPEN** before Stable.
+  Existing users must explicitly rescan after item-identity migration to
+  make old files searchable/openable again; no automatic scan runs.
 - No claim of malware detection or threat scanning is made for GoreeCloud Index.
 
 Report security issues privately to the repository owner; do not file sensitive
