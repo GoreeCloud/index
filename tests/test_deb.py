@@ -16,6 +16,19 @@ from tools.build_deb import build
 
 @unittest.skipUnless(shutil.which("dpkg-deb"), "Debian packaging tools are unavailable")
 class DebianPackageTests(unittest.TestCase):
+    def test_revision_build_and_invalid_revision(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            first = build(root / "build", revision=2)
+            self.assertEqual(first.name, "goreecloud-index_0.1.0-2_all.deb")
+            metadata = subprocess.check_output(
+                ["dpkg-deb", "--field", str(first), "Version"], text=True
+            ).strip()
+            self.assertEqual(metadata, "0.1.0-2")
+            for invalid in (-1, 0, 10000, True, 2.5, "two"):
+                with self.subTest(revision=invalid), self.assertRaises(ValueError):
+                    build(root / "invalid", revision=invalid)
+
     def test_build_contents_and_extracted_runtime(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
