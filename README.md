@@ -17,6 +17,9 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   stored search hits are hidden if a root is replaced or unbound.
 - Explicit reauthorization in GTK or CLI resets the root to metadata-only and
   clears the old index/exclusions, without touching original files.
+- Opening a file result from the desktop interface rechecks that the item
+  is still indexed and its source root remains authorized; external URI
+  handoff remains subject to a narrow race with filesystem changes.
 - Consent-based indexing of named local directories with SQLite FTS5.
 - Native indexed-folder manager that shows approved roots and their content
   access level, with confirmation before revoking access and deleting index data.

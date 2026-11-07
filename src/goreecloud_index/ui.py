@@ -316,6 +316,8 @@ class IndexApplication(Adw.Application):
             if hit.kind == "app":
                 launch_application(hit.value)
             elif hit.kind == "file":
+                if self.store is None or not self.store.result_is_authorized(hit.value):
+                    raise ValueError("File result or index permission changed; refresh search")
                 open_path(hit.value)
             elif hit.kind == "copy":
                 assert self.window is not None

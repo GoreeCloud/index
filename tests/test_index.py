@@ -406,6 +406,35 @@ class IndexTests(unittest.TestCase):
         self.assertEqual([v.name for v in search_files(self.store, "injected")], ["injected.md"])
         self.assertTrue((old_directory / "original.md").is_file())
 
+    def test_result_open_rechecks_live_index_and_root_permission(self) -> None:
+        source = self.files / "document.txt"
+        source.write_text("record")
+        authorized = self.store.add_root(self.files)
+        scan_root(self.store, authorized)
+        self.assertTrue(self.store.result_is_authorized(source))
+        excluded = self.files / "excluded"
+        excluded.mkdir()
+        subsource = excluded / "subnote.md"
+        subsource.write_text("not indexed yet")
+        scan_root(self.store, authorized)
+        self.assertTrue(self.store.result_is_authorized(subsource))
+        self.store.add_exclusion(authorized.path, excluded)
+        self.assertFalse(self.store.result_is_authorized(subsource))
+        self.assertTrue(self.store.result_is_authorized(source))
+        removed = self.base / "moved-root"
+        self.files.rename(removed)
+        self.files.mkdir()
+        (self.files / "document.txt").write_text("new unapproved contents")
+        self.assertFalse(self.store.result_is_authorized(source))
+        self.store.reauthorize_root(self.files)
+        self.assertFalse(self.store.result_is_authorized(source))
+        refreshed = self.store.roots()[0]
+        scan_root(self.store, refreshed)
+        self.assertTrue(self.store.result_is_authorized(source))
+        self.store.remove_root(refreshed.path)
+        self.assertFalse(self.store.result_is_authorized(source))
+        self.assertFalse(self.store.result_is_authorized(self.base / "unindexed.txt"))
+
     def test_legacy_schema_is_not_silently_reauthorized(self) -> None:
         import sqlite3
         old_db = self.base / "legacy.sqlite3"

@@ -53,6 +53,10 @@ Status: **Linux development preview**, not an audited security product.
 - Directory opens verify each path component with `O_NOFOLLOW`.
   Older databases migrate to nullable identity columns, leaving old roots
   unbound until the user explicitly reauthorizes them.
+- The UI rechecks index membership and currently pinned root consent
+  immediately before requesting a file-open action; old displayed hits from
+  removed/excluded/replaced folders are rejected. This does not make Gio
+  pathname-based URI handoff atomic with respect to further filesystem swaps.
 - Explicit reauthorization resets text permission to metadata-only, clears
   indexed metadata and prior exclusion rules, and leaves original files
   untouched. File-system inode reuse and a race between URI validation

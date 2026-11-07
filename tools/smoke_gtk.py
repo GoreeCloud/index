@@ -82,6 +82,16 @@ def main() -> int:
                 another = home / "replacement-root"
                 another.mkdir()
                 replacement_root = app.store.add_root(another, include_content=True)
+                stale_hit_file = another / "activation-check.md"
+                stale_hit_file.write_text("old-index", encoding="utf-8")
+                scan_root(app.store, replacement_root)
+                assert app.search_entry is not None and app.list_box is not None
+                app.mode = "files"
+                app.search_entry.set_text("activation-check")
+                app._refresh()
+                stale_row = app.list_box.get_row_at_index(0)
+                assert stale_row is not None
+                assert app.hits[0].value == str(stale_hit_file)
                 previous = home / "previous-root"
                 another.rename(previous)
                 another.mkdir()
@@ -89,6 +99,13 @@ def main() -> int:
                 app._render_roots()
                 assert not app.store.root_is_current(replacement_root)
                 assert search_files(app.store, "unapproved") == []
+                # A hit already present in the UI must be revalidated at
+                # activation, not only when the search was first executed.
+                from unittest.mock import patch
+                with patch("goreecloud_index.ui.open_path") as open_external:
+                    app._activate_row(app.list_box, stale_row)
+                    open_external.assert_not_called()
+                assert "index permission changed" in app.status_label.get_text()
                 app._confirm_reauthorize_root(None, str(another))
                 renew_dialog = [
                     w for w in Gtk.Window.list_toplevels()
