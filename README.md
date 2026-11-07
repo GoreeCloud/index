@@ -22,6 +22,8 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 - Manual rescans, stale-entry reconciliation, privacy-oriented exclusions,
   owner-only data-directory permissions, and a local CLI.
 - Core unit tests and Linux CI gates.
+- Reproducible, rootlessly assembled Debian/Ubuntu .deb development package.
+- Index database symlink protections and prohibition on overlapping search roots.
 
 Not yet implemented: PDF/OCR extraction, file monitoring, content provider
 plugins, remote/cloud search, AI, Quick Keys, global hotkeys, clipboard capture
@@ -54,6 +56,16 @@ python3 -m venv --system-site-packages .venv
 .venv/bin/python -m pip install -e .
 .venv/bin/goreecloud-index gui
 ```
+
+## Debian package candidate
+
+Build a local package without installing it:
+
+    python3 tools/build_deb.py --output-dir dist
+
+See [Linux packaging and acceptance limitations](docs/LINUX-PACKAGING.md).
+The package is not signed or released as Stable, and the build performs no
+system-wide installation.
 
 ## CLI
 

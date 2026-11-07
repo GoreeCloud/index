@@ -59,23 +59,50 @@ class IndexStore:
     def __init__(self, db: Path | None = None) -> None:
         self.path = Path(db) if db else database_path()
         parent = self.path.parent
+        if parent.is_symlink():
+            raise ValueError("Index storage folder cannot be a symbolic link")
         parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         if db is None and os.name == "posix":
             parent.chmod(0o700)
-        with self.connect() as conn:
-            conn.executescript(SCHEMA)
+        if self.path.is_symlink():
+            raise ValueError("Index database cannot be a symbolic link")
+        # SQLite creates a database using the process umask, which may be
+        # permissive. Reserve a 0600 file before opening SQLite to avoid a
+        # transient world-readable metadata store.
+        if not self.path.exists():
+            flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+            flags |= getattr(os, "O_NOFOLLOW", 0)
+            try:
+                fd = os.open(self.path, flags, 0o600)
+            except FileExistsError:
+                if self.path.is_symlink():
+                    raise ValueError("Index database cannot be a symbolic link")
+            else:
+                os.close(fd)
+        if not self.path.is_file() or self.path.is_symlink():
+            raise ValueError("Index database must be a regular file")
         if os.name == "posix":
             self.path.chmod(0o600)
+        with self.connect() as conn:
+            conn.executescript(SCHEMA)
 
     def connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=10.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA secure_delete = ON")
         conn.execute("PRAGMA busy_timeout = 10000")
         return conn
 
     def add_root(self, path: str | Path, include_content: bool = False) -> Root:
         root = safe_root(path)
+        # Overlapping roots would share the same item paths but disagree on
+        # permissions and stale-entry ownership. Reject the overlap rather
+        # than accidentally indexing child files with the parent's consent.
+        for existing in self.roots():
+            other = Path(existing.path)
+            if root != other and (root in other.parents or other in root.parents):
+                raise ValueError("Indexed directories cannot overlap")
         with self.connect() as conn:
             conn.execute(
                 """INSERT INTO roots(path, include_content) VALUES (?, ?)
@@ -94,12 +121,26 @@ class IndexStore:
         with self.connect() as conn:
             deleted = conn.execute("DELETE FROM roots WHERE path = ?", (normalized,)).rowcount
             conn.execute("DELETE FROM items WHERE root = ?", (normalized,))
+        if deleted:
+            self._compact_deleted_index()
         return bool(deleted)
 
     def clear_items(self) -> None:
-        """Remove only indexed metadata; source files and configured roots remain."""
+        """Remove indexed metadata; source files and configured roots remain."""
         with self.connect() as conn:
             conn.execute("DELETE FROM items")
+        self._compact_deleted_index()
+
+    def _compact_deleted_index(self) -> None:
+        """Rebuild FTS and vacuum stale pages after explicit deletion.
+
+        This reduces ordinary on-disk remnants but is not a secure erase of
+        SSD cells, OS snapshots, filesystems, or separate backups.
+        """
+        with self.connect() as conn:
+            conn.execute("INSERT INTO items_fts(items_fts) VALUES ('rebuild')")
+        with self.connect() as conn:
+            conn.execute("VACUUM")
 
     def count(self) -> int:
         with self.connect() as conn:

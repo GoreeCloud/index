@@ -6,6 +6,8 @@ htmlcov/
 *.egg-info/
 build/
 dist/
+# Linux package staging and outputs
+*.deb
 .venv/
 *.db
 *.db-*

@@ -21,10 +21,30 @@ jobs:
           python-version: "3.12"
       - name: Install first-party package
         run: python -m pip install --no-deps -e .
-      - name: Compile native-app Python modules
-        run: python -m compileall -q src
+      - name: Compile source and packaging utilities
+        run: python -m compileall -q src tools tests
       - name: Run offline standard-library tests
         run: python -m unittest discover -s tests -v
+
+  deb-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build rootless Debian development candidate
+        run: python3 tools/build_deb.py --output-dir dist
+      - name: Inspect and unpack without installing
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="dist/goreecloud-index_0.1.0-1_all.deb"
+          dpkg-deb --field "$package" Package Version Architecture Depends
+          dpkg-deb --contents "$package"
+          sha256sum "$package"
+          mkdir -p "$RUNNER_TEMP/goreecloud-index-extracted"
+          dpkg-deb -x "$package" "$RUNNER_TEMP/goreecloud-index-extracted"
+          PYTHONPATH="$RUNNER_TEMP/goreecloud-index-extracted/usr/lib/python3/dist-packages" \
+            /usr/bin/python3 -m goreecloud_index calc "12% of 75"
 
   linux-gtk:
     runs-on: ubuntu-24.04
@@ -35,6 +55,29 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 xvfb
-      - name: Smoke-test GTK import without installation or network
+      - name: Smoke-test GTK window lifecycle under Xvfb
+        shell: bash
         run: |
-          PYTHONPATH=src xvfb-run -a /usr/bin/python3 -c "from goreecloud_index.ui import IndexApplication; print('GTK application import OK')"
+          set -euo pipefail
+          export PYTHONPATH=src
+          export XDG_DATA_HOME="$RUNNER_TEMP/goreecloud-index-smoke-data"
+          xvfb-run -a /usr/bin/python3 - <<'PY'
+          import gi
+          gi.require_version("Gdk", "4.0")
+          from gi.repository import Gdk, GLib
+          from goreecloud_index.ui import IndexApplication
+          app = IndexApplication()
+          def exercise_modes():
+              assert app.window is not None
+              assert app.mode_buttons["all"].get_active()
+              assert app._key_pressed(None, Gdk.KEY_2, 0, Gdk.ModifierType.CONTROL_MASK)
+              assert app.mode == "apps" and app.mode_buttons["apps"].get_active()
+              assert app._key_pressed(None, Gdk.KEY_3, 0, Gdk.ModifierType.CONTROL_MASK)
+              assert app.mode == "files" and app.mode_buttons["files"].get_active()
+              app.quit()
+              return GLib.SOURCE_REMOVE
+          GLib.timeout_add(250, exercise_modes)
+          GLib.timeout_add(2000, app.quit)
+          assert app.run([]) == 0
+          print("GTK4 startup, keyboard modes and shutdown OK")
+          PY

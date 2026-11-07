@@ -8,7 +8,10 @@ Status: **Linux development preview**, not an audited security product.
 - Filename and directory metadata are indexed by default; supported text content
   is indexed only if the user separately requests the optional content flag.
 - The database is stored under the XDG data directory with owner-only access on
-  POSIX. The application does not retain queries or clipboard history.
+  POSIX. Initial creation reserves mode 0600 before SQLite opens the file.
+  Direct database/directory symlinks are refused to prevent accidental writes
+  outside the intended location. The application does not retain queries or
+  clipboard history.
 - Dotfiles, common credential stores, source-control internals and symlinks
   are skipped even inside an approved directory.
 - The source code has **no network search, telemetry, account login, or cloud sync**.
@@ -24,6 +27,8 @@ Status: **Linux development preview**, not an audited security product.
 - Application launches use Gio application IDs; file opening uses the associated
   default URI handler only after user interaction.
 - Scans do not follow symbolic links or cross filesystem devices.
+- Overlapping indexed roots are rejected to prevent conflicting content-access
+  permissions and stale-entry ownership.
 - Plain-text extraction is bounded to 64 KiB and limited to selected suffixes.
 - Scan failures do not trigger bulk stale-record deletions.
 - Recursive scans have a hard limit of 20,000 entries per selected root.

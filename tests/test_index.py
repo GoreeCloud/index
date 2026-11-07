@@ -123,6 +123,52 @@ class IndexTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             search_files(self.store, "test", limit=101)
 
+    def test_rejects_overlapping_index_roots(self) -> None:
+        nested = self.files / "nested"
+        nested.mkdir()
+        self.store.add_root(self.files)
+        with self.assertRaisesRegex(ValueError, "overlap"):
+            self.store.add_root(nested)
+        self.store.remove_root(self.files)
+        self.store.add_root(nested)
+        with self.assertRaisesRegex(ValueError, "overlap"):
+            self.store.add_root(self.files)
+
+    def test_rejects_symlink_database_file_and_directory(self) -> None:
+        original = self.base / "original.db"
+        original.write_text("do not touch", encoding="utf-8")
+        linked_file = self.base / "db-link"
+        linked_file.symlink_to(original)
+        with self.assertRaisesRegex(ValueError, "symbolic link"):
+            IndexStore(linked_file)
+        self.assertEqual(original.read_text(encoding="utf-8"), "do not touch")
+        real_dir = self.base / "real-dir"
+        real_dir.mkdir()
+        linked_dir = self.base / "db-dir-link"
+        linked_dir.symlink_to(real_dir, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "symbolic link"):
+            IndexStore(linked_dir / "index.sqlite3")
+
+    def test_private_index_db_permissions(self) -> None:
+        import os
+        if os.name != "posix":
+            self.skipTest("POSIX permissions")
+        self.assertEqual(self.store.path.stat().st_mode & 0o777, 0o600)
+
+    def test_clear_removes_index_and_retains_originals_and_roots(self) -> None:
+        original = self.files / "canary-data.txt"
+        original.write_text("private-canary-value", encoding="utf-8")
+        root = self.store.add_root(self.files, include_content=True)
+        scan_root(self.store, root)
+        self.assertEqual(len(search_files(self.store, "canary")), 1)
+        self.store.clear_items()
+        self.assertEqual(self.store.count(), 0)
+        self.assertEqual(search_files(self.store, "canary"), [])
+        self.assertEqual(len(self.store.roots()), 1)
+        self.assertEqual(original.read_text(encoding="utf-8"), "private-canary-value")
+        scan_root(self.store, root)
+        self.assertEqual(len(search_files(self.store, "canary")), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
