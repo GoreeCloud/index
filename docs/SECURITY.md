@@ -39,6 +39,13 @@ Status: **Linux development preview**, not an audited security product.
 - No unrestricted shell execution, automatic script execution, or privilege escalation.
 - Application launches use Gio application IDs; file opening uses the associated
   default URI handler only after user interaction.
+- Linux scans use descriptor-anchored `os.fwalk`, `stat(..., dir_fd=...)`
+  and file-content `openat` with `O_NOFOLLOW`, device/inode checks, and
+  stale-path validation. File and directory symlink swaps cannot redirect
+  content extraction into outside directories; stale paths are skipped.
+- Explicit file opening rejects paths containing visible symlink ancestors
+  before using Gio; pathname-based URI handlers still have inherent race
+  limitations and require a user activation.
 - Scans do not follow symbolic links or cross filesystem devices.
 - Overlapping indexed roots are rejected to prevent conflicting content-access
   permissions and stale-entry ownership. User-selected exclusion folders must
@@ -64,6 +71,10 @@ Status: **Linux development preview**, not an audited security product.
 - Native GTK application behavior needs interactive accessibility, Wayland/X11,
   packaging and distribution-specific acceptance before stable release.
 - Existing indexed entries remain stored until a rescan or explicit removal.
+- A replacement of the top-level selected root with a different non-symlink
+  directory before its initial open is not yet prevented by an inode identity
+  persisted at root authorization time. This is an open threat-model item;
+  desktop URI handlers also cannot guarantee race-free path opening.
 - No claim of malware detection or threat scanning is made for GoreeCloud Index.
 
 Report security issues privately to the repository owner; do not file sensitive

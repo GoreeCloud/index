@@ -132,6 +132,77 @@ class IndexTests(unittest.TestCase):
         self.assertNotIn("link.txt", names)
         self.assertNotIn("id_rsa", names)
 
+    def test_directory_swap_to_symlink_does_not_read_outside_content(self) -> None:
+        from unittest.mock import patch
+        from goreecloud_index import scanner
+
+        nested = self.files / "documents"
+        nested.mkdir()
+        inside = nested / "entry.md"
+        inside.write_text("inside-canary", encoding="utf-8")
+        outside = self.base / "outside"
+        outside.mkdir()
+        (outside / "entry.md").write_text("outside-private-canary", encoding="utf-8")
+        moved = self.base / "original-documents"
+        original = scanner._read_text
+        swapped = False
+
+        def swap_then_read(path, size, enabled):
+            nonlocal swapped
+            if not swapped:
+                swapped = True
+                nested.rename(moved)
+                nested.symlink_to(outside, target_is_directory=True)
+            return original(path, size, enabled)
+
+        root = self.store.add_root(self.files, include_content=True)
+        with patch.object(scanner, "_read_text", side_effect=swap_then_read):
+            scan_root(self.store, root)
+        self.assertTrue(swapped)
+        self.assertEqual(search_files(self.store, "outside"), [])
+        # The original directory was renamed during the read: its now-stale
+        # searchable path must be rejected as well as the outside content.
+        self.assertEqual(search_files(self.store, "inside"), [])
+        self.assertEqual((outside / "entry.md").read_text(), "outside-private-canary")
+
+    def test_file_swap_to_symlink_does_not_read_outside_content(self) -> None:
+        from unittest.mock import patch
+        from goreecloud_index import scanner
+
+        file = self.files / "report.md"
+        file.write_text("safe-content-canary", encoding="utf-8")
+        outside = self.base / "outside.md"
+        outside.write_text("secret-content-canary", encoding="utf-8")
+        relocated = self.base / "original-report.md"
+        original = scanner._read_text
+        swapped = False
+
+        def swap_then_read(path, size, enabled):
+            nonlocal swapped
+            if not swapped:
+                swapped = True
+                file.rename(relocated)
+                file.symlink_to(outside)
+            return original(path, size, enabled)
+
+        root = self.store.add_root(self.files, include_content=True)
+        with patch.object(scanner, "_read_text", side_effect=swap_then_read):
+            scan_root(self.store, root)
+        self.assertTrue(swapped)
+        self.assertEqual(search_files(self.store, "secret"), [])
+        self.assertTrue(relocated.is_file())
+
+    def test_open_result_rejects_parent_symlink_redirect(self) -> None:
+        from goreecloud_index.apps import open_path
+
+        outside = self.base / "outside"
+        outside.mkdir()
+        (outside / "document.txt").write_text("outside-canary", encoding="utf-8")
+        redirected = self.files / "redirected"
+        redirected.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "unsafe"):
+            open_path(str(redirected / "document.txt"))
+
     def test_recovers_deletions_on_successful_rescan(self) -> None:
         file = self.files / "obsolete.txt"
         file.write_text("obsolete")
