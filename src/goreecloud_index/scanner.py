@@ -2,8 +2,8 @@
 
 All descendant traversal and file opening is relative to verified directory
 descriptors. Symlink swaps cannot redirect file-content reads outside an
-authorized directory. Root replacement at the initial open remains a separate
-hardening target: this module is a development preview, not a sandbox.
+authorized directory. Roots and indexed items are identity-checked. This
+is a development preview, not a filesystem sandbox or race-free URI opener.
 """
 
 from __future__ import annotations
@@ -206,16 +206,19 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
                             break
                         conn.execute(
                             """INSERT INTO items
-                               (path, root, name, extension, mime, size, mtime_ns, content, generation)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                               (path, root, name, extension, mime, size, mtime_ns,
+                                content, generation, device, inode)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                ON CONFLICT(path) DO UPDATE SET
                                root=excluded.root, name=excluded.name,
                                extension=excluded.extension, mime=excluded.mime,
                                size=excluded.size, mtime_ns=excluded.mtime_ns,
-                               content=excluded.content, generation=excluded.generation""",
+                               content=excluded.content, generation=excluded.generation,
+                               device=excluded.device, inode=excluded.inode""",
                             (str(entry), root.path, name,
                              "" if is_dir else entry.suffix.lower().lstrip("."),
-                             mime, st.st_size, st.st_mtime_ns, content, generation),
+                             mime, st.st_size, st.st_mtime_ns, content, generation,
+                             st.st_dev, st.st_ino),
                         )
                         count += 1
                     except (OSError, ValueError):

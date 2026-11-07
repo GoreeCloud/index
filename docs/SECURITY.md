@@ -55,10 +55,15 @@ Status: **Linux development preview**, not an audited security product.
 - Directory opens verify each path component with `O_NOFOLLOW`.
   Older databases migrate to nullable identity columns, leaving old roots
   unbound until the user explicitly reauthorizes them.
-- The UI rechecks index membership and currently pinned root consent
-  immediately before requesting a file-open action; old displayed hits from
-  removed/excluded/replaced folders are rejected. This does not make Gio
-  pathname-based URI handoff atomic with respect to further filesystem swaps.
+- The scanner records each indexed file/directory's own device/inode.
+  The UI rechecks indexed membership, root consent **and the individual item's
+  identity** immediately before opening, through descriptor-anchored
+  non-symlink path traversal. A replacement at the same pathname is refused
+  until a new scan records it. Legacy databases acquire nullable item identity
+  columns and hide their previously cached results until rescanned; no
+  existing file is silently assigned a new inode at migration.
+  This does not make Gio pathname-based URI handoff atomic with respect
+  to subsequent filesystem swaps.
 - Explicit reauthorization resets text permission to metadata-only, clears
   indexed metadata and prior exclusion rules, and leaves original files
   untouched. File-system inode reuse and a race between URI validation
@@ -88,10 +93,12 @@ Status: **Linux development preview**, not an audited security product.
 - Native GTK application behavior needs interactive accessibility, Wayland/X11,
   packaging and distribution-specific acceptance before stable release.
 - Existing indexed entries remain stored until a rescan or explicit removal.
-- A replacement of the top-level selected root with a different non-symlink
-  directory before its initial open is not yet prevented by an inode identity
-  persisted at root authorization time. This is an open threat-model item;
-  desktop URI handlers also cannot guarantee race-free path opening.
+- The root and individual index entries now have filesystem identity
+  checks, but filesystem inode reuse remains possible, and the external Gio
+  URI-handler launch is **not atomic** with the final pathname validation.
+  Further security review is required before claiming race-free file handoff.
+  Existing users must explicitly rescan after the item-identity migration to
+  make old files searchable/openable again; no automatic recursive scan runs.
 - No claim of malware detection or threat scanning is made for GoreeCloud Index.
 
 Report security issues privately to the repository owner; do not file sensitive

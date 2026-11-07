@@ -75,6 +75,47 @@ def root_identity(path: str | Path) -> tuple[int, int]:
         os.close(fd)
 
 
+def entry_identity(root: str | Path, entry: str | Path) -> tuple[int, int, bool]:
+    """Inspect a child through pinned Linux directory descriptors.
+
+    No symlink component is followed. This check pins identity at the moment
+    of validation; a later pathname-based Gio handoff can still race.
+    """
+    import stat
+
+    base = Path(os.path.abspath(os.path.expanduser(str(root))))
+    target = Path(os.path.abspath(os.path.expanduser(str(entry))))
+    try:
+        parts = target.relative_to(base).parts
+    except ValueError as exc:
+        raise ValueError("File is outside approved indexing root") from exc
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise ValueError("Index item must be below the selected root")
+    if not hasattr(os, "O_PATH") or not hasattr(os, "O_NOFOLLOW"):
+        raise RuntimeError("Pinned entry validation requires Linux")
+    directory_fd = open_root_directory(base)
+    try:
+        directory_flags = (
+            os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+            | getattr(os, "O_CLOEXEC", 0)
+        )
+        for part in parts[:-1]:
+            next_fd = os.open(part, directory_flags, dir_fd=directory_fd)
+            os.close(directory_fd)
+            directory_fd = next_fd
+        final_flags = os.O_PATH | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+        item_fd = os.open(parts[-1], final_flags, dir_fd=directory_fd)
+        try:
+            st = os.fstat(item_fd)
+        finally:
+            os.close(item_fd)
+        if not (stat.S_ISDIR(st.st_mode) or stat.S_ISREG(st.st_mode)):
+            raise ValueError("Indexed item is no longer a regular file or directory")
+        return st.st_dev, st.st_ino, stat.S_ISDIR(st.st_mode)
+    finally:
+        os.close(directory_fd)
+
+
 def safe_root(path: str | Path) -> Path:
     """Validate a user-selected directory without following symlinked ancestors."""
     p = Path(os.path.abspath(os.path.expanduser(str(path))))

@@ -24,9 +24,14 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   stored search hits are hidden if a root is replaced or unbound.
 - Explicit reauthorization in GTK or CLI resets the root to metadata-only and
   clears the old index/exclusions, without touching original files.
-- Opening a file result from the desktop interface rechecks that the item
-  is still indexed and its source root remains authorized; external URI
-  handoff remains subject to a narrow race with filesystem changes.
+- Indexed files and folders are now pinned to their **own** filesystem
+  device/inode when scanned, in addition to the authorized root. If an item is
+  replaced at the same pathname, opening it is refused until a manual rescan
+  approves the new identity. Existing databases without pinned item identity
+  hide those old search results until a rescan; source files are never altered.
+- The native file-opening action rechecks both the root and the indexed item's
+  own identity through no-symlink directory descriptors. External Gio URI
+  handoff is still pathname-based and can race with later filesystem changes.
 - Consent-based indexing of named local directories with SQLite FTS5.
 - Native indexed-folder manager that shows approved roots and their content
   access level, with confirmation before revoking access and deleting index data.
