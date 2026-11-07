@@ -35,7 +35,7 @@ def _stage_file(source: Path, target: Path, permissions: int = 0o644) -> None:
     target.chmod(permissions)
 
 
-def build(output_directory: Path) -> Path:
+def build(output_directory: Path, revision: int = 1) -> Path:
     executable = shutil.which("dpkg-deb")
     if not executable:
         raise RuntimeError("dpkg-deb is required; build on Debian/Ubuntu")
@@ -46,12 +46,14 @@ def build(output_directory: Path) -> Path:
     version = str(project["version"])
     if not version or any(c not in "0123456789abcdefghijklmnopqrstuvwxyz.+~-" for c in version):
         raise ValueError("Unsupported Debian version")
+    if type(revision) is not int or revision < 1 or revision > 9999:
+        raise ValueError("Debian package revision must be an integer from 1 to 9999")
     stamp = int(os.environ.get("SOURCE_DATE_EPOCH", "0"))
     if stamp < 0:
         raise ValueError("SOURCE_DATE_EPOCH must not be negative")
     output_directory = output_directory.expanduser().resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
-    artifact = output_directory / f"{PACKAGE}_{version}-1_all.deb"
+    artifact = output_directory / f"{PACKAGE}_{version}-{revision}_all.deb"
     if artifact.exists():
         raise FileExistsError(f"Package exists; choose an empty output folder: {artifact}")
 
@@ -75,7 +77,7 @@ def build(output_directory: Path) -> Path:
         control.parent.mkdir(parents=True, exist_ok=True)
         control.write_text(
             "Package: goreecloud-index\n"
-            f"Version: {version}-1\n"
+            f"Version: {version}-{revision}\n"
             "Section: utils\n"
             "Priority: optional\n"
             "Architecture: all\n"
@@ -109,9 +111,11 @@ def build(output_directory: Path) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=ROOT / "dist")
+    parser.add_argument("--revision", type=int, default=1,
+                        help="Debian packaging revision (1–9999), not application version")
     args = parser.parse_args()
     try:
-        build(args.output_dir)
+        build(args.output_dir, revision=args.revision)
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
         parser.exit(2, f"Debian build failed: {exc}\n")
     return 0

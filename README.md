@@ -31,6 +31,8 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   owner-only data-directory permissions, and a local CLI.
 - Core unit tests and Linux CI gates.
 - Reproducible, rootlessly assembled Debian/Ubuntu .deb development package.
+- Offline disposable-container dpkg install/upgrade/rollback/purge lifecycle validation
+  (dependency checks intentionally bypassed; not distro acceptance).
 - Index database symlink protections and prohibition on overlapping search roots.
 
 Not yet implemented: PDF/OCR extraction, file monitoring, content provider
@@ -70,6 +72,16 @@ python3 -m venv --system-site-packages .venv
 Build a local package without installing it:
 
     python3 tools/build_deb.py --output-dir dist
+
+To create a separate Debian packaging revision of the same source:
+
+    python3 tools/build_deb.py --output-dir dist --revision 2
+
+To validate package-manager lifecycle inside a disposable rootless, network-disabled
+container (only if the pinned Python image is already present in Podman):
+
+    python3 tools/verify_deb_lifecycle.py --engine podman \
+      --image docker.io/library/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b
 
 See [Linux packaging and acceptance limitations](docs/LINUX-PACKAGING.md).
 The package is not signed or released as Stable, and the build performs no

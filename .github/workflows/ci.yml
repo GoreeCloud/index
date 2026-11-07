@@ -46,6 +46,18 @@ jobs:
           PYTHONPATH="$RUNNER_TEMP/goreecloud-index-extracted/usr/lib/python3/dist-packages" \
             /usr/bin/python3 -m goreecloud_index calc "12% of 75"
 
+  deb-isolated-lifecycle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull pinned Debian Python test container
+        run: docker pull docker.io/library/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b
+      - name: Check package install, upgrade, rollback and purge in offline container
+        run: |
+          python3 tools/verify_deb_lifecycle.py --engine docker \
+            --image docker.io/library/python@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b
+
   linux-gtk:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
