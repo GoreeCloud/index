@@ -60,24 +60,4 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH=src
-          export XDG_DATA_HOME="$RUNNER_TEMP/goreecloud-index-smoke-data"
-          xvfb-run -a /usr/bin/python3 - <<'PY'
-          import gi
-          gi.require_version("Gdk", "4.0")
-          from gi.repository import Gdk, GLib
-          from goreecloud_index.ui import IndexApplication
-          app = IndexApplication()
-          def exercise_modes():
-              assert app.window is not None
-              assert app.mode_buttons["all"].get_active()
-              assert app._key_pressed(None, Gdk.KEY_2, 0, Gdk.ModifierType.CONTROL_MASK)
-              assert app.mode == "apps" and app.mode_buttons["apps"].get_active()
-              assert app._key_pressed(None, Gdk.KEY_3, 0, Gdk.ModifierType.CONTROL_MASK)
-              assert app.mode == "files" and app.mode_buttons["files"].get_active()
-              app.quit()
-              return GLib.SOURCE_REMOVE
-          GLib.timeout_add(250, exercise_modes)
-          GLib.timeout_add(2000, app.quit)
-          assert app.run([]) == 0
-          print("GTK4 startup, keyboard modes and shutdown OK")
-          PY
+          xvfb-run -a /usr/bin/python3 tools/smoke_gtk.py

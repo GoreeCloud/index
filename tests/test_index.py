@@ -149,6 +149,22 @@ class IndexTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "symbolic link"):
             IndexStore(linked_dir / "index.sqlite3")
 
+    def test_revoked_root_cannot_be_rescanned_from_old_snapshot(self) -> None:
+        (self.files / "private.md").write_text("confidential", encoding="utf-8")
+        root = self.store.add_root(self.files, include_content=True)
+        self.assertTrue(self.store.remove_root(self.files))
+        with self.assertRaisesRegex(ValueError, "permission was revoked"):
+            scan_root(self.store, root)
+        self.assertEqual(self.store.count(), 0)
+
+    def test_scanning_uses_current_content_consent(self) -> None:
+        (self.files / "private.md").write_text("only-in-body-canary", encoding="utf-8")
+        prior = self.store.add_root(self.files, include_content=True)
+        self.store.add_root(self.files, include_content=False)
+        scan_root(self.store, prior)
+        self.assertEqual(search_files(self.store, "canary"), [])
+        self.assertEqual(len(search_files(self.store, "private")), 1)
+
     def test_private_index_db_permissions(self) -> None:
         import os
         if os.name != "posix":

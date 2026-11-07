@@ -14,12 +14,15 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   Applications / Files / Actions modes. Clipboard history is visibly off.
 - Application listing and launching through Gio/freedesktop app registry.
 - Consent-based indexing of named local directories with SQLite FTS5.
+- Native indexed-folder manager that shows approved roots and their content
+  access level, with confirmation before revoking access and deleting index data.
 - Default metadata search; explicit optional text extraction for supported small
   UTF-8-ish source and document formats.
 - Search terms and basic `kind:`, `ext:`, and `path:` filters.
 - Sandboxed arithmetic, percentages, temperature and offline unit conversions.
 - Open files and folders through registered system URI handlers; no shell.
-- Manual rescans, stale-entry reconciliation, privacy-oriented exclusions,
+- Manual rescans, stale-entry reconciliation, revocation-aware scan permissions,
+  privacy-oriented exclusions,
   owner-only data-directory permissions, and a local CLI.
 - Core unit tests and Linux CI gates.
 - Reproducible, rootlessly assembled Debian/Ubuntu .deb development package.
