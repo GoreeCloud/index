@@ -169,6 +169,28 @@ class IndexStore:
         except (OSError, ValueError, RuntimeError):
             return False
 
+    def result_is_authorized(self, item_path: str | Path) -> bool:
+        """Revalidate a selected search hit just before requesting GUI open.
+
+        This rejects stale UI rows after consent revocation, exclusion, root
+        replacement, or index clearing. Gio URI handoff remains pathname-based
+        and can race with further filesystem changes.
+        """
+        item = os.path.abspath(os.path.expanduser(str(item_path)))
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT i.root, r.include_content, r.device, r.inode "
+                "FROM items i JOIN roots r ON r.path = i.root WHERE i.path = ?",
+                (item,),
+            ).fetchone()
+        if row is None:
+            return False
+        root = Root(row["root"], bool(row["include_content"]),
+                    row["device"], row["inode"])
+        if Path(root.path) not in Path(item).parents:
+            return False
+        return self.root_is_current(root)
+
     def reauthorize_root(self, path: str | Path) -> Root:
         """Explicit consent renewal after replacement or legacy schema migration.
 
