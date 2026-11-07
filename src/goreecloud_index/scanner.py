@@ -61,6 +61,14 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
         errors += 1
 
     with store.connect() as conn:
+        # A queued background scan must not revive items after the user
+        # revoked its source root, nor retain an old content-consent level.
+        consent = conn.execute(
+            "SELECT include_content FROM roots WHERE path = ?", (root.path,)
+        ).fetchone()
+        if consent is None:
+            raise ValueError(f"Index permission was revoked for {root.path}")
+        include_content = bool(consent["include_content"])
         for directory, names, files in os.walk(path, topdown=True, followlinks=False, onerror=on_error):
             current = Path(directory)
             if current.is_symlink():
@@ -95,7 +103,7 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
                         mimetypes.guess_type(entry.name)[0] or "application/octet-stream"
                     )
                     content = "" if is_dir else _read_text(
-                        entry, st.st_size, root.include_content
+                        entry, st.st_size, include_content
                     )
                     conn.execute(
                         """INSERT INTO items

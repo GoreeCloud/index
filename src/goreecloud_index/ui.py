@@ -39,6 +39,8 @@ class IndexApplication(Adw.Application):
         self.search_entry: Gtk.SearchEntry | None = None
         self.status_label: Gtk.Label | None = None
         self.content_check: Gtk.CheckButton | None = None
+        self.roots_window: Gtk.Window | None = None
+        self.roots_list: Gtk.ListBox | None = None
         self.mode = "all"
         self.mode_buttons: dict[str, Gtk.ToggleButton] = {}
         self.apps: list[Application] = []
@@ -87,6 +89,9 @@ class IndexApplication(Adw.Application):
         refresh = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text="Rescan selected directories")
         refresh.connect("clicked", self._scan)
         header.pack_end(refresh)
+        roots = Gtk.Button(icon_name="folder-symbolic", tooltip_text="Manage indexed folders")
+        roots.connect("clicked", self._show_roots)
+        header.pack_end(roots)
         toolbar.add_top_bar(header)
 
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
@@ -159,6 +164,9 @@ class IndexApplication(Adw.Application):
             "Opt in to reading supported plain-text files in the next folder you add"
         )
         controls.append(self.content_check)
+        manage = Gtk.Button(label="Manage indexed folders")
+        manage.connect("clicked", self._show_roots)
+        controls.append(manage)
         outer.append(controls)
         footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         status = Gtk.Label(xalign=0, label="Local only · No folder selected")
@@ -320,6 +328,141 @@ class IndexApplication(Adw.Application):
         except (ValueError, RuntimeError, GLib.Error, OSError) as exc:
             self._set_status(f"Could not perform action: {exc}")
 
+    def _show_roots(self, *_unused) -> None:
+        """Expose and revoke explicit indexing consent without a terminal."""
+        if self.window is None or self.store is None:
+            return
+        if self.roots_window is not None:
+            self.roots_window.present()
+            return
+        manager = Gtk.Window()
+        manager.set_application(self)
+        manager.set_title("Indexed folders")
+        manager.set_default_size(640, 420)
+        manager.set_transient_for(self.window)
+        manager.set_modal(True)
+        manager.connect("close-request", self._roots_closed)
+
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        outer.set_margin_top(20)
+        outer.set_margin_bottom(20)
+        outer.set_margin_start(20)
+        outer.set_margin_end(20)
+
+        title = Gtk.Label(label="Your indexed folders", xalign=0)
+        title.add_css_class("title-2")
+        outer.append(title)
+        help_text = Gtk.Label(
+            label="Only folders you approved are indexed. Remove access any time; "
+                  "your original files are never deleted.",
+            xalign=0,
+        )
+        help_text.set_wrap(True)
+        help_text.add_css_class("index-description")
+        outer.append(help_text)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_vexpand(True)
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        roots_list = Gtk.ListBox()
+        roots_list.add_css_class("boxed-list")
+        roots_list.set_selection_mode(Gtk.SelectionMode.NONE)
+        scroll.set_child(roots_list)
+        outer.append(scroll)
+
+        add = Gtk.Button(label="Add another folder…")
+        add.set_halign(Gtk.Align.START)
+        add.connect("clicked", self._choose_folder)
+        outer.append(add)
+        manager.set_child(outer)
+        self.roots_window = manager
+        self.roots_list = roots_list
+        self._render_roots()
+        manager.present()
+
+    def _roots_closed(self, *_unused) -> bool:
+        self.roots_window = None
+        self.roots_list = None
+        return False
+
+    def _render_roots(self) -> None:
+        if self.store is None or self.roots_list is None:
+            return
+        child = self.roots_list.get_first_child()
+        while child is not None:
+            following = child.get_next_sibling()
+            self.roots_list.remove(child)
+            child = following
+
+        roots = self.store.roots()
+        if not roots:
+            row = Gtk.ListBoxRow()
+            row.set_activatable(False)
+            label = Gtk.Label(label="No folders are currently indexed.", xalign=0)
+            label.set_margin_top(18)
+            label.set_margin_bottom(18)
+            label.set_margin_start(15)
+            label.set_margin_end(15)
+            row.set_child(label)
+            self.roots_list.append(row)
+            return
+
+        for root in roots:
+            row = Gtk.ListBoxRow()
+            row.set_activatable(False)
+            content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            content.set_margin_top(10)
+            content.set_margin_bottom(10)
+            content.set_margin_start(12)
+            content.set_margin_end(12)
+            labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            labels.set_hexpand(True)
+            label = Gtk.Label(label=root.path, xalign=0, ellipsize=3)
+            label.set_selectable(True)
+            labels.append(label)
+            level = ("Names and small text contents" if root.include_content
+                     else "Names and file metadata only")
+            detail = Gtk.Label(label=level, xalign=0)
+            detail.add_css_class("index-description")
+            labels.append(detail)
+            content.append(labels)
+            revoke = Gtk.Button(label="Remove access")
+            revoke.add_css_class("destructive-action")
+            revoke.set_valign(Gtk.Align.CENTER)
+            revoke.set_tooltip_text("Remove this folder and its local index entries")
+            revoke.connect("clicked", self._confirm_remove_root, root.path)
+            content.append(revoke)
+            row.set_child(content)
+            self.roots_list.append(row)
+
+    def _confirm_remove_root(self, _button: Gtk.Button, path: str) -> None:
+        if self.window is None:
+            return
+        dialog = Adw.MessageDialog.new(
+            self.roots_window or self.window,
+            "Stop indexing this folder?",
+            f"{path}\n\nIts search entries will be cleared. The original files stay untouched.",
+        )
+        dialog.add_response("cancel", "Cancel")
+        dialog.add_response("remove", "Remove access")
+        dialog.set_response_appearance("remove", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("cancel")
+        dialog.set_close_response("cancel")
+        dialog.connect("response", self._remove_root_response, path)
+        dialog.present()
+
+    def _remove_root_response(self, _dialog, response: str, path: str) -> None:
+        if response != "remove" or self.store is None:
+            return
+        try:
+            self.store.remove_root(path)
+        except (OSError, ValueError) as exc:
+            self._set_status(f"Could not remove folder access: {exc}")
+            return
+        self._render_roots()
+        self._refresh()
+        self._set_status("Folder access removed. Original files remain untouched.")
+
     def _choose_folder(self, *_unused) -> None:
         if self.window is None:
             return
@@ -345,6 +488,7 @@ class IndexApplication(Adw.Application):
         except (OSError, ValueError) as exc:
             self._set_status(f"Folder not added: {exc}")
             return
+        self._render_roots()
         self._scan_selected(root)
 
     def _scan_selected(self, root) -> None:
