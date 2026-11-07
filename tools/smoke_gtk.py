@@ -195,6 +195,21 @@ def main() -> int:
                 stale_row = app.list_box.get_row_at_index(0)
                 assert stale_row is not None
                 assert app.hits[0].value == str(stale_hit_file)
+                # Same authorized root, but a different real file at the
+                # identical pathname must NOT inherit an old result's
+                # permission until a new scan records its own identity.
+                from unittest.mock import patch
+                moved_file = home / "previous-file.md"
+                stale_hit_file.rename(moved_file)
+                stale_hit_file.write_text("new unscanned file", encoding="utf-8")
+                with patch("goreecloud_index.ui.open_path") as opener:
+                    app._activate_row(app.list_box, stale_row)
+                    opener.assert_not_called()
+                assert "index permission changed" in app.status_label.get_text()
+                stale_hit_file.unlink()
+                moved_file.rename(stale_hit_file)
+                assert app.store.result_is_authorized(stale_hit_file)
+
                 previous = home / "previous-root"
                 another.rename(previous)
                 another.mkdir()

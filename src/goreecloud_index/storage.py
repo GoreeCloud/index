@@ -7,7 +7,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import database_path, safe_root, root_identity
+from .config import database_path, safe_root, root_identity, entry_identity
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,9 @@ CREATE TABLE IF NOT EXISTS items (
     size INTEGER NOT NULL,
     mtime_ns INTEGER NOT NULL,
     content TEXT NOT NULL DEFAULT '',
-    generation INTEGER NOT NULL
+    generation INTEGER NOT NULL,
+    device INTEGER,
+    inode INTEGER
 );
 CREATE INDEX IF NOT EXISTS items_root_idx ON items(root);
 CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
@@ -100,6 +102,13 @@ class IndexStore:
             for column in ("device", "inode"):
                 if column not in cols:
                     conn.execute(f"ALTER TABLE roots ADD COLUMN {column} INTEGER")
+            # Old indexed rows have no reliable per-file identity and must
+            # not be opened until an explicitly authorized rescan replaces
+            # their NULL metadata. Never bless them by current pathname.
+            item_cols = {row["name"] for row in conn.execute("PRAGMA table_info(items)")}
+            for column in ("device", "inode"):
+                if column not in item_cols:
+                    conn.execute(f"ALTER TABLE items ADD COLUMN {column} INTEGER")
 
     def connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=10.0)
@@ -172,14 +181,16 @@ class IndexStore:
     def result_is_authorized(self, item_path: str | Path) -> bool:
         """Revalidate a selected search hit just before requesting GUI open.
 
-        This rejects stale UI rows after consent revocation, exclusion, root
-        replacement, or index clearing. Gio URI handoff remains pathname-based
-        and can race with further filesystem changes.
+        Reject stale UI rows after consent revocation, exclusion, root or
+        item replacement, or index clearing. Item identity is checked via
+        descriptor-anchored Linux traversal. Gio URI handoff is still
+        pathname-based and can race with further filesystem changes.
         """
         item = os.path.abspath(os.path.expanduser(str(item_path)))
         with self.connect() as conn:
             row = conn.execute(
-                "SELECT i.root, r.include_content, r.device, r.inode "
+                "SELECT i.root, i.mime, i.device AS item_device, "
+                "i.inode AS item_inode, r.include_content, r.device, r.inode "
                 "FROM items i JOIN roots r ON r.path = i.root WHERE i.path = ?",
                 (item,),
             ).fetchone()
@@ -189,7 +200,18 @@ class IndexStore:
                     row["device"], row["inode"])
         if Path(root.path) not in Path(item).parents:
             return False
-        return self.root_is_current(root)
+        if not self.root_is_current(root):
+            return False
+        if row["item_device"] is None or row["item_inode"] is None:
+            return False
+        try:
+            device, inode, is_dir = entry_identity(root.path, item)
+        except (OSError, ValueError, RuntimeError):
+            return False
+        return (
+            (device, inode) == (row["item_device"], row["item_inode"])
+            and is_dir == (row["mime"] == "inode/directory")
+        )
 
     def reauthorize_root(self, path: str | Path) -> Root:
         """Explicit consent renewal after replacement or legacy schema migration.

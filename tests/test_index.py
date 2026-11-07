@@ -406,6 +406,84 @@ class IndexTests(unittest.TestCase):
         self.assertEqual([v.name for v in search_files(self.store, "injected")], ["injected.md"])
         self.assertTrue((old_directory / "original.md").is_file())
 
+    def test_file_replacement_is_not_authorized_until_rescan(self) -> None:
+        document = self.files / "document.md"
+        document.write_text("first", encoding="utf-8")
+        root = self.store.add_root(self.files)
+        scan_root(self.store, root)
+        self.assertTrue(self.store.result_is_authorized(document))
+        before = document.stat()
+
+        archived = self.base / "old-document.md"
+        document.rename(archived)
+        document.write_text("first", encoding="utf-8")
+        # Equal name, content, size and mtime cannot substitute for inode.
+        import os
+        os.utime(document, ns=(before.st_atime_ns, before.st_mtime_ns))
+        self.assertEqual(document.stat().st_size, before.st_size)
+        self.assertEqual(document.stat().st_mtime_ns, before.st_mtime_ns)
+        self.assertNotEqual(document.stat().st_ino, before.st_ino)
+        self.assertFalse(self.store.result_is_authorized(document))
+        self.assertEqual([h.path for h in search_files(self.store, "document")],
+                         [str(document)])
+
+        scan_root(self.store, root)
+        self.assertTrue(self.store.result_is_authorized(document))
+        self.assertEqual(archived.read_text(encoding="utf-8"), "first")
+
+    def test_entry_validation_rejects_symlinked_parent_and_item(self) -> None:
+        nested = self.files / "nested"
+        nested.mkdir()
+        item = nested / "notes.md"
+        item.write_text("approved", encoding="utf-8")
+        root = self.store.add_root(self.files)
+        scan_root(self.store, root)
+        self.assertTrue(self.store.result_is_authorized(item))
+        self.assertTrue(self.store.result_is_authorized(nested))
+        previous = self.base / "previous"
+        nested.rename(previous)
+        outside = self.base / "outside"
+        outside.mkdir()
+        (outside / "notes.md").write_text("unapproved", encoding="utf-8")
+        nested.symlink_to(outside, target_is_directory=True)
+        self.assertFalse(self.store.result_is_authorized(item))
+        self.assertFalse(self.store.result_is_authorized(nested))
+        nested.unlink()
+        previous.rename(nested)
+        self.assertTrue(self.store.result_is_authorized(item))
+        item.unlink()
+        item.symlink_to(outside / "notes.md")
+        self.assertFalse(self.store.result_is_authorized(item))
+
+    def test_legacy_unbound_items_require_rescan(self) -> None:
+        import sqlite3
+        source = self.files / "legacy.txt"
+        source.write_text("legacy", encoding="utf-8")
+        root = self.store.add_root(self.files)
+        scan_root(self.store, root)
+        self.assertTrue(self.store.result_is_authorized(source))
+        # Exercise additive migration of the *old* items schema rather than
+        # merely assigning NULLs in the current schema.
+        with sqlite3.connect(self.store.path) as conn:
+            conn.execute("ALTER TABLE items DROP COLUMN device")
+            conn.execute("ALTER TABLE items DROP COLUMN inode")
+        restored = IndexStore(self.store.path)
+        with restored.connect() as conn:
+            cols = {r["name"] for r in conn.execute("PRAGMA table_info(items)")}
+            row = conn.execute(
+                "SELECT device, inode FROM items WHERE path = ?", (str(source),)
+            ).fetchone()
+        self.assertTrue({"device", "inode"}.issubset(cols))
+        self.assertIsNone(row["device"])
+        self.assertIsNone(row["inode"])
+        self.assertFalse(restored.result_is_authorized(source))
+        self.assertEqual(search_files(restored, "legacy"), [])
+        self.assertTrue(source.exists())
+        scan_root(restored, restored.roots()[0])
+        self.assertTrue(restored.result_is_authorized(source))
+        self.assertEqual([r.name for r in search_files(restored, "legacy")],
+                         ["legacy.txt"])
+
     def test_result_open_rechecks_live_index_and_root_permission(self) -> None:
         source = self.files / "document.txt"
         source.write_text("record")
