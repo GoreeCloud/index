@@ -10,11 +10,15 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 
 ## Implemented today
 
-- Native GTK4/libadwaita window with keyboard search, selectable results and
-  Apps / Files / Actions modes. Up/Down moves selection without
-  losing search focus; Enter opens the selected result. Result rows and
-  selection/status feedback expose accessible names and roles. Clipboard
-  history is visibly off.
+- **Spotlight-inspired floating GTK4/libadwaita search palette:** a compact,
+  undecorated rounded panel with a large search field, subtle semantic
+  translucency, inline icon filters (All / Apps / Files / Actions), and
+  a clean scrollable results list with installed applications' native icons.
+  A small settings button manages folder permissions; refresh and close remain
+  explicit controls. It does not include Apple assets or a global system shortcut.
+- Up/Down selects results without losing search focus; Enter opens the
+  selected result. Result rows and selection/status feedback expose
+  accessible names and roles. Clipboard history remains off.
 - Application listing and launching through Gio/freedesktop app registry.
 - Identity-bound consent for each authorized root (filesystem device + inode);
   stored search hits are hidden if a root is replaced or unbound.
@@ -63,16 +67,26 @@ when the list is laid out. Typing updates matches immediately. **Enter** opens t
 **Ctrl+1–4** switches search modes; **Escape** clears the query, or closes
 the window when the search is empty.
 
+The floating palette has compact icon-only mode buttons with accessible
+names and tooltips. Use the gear button to manage explicitly approved folders;
+refresh and close buttons remain keyboard accessible. The window is draggable
+through its native GTK handle, with appearance governed by system light/dark
+colors. True compositor background blur, global Spotlight-style invocation,
+window placement across Wayland compositors and Apple feature parity are **not**
+claimed.
+
 The current native GTK headless tests verify the keyboard handler, selection
 feedback and accessible status roles. Real Orca screen-reader, large-text,
 high-contrast, Wayland/X11 and GC UI design acceptance remains **open**.
 See [Linux accessibility acceptance](docs/ACCESSIBILITY-ACCEPTANCE.md).
 
-## Compact Linux desktop previews
+## Spotlight-inspired Linux desktop previews
 
 These first-party X11/Xvfb screenshots use **only synthetic application data**
-and show the app's native semantic light/dark themes; they are **not**
-production imagery or completed Orca/Wayland/accessibility acceptance.
+and show the new compact floating search palette in system-semantic light/dark
+themes. The result is visually inspired by macOS Spotlight, while remaining
+an original Linux GTK interface without Apple's artwork or proprietary code.
+The images are **not** proof of real-desktop, Orca, Wayland, or Stable acceptance.
 
 | Light appearance | Dark appearance |
 | --- | --- |

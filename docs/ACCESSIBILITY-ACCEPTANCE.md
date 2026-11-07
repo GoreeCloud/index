@@ -13,7 +13,7 @@ Do not infer adoption of GC UI Foundations tokens or completed GC UI migration.
 
 | Operation | Expected behavior |
 | --- | --- |
-| Search field | Explicit accessible name; immediate local filtering on text changes for apps, selected files and safe actions so Enter does not use a stale query |
+| Search field | Prominent native GTK SearchEntry in a floating rounded, undecorated panel; explicit accessible name and immediate local filtering so Enter does not use a stale query |
 | Up/Down inside search | Select previous/next result, wrapping at the ends, scrolling the result into view when laid out, without moving focus out of the search field |
 | Enter inside search | Activate the **selected** result, not blindly the first result |
 | No matching results | Empty message and no selected result; Up/Down and Enter cannot activate a stale entry |
@@ -23,10 +23,14 @@ Do not infer adoption of GC UI Foundations tokens or completed GC UI migration.
 | Result accessible label | Identifies the kind, name and subtitle as plain text (no markup execution) |
 | Result feedback | Position and title of the current selection appear in a GTK accessibility status role |
 | Indexing status | Summary and action feedback use a GTK accessibility status role |
-| Folder consent | Native folder additions default to metadata-only; changing content permission, root replacement reauthorization and root revocation require explicit separate confirmation |
+| Folder consent | Compact gear control opens the full native folder manager; folder additions default to metadata-only and content, root reauthorization or revocation require separate confirmation |
 
-The desktop application has **no** global invoke shortcut, clipboard recording
-or background search activity. File opening still invokes the system handler
+The search palette uses icon-only All/Apps/Files/Actions filters with explicit
+accessible labels and shortcuts, plus separate manage/refresh/close controls.
+The undecorated GTK WindowHandle preserves draggable window behavior in
+supported desktop environments; native frame, focus and placement require
+real-compositor validation. The desktop application has **no** global invoke
+shortcut, clipboard recording or background search activity. File opening still invokes the system handler
 only through explicit user activation and current authorization checks.
 
 ## Automated evidence
@@ -47,8 +51,8 @@ without reading a user's real files:
     GDK_BACKEND=x11 PYTHONPATH=src xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 440
 
 Source-reviewed, synthetic [light](screenshots/linux-compact-light.png) and
-[dark](screenshots/linux-compact-dark.png) screenshots provide initial visual
-evidence at approximately 430x630. GTK semantic appearance follows the OS;
+[dark](screenshots/linux-compact-dark.png) screenshots provide initial
+Spotlight-inspired palette visual evidence at approximately 650x460. GTK semantic appearance follows the OS;
 neither image specifies a mandatory GoreeCloud palette. Compact result rows
 may require vertical scrolling; these checks do not measure contrast ratios,
 test screen-reader announcements or establish final premium design approval.

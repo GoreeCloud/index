@@ -41,6 +41,7 @@ class IndexApplication(Adw.Application):
         self.search_entry: Gtk.SearchEntry | None = None
         self.status_label: Gtk.Label | None = None
         self.selection_label: Gtk.Label | None = None
+        self.results_heading: Gtk.Label | None = None
         self.roots_window: Gtk.Window | None = None
         self.roots_list: Gtk.ListBox | None = None
         self.mode = "all"
@@ -74,159 +75,180 @@ class IndexApplication(Adw.Application):
         )
 
     def _build_window(self) -> None:
+        """Compact, keyboard-first floating search surface.
+
+        The native GTK shell uses theme semantic colors, not Apple's assets or
+        a fixed brand hue. An undecorated, draggable window gives the search
+        field visual priority without changing indexing or privacy controls.
+        """
         window = Adw.ApplicationWindow(application=self)
         window.set_title("GoreeCloud Index")
-        window.set_default_size(850, 670)
+        window.set_decorated(False)
+        window.set_default_size(660, 448)
+        window.add_css_class("spotlight-window")
         self.window = window
-        toolbar = Adw.ToolbarView()
-        window.set_content(toolbar)
 
-        header = Adw.HeaderBar()
-        heading = Gtk.Label(label="Index")
-        heading.add_css_class("heading")
-        header.set_title_widget(heading)
-        add = Gtk.Button(
-            icon_name="folder-new-symbolic",
-            tooltip_text="Add a folder (metadata only; enable text later in Manage folders)",
-        )
-        add.update_property(
-            [Gtk.AccessibleProperty.LABEL], ["Add a local search folder"]
-        )
-        add.connect("clicked", self._choose_folder)
-        header.pack_end(add)
-        refresh = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text="Rescan selected directories")
-        refresh.connect("clicked", self._scan)
-        header.pack_end(refresh)
-        roots = Gtk.Button(
-            icon_name="folder-symbolic",
-            tooltip_text="Manage indexed folders, exclusions and text permissions",
-        )
-        roots.update_property(
-            [Gtk.AccessibleProperty.LABEL], ["Manage indexed folder permissions"]
-        )
-        roots.connect("clicked", self._show_roots)
-        header.pack_end(roots)
-        toolbar.add_top_bar(header)
+        # WindowHandle restores standard window-manager dragging for the
+        # undecorated surface without inventing an app-global hotkey.
+        handle = Gtk.WindowHandle()
+        window.set_content(handle)
+        shell = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        shell.add_css_class("spotlight-panel")
+        handle.set_child(shell)
 
-        # The entire page remains vertically reachable on compact displays
-        # and with larger system fonts, even when the results pane is short.
-        page = Gtk.ScrolledWindow()
-        page.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        page.set_vexpand(True)
-        page.set_propagate_natural_height(False)
-        toolbar.set_content(page)
-        self.page_scroll = page
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        outer.add_css_class("index-shell")
-        page.set_child(outer)
-
-        title_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        eyebrow = Gtk.Label(label="GOREECLOUD  /  DISCOVER", xalign=0)
-        eyebrow.add_css_class("index-eyebrow")
-        title_area.append(eyebrow)
-        title = Gtk.Label(label="Find anything. Stay in control.", xalign=0)
-        title.add_css_class("index-heading")
-        title.set_wrap(True)
-        title_area.append(title)
-        description = Gtk.Label(
-            label="Search your selected files, launch applications, or calculate instantly.",
-            xalign=0
-        )
-        description.add_css_class("index-description")
-        description.set_wrap(True)
-        title_area.append(description)
-        outer.append(title_area)
+        top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        top.add_css_class("spotlight-top")
+        shell.append(top)
 
         search = Gtk.SearchEntry()
-        search.set_placeholder_text("Search apps, files, calculations…")
-        search.add_css_class("index-search")
+        search.set_placeholder_text("Search apps, files, and actions…")
+        search.set_hexpand(True)
+        search.set_width_chars(1)
+        search.add_css_class("spotlight-query")
         search.update_property(
             [Gtk.AccessibleProperty.LABEL],
             ["Search local applications, indexed files, and actions"],
         )
-        # Immediate editable changes prevent Enter from opening stale results
-        # while GtkSearchEntry's debounced "search-changed" is pending.
+        # Use the immediate 'changed' signal so Enter cannot act on a stale
+        # result while SearchEntry's debounced search signal is pending.
         search.connect("changed", self._refresh)
         search.connect("activate", self._activate_first)
         keys = Gtk.EventControllerKey()
-        # Capture before the SearchEntry's internal text handler so Up/Down
-        # always moves result selection rather than the insertion cursor.
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         keys.connect("key-pressed", self._search_key_pressed)
         search.add_controller(keys)
-        outer.append(search)
+        top.append(search)
         self.search_entry = search
 
-        modes = Gtk.FlowBox()
-        modes.set_selection_mode(Gtk.SelectionMode.NONE)
-        modes.set_min_children_per_line(1)
-        modes.set_max_children_per_line(4)
-        modes.set_row_spacing(6)
-        modes.set_column_spacing(6)
-        modes.set_homogeneous(False)
-        modes.add_css_class("index-modes")
-        for label, value in (("All", "all"), ("Apps", "apps"),
-                             ("Files", "files"), ("Actions", "actions")):
-            b = Gtk.ToggleButton(label=label)
-            b.add_css_class("index-mode")
-            if value == "all":
-                b.set_active(True)
+        filter_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        filter_bar.add_css_class("spotlight-filter-bar")
+        filter_label = Gtk.Label(label="SEARCH IN", xalign=0)
+        filter_label.add_css_class("spotlight-filter-label")
+        filter_bar.append(filter_label)
+        modes = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
+        modes.add_css_class("spotlight-mode-group")
+        icon_names = {
+            "all": "view-grid-symbolic",
+            "apps": "application-x-executable-symbolic",
+            "files": "folder-symbolic",
+            "actions": "system-run-symbolic",
+        }
+        names = {"all": "All", "apps": "Applications",
+                 "files": "Files", "actions": "Actions"}
+        for shortcut, mode in enumerate(("all", "apps", "files", "actions"), 1):
+            button = Gtk.ToggleButton()
+            button.set_icon_name(icon_names[mode])
+            button.set_tooltip_text(f"{names[mode]} · Ctrl+{shortcut}")
+            button.add_css_class("spotlight-mode")
+            if mode == "all":
+                button.set_active(True)
+                first_button = button
             else:
-                b.set_group(self._first_button)
-            if value == "all":
-                self._first_button = b
-            b.connect("toggled", self._switch_mode, value)
-            b.update_property(
+                button.set_group(first_button)
+            button.connect("toggled", self._switch_mode, mode)
+            button.update_property(
                 [Gtk.AccessibleProperty.LABEL],
-                [f"Show {'applications' if value == 'apps' else label.lower()} search results"],
+                [f"Show {names[mode].lower()} search results"],
             )
-            self.mode_buttons[value] = b
-            modes.insert(b, -1)
-        # History is a privacy state, not a selectable search mode.
-        # Expose it in the accessible status text below the results.
-        outer.append(modes)
+            self.mode_buttons[mode] = button
+            modes.append(button)
+        filter_bar.append(modes)
+        shell.append(filter_bar)
+
+        separator = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        separator.add_css_class("spotlight-tools-divider")
+        top.append(separator)
+
+        manage = Gtk.Button(icon_name="emblem-system-symbolic")
+        manage.set_tooltip_text("Manage indexed folders and privacy permissions")
+        manage.update_property(
+            [Gtk.AccessibleProperty.LABEL],
+            ["Manage indexed folder permissions"],
+        )
+        manage.add_css_class("spotlight-tool")
+        manage.connect("clicked", self._show_roots)
+        top.append(manage)
+
+        refresh = Gtk.Button(icon_name="view-refresh-symbolic")
+        refresh.set_tooltip_text("Rescan approved folders")
+        refresh.update_property(
+            [Gtk.AccessibleProperty.LABEL],
+            ["Rescan selected folders"],
+        )
+        refresh.add_css_class("spotlight-tool")
+        refresh.connect("clicked", self._scan)
+        top.append(refresh)
+
+        dismiss = Gtk.Button(icon_name="window-close-symbolic")
+        dismiss.set_tooltip_text("Close Index · Escape")
+        dismiss.update_property([Gtk.AccessibleProperty.LABEL], ["Close Index"])
+        dismiss.add_css_class("spotlight-tool")
+        dismiss.connect("clicked", lambda _button: window.close())
+        top.append(dismiss)
+
+        divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        divider.add_css_class("spotlight-divider")
+        shell.append(divider)
+
+        # Preserve a vertically scrollable content region for narrow displays
+        # and large system fonts, rather than clipping results or privacy text.
+        page = Gtk.ScrolledWindow()
+        page.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        page.set_vexpand(True)
+        page.set_propagate_natural_height(False)
+        self.page_scroll = page
+        shell.append(page)
+
+        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        body.add_css_class("spotlight-body")
+        page.set_child(body)
+
+        heading = Gtk.Label(label="SUGGESTIONS", xalign=0)
+        heading.add_css_class("spotlight-section-title")
+        heading.update_property([Gtk.AccessibleProperty.LABEL],
+                                ["Search suggestions and results"])
+        self.results_heading = heading
+        body.append(heading)
 
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.set_vexpand(True)
-        scroll.add_css_class("index-results")
+        scroll.add_css_class("spotlight-results-scroll")
         self.results_scroll = scroll
         self.list_box = Gtk.ListBox()
         self.list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.list_box.set_activate_on_single_click(True)
-        self.list_box.add_css_class("boxed-list")
+        self.list_box.add_css_class("spotlight-results")
         self.list_box.connect("row-activated", self._activate_row)
         self.list_box.connect("row-selected", self._selection_changed)
         scroll.set_child(self.list_box)
-        outer.append(scroll)
+        body.append(scroll)
 
-        footer = Gtk.FlowBox()
-        footer.set_selection_mode(Gtk.SelectionMode.NONE)
-        footer.set_min_children_per_line(1)
-        footer.set_max_children_per_line(2)
-        footer.set_row_spacing(4)
-        footer.set_column_spacing(10)
-        footer.set_homogeneous(False)
-        status = Gtk.Label(xalign=0, label="Local only · No folder selected")
-        status.add_css_class("index-footer")
+        foot_divider = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        foot_divider.add_css_class("spotlight-divider")
+        body.append(foot_divider)
+
+        footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        footer.add_css_class("spotlight-footer")
+        status = Gtk.Label(xalign=0, label="Local only · Clipboard history off")
+        status.add_css_class("spotlight-muted")
         status.set_accessible_role(Gtk.AccessibleRole.STATUS)
         status.set_hexpand(True)
-        footer.insert(status, -1)
+        status.set_ellipsize(3)
+        footer.append(status)
         selected = Gtk.Label(label="No result selected", xalign=1)
         selected.set_ellipsize(3)
-        selected.set_max_width_chars(46)
-        selected.add_css_class("index-footer")
+        selected.set_max_width_chars(27)
+        selected.add_css_class("spotlight-muted")
         selected.set_accessible_role(Gtk.AccessibleRole.STATUS)
-        footer.insert(selected, -1)
-        outer.append(footer)
-        help_text = Gtk.Label(
-            label="↑ ↓ select · Enter open · Ctrl+1–4 modes",
-            xalign=0,
-        )
-        help_text.add_css_class("index-footer")
-        outer.append(help_text)
+        footer.append(selected)
+        body.append(footer)
         self.selection_label = selected
         self.status_label = status
+
+        hint = Gtk.Label(label="↑↓ Navigate    ↵ Open    Esc Close", xalign=0)
+        hint.add_css_class("spotlight-hint")
+        body.append(hint)
 
         controller = Gtk.EventControllerKey()
         controller.connect("key-pressed", self._key_pressed)
@@ -361,6 +383,10 @@ class IndexApplication(Adw.Application):
                                 "Explicitly choose where Index may search",
                                 "add", "folder-new-symbolic"))
         self.hits = hits[:75]
+        if self.results_heading is not None:
+            self.results_heading.set_text(
+                "RESULTS" if query else "SUGGESTIONS"
+            )
         child = self.list_box.get_first_child()
         while child is not None:
             next_child = child.get_next_sibling()
@@ -369,31 +395,37 @@ class IndexApplication(Adw.Application):
 
         for hit in self.hits:
             row = Gtk.ListBoxRow()
-            row.add_css_class("index-result")
+            row.add_css_class("spotlight-result")
             row.update_property(
                 [Gtk.AccessibleProperty.LABEL],
                 [f"{hit.kind}: {hit.title}. {hit.subtitle}"],
             )
-            content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=13)
-            content.set_margin_top(5)
-            content.set_margin_bottom(5)
-            content.set_margin_start(8)
-            content.set_margin_end(8)
-            img = Gtk.Image.new_from_icon_name(hit.icon)
+            content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            content.set_margin_top(4)
+            content.set_margin_bottom(4)
+            content.set_margin_start(9)
+            content.set_margin_end(9)
+            # Use the desktop registry's own icon, as a native launcher
+            # would. Never download thumbnails or derive network URLs.
+            if (hit.kind == "app" and hit.app is not None and
+                    isinstance(hit.app.icon, Gio.Icon)):
+                img = Gtk.Image.new_from_gicon(hit.app.icon)
+            else:
+                img = Gtk.Image.new_from_icon_name(hit.icon)
             img.set_pixel_size(27)
             content.append(img)
             labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
             labels.set_hexpand(True)
             labels.set_valign(Gtk.Align.CENTER)
             name = Gtk.Label(label=hit.title, xalign=0, ellipsize=3)
-            name.add_css_class("index-result-title")
+            name.add_css_class("spotlight-result-title")
             labels.append(name)
             subtitle = Gtk.Label(label=hit.subtitle, xalign=0, ellipsize=3)
-            subtitle.add_css_class("index-result-subtitle")
+            subtitle.add_css_class("spotlight-result-subtitle")
             labels.append(subtitle)
             content.append(labels)
             kind = Gtk.Label(label=hit.kind.upper())
-            kind.add_css_class("index-action")
+            kind.add_css_class("spotlight-kind")
             content.append(kind)
             row.set_child(content)
             self.list_box.append(row)
@@ -402,7 +434,7 @@ class IndexApplication(Adw.Application):
             row.set_activatable(False)
             empty = Gtk.Label(label="No matching results. Try another search or add a folder.")
             empty.set_wrap(True)
-            empty.add_css_class("index-empty")
+            empty.add_css_class("spotlight-empty")
             row.set_child(empty)
             self.list_box.append(row)
         if self.hits:

@@ -31,7 +31,41 @@ def main() -> int:
         def exercise() -> bool:
             try:
                 assert app.window is not None and app.store is not None
+                assert not app.window.get_decorated()
+                assert isinstance(app.window.get_content(), Gtk.WindowHandle)
+                assert app.results_heading is not None
+                assert app.results_heading.get_text() == "SUGGESTIONS"
                 assert app.mode_buttons["all"].get_active()
+                for mode in ("all", "apps", "files", "actions"):
+                    assert app.mode_buttons[mode].get_tooltip_text()
+                    assert app.mode_buttons[mode].get_icon_name()
+                assert app.status_label is not None
+                assert "clipboard history off" in app.status_label.get_text()
+                assert app.search_entry is not None
+                # Native app icons come from the local Gio registry; no
+                # image download or generic override when one is supplied.
+                from goreecloud_index.apps import Application
+                from gi.repository import Gio
+                saved_apps = app.apps
+                app.apps = [Application(
+                    "synthetic.desktop", "Synthetic Preview", "Private-free",
+                    Gio.ThemedIcon.new("folder-symbolic"),
+                )]
+                app._select_mode("apps")
+                app._refresh()
+                first = app.list_box.get_row_at_index(0)
+                assert first is not None
+                preview_icon = first.get_child().get_first_child()
+                assert isinstance(preview_icon, Gtk.Image)
+                assert isinstance(preview_icon.get_gicon(), Gio.Icon)
+                app.apps = saved_apps
+                app._select_mode("all")
+
+                app.search_entry.set_text("test-with-no-results-98765")
+                assert app.results_heading.get_text() == "RESULTS"
+                assert app.hits == []
+                app.search_entry.set_text("")
+                assert app.results_heading.get_text() == "SUGGESTIONS"
                 assert app._key_pressed(None, Gdk.KEY_2, 0, Gdk.ModifierType.CONTROL_MASK)
                 assert app.mode == "apps" and app.mode_buttons["apps"].get_active()
                 assert app._key_pressed(None, Gdk.KEY_3, 0, Gdk.ModifierType.CONTROL_MASK)
