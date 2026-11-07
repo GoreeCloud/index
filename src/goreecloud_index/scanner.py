@@ -61,8 +61,11 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
         errors += 1
 
     with store.connect() as conn:
-        # A queued background scan must not revive items after the user
-        # revoked its source root, nor retain an old content-consent level.
+        # Acquire the writer lock before resolving permissions. Otherwise a
+        # concurrent content downgrade can complete after this SELECT but
+        # before our first INSERT, recreating text that the user removed.
+        # Revocations/downgrades serialize after this scan and purge its data.
+        conn.execute("BEGIN IMMEDIATE")
         consent = conn.execute(
             "SELECT include_content FROM roots WHERE path = ?", (root.path,)
         ).fetchone()
