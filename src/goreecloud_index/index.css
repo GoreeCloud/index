@@ -1,0 +1,17 @@
+/* GoreeCloud Index native GTK presentation.
+   Follow libadwaita's user/system semantic colors; do not impose a brand palette. */
+.index-shell { padding: 24px; }
+.index-heading { font-size: 29px; font-weight: 800; letter-spacing: -0.6px; }
+.index-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2px; opacity: 0.67; }
+.index-description { font-size: 13px; opacity: 0.80; }
+.index-search { min-height: 50px; font-size: 17px; border-radius: 16px; padding: 2px 12px; }
+.index-modes { margin-top: 6px; }
+.index-mode { border-radius: 12px; min-height: 37px; padding: 0 17px; }
+.index-result { border-radius: 14px; padding: 10px; }
+.index-result-title { font-size: 14px; font-weight: 650; }
+.index-result-subtitle { font-size: 11px; opacity: 0.70; }
+.index-result-icon { -gtk-icon-size: 26px; }
+.index-footer { font-size: 11px; opacity: 0.70; }
+.index-results { border-radius: 18px; }
+.index-empty { padding: 34px; }
+.index-action { font-size: 11px; opacity: 0.85; }

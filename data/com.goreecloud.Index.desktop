@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=GoreeCloud Index
+GenericName=Desktop Search and App Launcher
+Comment=Search selected files, launch apps and use safe actions locally
+Exec=goreecloud-index gui
+Icon=system-search
+Terminal=false
+Categories=Utility;FileTools;
+Keywords=Search;Files;Launcher;Index;GoreeCloud;
+StartupNotify=true
