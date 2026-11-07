@@ -42,6 +42,10 @@ def main() -> int:
                 assert app.status_label is not None
                 assert "clipboard history off" in app.status_label.get_text()
                 assert app.search_entry is not None
+                assert app.search_entry.get_accessible_role() == Gtk.AccessibleRole.SEARCH_BOX
+                assert app.list_box is not None
+                assert app.list_box.get_accessible_role() == Gtk.AccessibleRole.LIST
+                assert app.search_entry.get_at_context() is not None
                 # Native app icons come from the local Gio registry; no
                 # image download or generic override when one is supplied.
                 from goreecloud_index.apps import Application
@@ -55,6 +59,7 @@ def main() -> int:
                 app._refresh()
                 first = app.list_box.get_row_at_index(0)
                 assert first is not None
+                assert first.get_accessible_role() == Gtk.AccessibleRole.LIST_ITEM
                 preview_icon = first.get_child().get_first_child()
                 assert isinstance(preview_icon, Gtk.Image)
                 assert isinstance(preview_icon.get_gicon(), Gio.Icon)

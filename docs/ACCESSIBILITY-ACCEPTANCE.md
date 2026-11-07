@@ -13,7 +13,7 @@ Do not infer adoption of GC UI Foundations tokens or completed GC UI migration.
 
 | Operation | Expected behavior |
 | --- | --- |
-| Search field | Prominent native GTK SearchEntry in a floating rounded, undecorated panel; explicit accessible name and immediate local filtering so Enter does not use a stale query |
+| Search field | Prominent native GTK SearchEntry in a floating rounded, undecorated panel; explicit accessible name/description of Up/Down and Enter behavior, with selected row exposed as its active descendant and immediate local filtering |
 | Up/Down inside search | Select previous/next result, wrapping at the ends, scrolling the result into view when laid out, without moving focus out of the search field |
 | Enter inside search | Activate the **selected** result, not blindly the first result |
 | No matching results | Empty message and no selected result; Up/Down and Enter cannot activate a stale entry |
@@ -42,8 +42,13 @@ Run from the checkout in a Linux environment with GTK4/libadwaita and Xvfb:
 
 The GTK smoke covers selection movement and wrap, modifier filtering, focus
 preservation, selected-Enter activation dispatch, no-result behavior, status
-roles, search modes, metadata-only new-root consent and the existing indexing
-consent/reauthorization dialogs. An additional isolated X11/Xvfb layout smoke
+roles, SearchEntry/list item accessible roles, explicit search help, active
+descendant updates, mode keyboard-shortcut metadata, metadata-only new-root
+consent and the existing indexing consent/reauthorization dialogs.
+A second native GTK run uses `GTK_A11Y=test G_DEBUG=fatal-warnings`, as
+recommended by upstream GTK for deterministic automated accessibility checks.
+GTK 4.14 exposes `DESCRIPTION` for keyboard help but not the newer
+`HELP_TEXT` property, so the implementation retains 4.14 compatibility. An additional isolated X11/Xvfb layout smoke
 checks initial 390 px and 440 px window widths and basic large-font behavior
 without reading a user's real files:
 
@@ -56,6 +61,12 @@ Spotlight-inspired palette visual evidence at approximately 650x460. GTK semanti
 neither image specifies a mandatory GoreeCloud palette. Compact result rows
 may require vertical scrolling; these checks do not measure contrast ratios,
 test screen-reader announcements or establish final premium design approval.
+An isolated X11/AT-SPI probe on November 7, 2026, with a disposable
+`dbus-run-session` accessibility bus, did not enumerate either Index **or a
+minimal GTK4 control application**, even with its private IsEnabled property
+set. This points to a probe-environment limitation, not a demonstrated Index
+defect or screen-reader success. Orca in a real GNOME desktop remains a release
+acceptance blocker; no live user accessibility settings were changed.
 The test invokes the registered keyboard handler directly under GTK/Xvfb; it is
 **not** a hardware-keyboard or assistive-technology end-to-end test. Linux CI
 performs the same isolated smoke. Python unit tests address core code, not
