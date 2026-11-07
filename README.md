@@ -27,8 +27,9 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 - Sandboxed arithmetic, percentages, temperature and offline unit conversions.
 - Open files and folders through registered system URI handlers; no shell.
 - Manual rescans, stale-entry reconciliation, revocation-aware scan permissions,
-  privacy-oriented exclusions,
-  owner-only data-directory permissions, and a local CLI.
+  privacy-oriented exclusions, descriptor-anchored Linux file traversal with
+  inode checks against mid-scan symlink swaps, owner-only data-directory
+  permissions, and a local CLI.
 - Core unit tests and Linux CI gates.
 - Reproducible, rootlessly assembled Debian/Ubuntu .deb development package.
 - Offline disposable-container dpkg install/upgrade/rollback/purge lifecycle validation

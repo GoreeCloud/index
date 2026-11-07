@@ -55,7 +55,12 @@ def open_path(path: str) -> None:
     from pathlib import Path
 
     p = Path(path)
-    if not p.exists() or p.is_symlink():
+    if not p.exists() or p.is_symlink() or any(
+        parent.is_symlink() for parent in p.parents
+    ):
         raise ValueError("File is missing or unsafe to open")
+    # Reject visible symlink redirects before handing the path to Gio.
+    # A full file-open race proof is not possible through a pathname-only
+    # desktop URI handler; opening still requires explicit user activation.
     Gio = _gio()
     Gio.AppInfo.launch_default_for_uri(p.as_uri(), None)
