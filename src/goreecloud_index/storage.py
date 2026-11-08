@@ -25,6 +25,10 @@ CREATE TABLE IF NOT EXISTS roots (
     device INTEGER,
     inode INTEGER
 );
+CREATE TABLE IF NOT EXISTS appearance_preference (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    mode TEXT NOT NULL CHECK (mode IN ('light', 'dark', 'auto'))
+);
 CREATE TABLE IF NOT EXISTS exclusions (
     root TEXT NOT NULL REFERENCES roots(path) ON DELETE CASCADE,
     path TEXT NOT NULL,
@@ -118,6 +122,34 @@ class IndexStore:
         conn.execute("PRAGMA secure_delete = ON")
         conn.execute("PRAGMA busy_timeout = 10000")
         return conn
+
+    def get_appearance_mode(self) -> str:
+        """The GoreeCloud UI first-run default is Light, not system Auto.
+
+        This is a local-only application preference. A missing or invalid
+        value must never silently opt in to following system appearance.
+        """
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT mode FROM appearance_preference WHERE singleton = 1"
+            ).fetchone()
+        mode = str(row["mode"]) if row is not None else "light"
+        return mode if mode in {"light", "dark", "auto"} else "light"
+
+    def set_appearance_mode(self, mode: str) -> None:
+        if mode not in {"light", "dark", "auto"}:
+            raise ValueError("Appearance must be light, dark, or auto")
+        with self.connect() as conn:
+            conn.execute(
+                "INSERT INTO appearance_preference(singleton, mode) VALUES (1, ?) "
+                "ON CONFLICT(singleton) DO UPDATE SET mode = excluded.mode",
+                (mode,),
+            )
+
+    def reset_appearance_mode(self) -> None:
+        """Remove a saved preference: unspecified appearance means Light."""
+        with self.connect() as conn:
+            conn.execute("DELETE FROM appearance_preference WHERE singleton = 1")
 
     def add_root(self, path: str | Path, include_content: bool = False) -> Root:
         root = safe_root(path)

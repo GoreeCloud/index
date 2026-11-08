@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -50,6 +51,10 @@ class IndexApplication(Adw.Application):
         self._large_text = False
         self.roots_window: Gtk.Window | None = None
         self.roots_list: Gtk.ListBox | None = None
+        self.preferences_window: Adw.PreferencesWindow | None = None
+        self.appearance_selector: Adw.ComboRow | None = None
+        self._updating_appearance_selector = False
+        self._appearance_mode = "light"
         self.mode = "all"
         self.mode_buttons: dict[str, Gtk.ToggleButton] = {}
         self.apps: list[Application] = []
@@ -61,6 +66,9 @@ class IndexApplication(Adw.Application):
             self.window.present()
             return
         self.store = IndexStore()
+        # Set the saved appearance before constructing/presenting any UI:
+        # first launch is Light even on dark-preferring Linux desktops.
+        self._apply_appearance(self.store.get_appearance_mode())
         self.apps = list_applications()
         self._load_styles()
         self._build_window()
@@ -81,6 +89,19 @@ class IndexApplication(Adw.Application):
         assert self.search_entry is not None
         self.search_entry.grab_focus()
         self._refresh()
+
+    def _apply_appearance(self, mode: str) -> None:
+        """Use libadwaita's native color engine and OS contrast safeguards."""
+        scheme = {
+            "light": Adw.ColorScheme.FORCE_LIGHT,
+            "dark": Adw.ColorScheme.FORCE_DARK,
+            # Auto is explicit opt-in; only this mode follows the OS.
+            "auto": Adw.ColorScheme.PREFER_LIGHT,
+        }.get(mode)
+        if scheme is None:
+            raise ValueError("Unknown appearance preference")
+        Adw.StyleManager.get_default().set_color_scheme(scheme)
+        self._appearance_mode = mode
 
     def _font_changed(self, settings: Gtk.Settings, *_unused) -> None:
         """Respect large native font preferences without growing the palette.
@@ -208,6 +229,9 @@ class IndexApplication(Adw.Application):
         self.filter_caption = filter_label
         filter_bar.insert(filter_label, -1)
         modes = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
+        # Keep the tonal Lens highlight sized to its four controls, rather
+        # than stretching a large empty background across the palette.
+        modes.set_halign(Gtk.Align.START)
         modes.add_css_class("spotlight-mode-group")
         icon_names = {
             "all": "view-grid-symbolic",
@@ -243,7 +267,18 @@ class IndexApplication(Adw.Application):
         separator.add_css_class("spotlight-tools-divider")
         top.append(separator)
 
-        manage = Gtk.Button(icon_name="emblem-system-symbolic")
+        prefs = Gtk.Button(icon_name="preferences-system-symbolic")
+        prefs.set_tooltip_text("Appearance and Index preferences")
+        prefs.update_property(
+            [Gtk.AccessibleProperty.LABEL], ["Open Index preferences"],
+        )
+        prefs.add_css_class("spotlight-tool")
+        prefs.connect("clicked", self._show_preferences)
+        top.append(prefs)
+
+        # A folder icon distinguishes explicit indexing consent from the
+        # separate cosmetic Preferences gear in a very compact header.
+        manage = Gtk.Button(icon_name="folder-symbolic")
         manage.set_tooltip_text("Manage indexed folders and privacy permissions")
         manage.update_property(
             [Gtk.AccessibleProperty.LABEL],
@@ -614,6 +649,105 @@ class IndexApplication(Adw.Application):
         # thread may update GTK widgets. Portal success is not proof that a
         # third-party application actually rendered the selected file.
         self._set_status(message)
+
+    def _show_preferences(self, *_unused) -> None:
+        """Native, accessible local settings; no host-wide preference changes."""
+        if self.window is None or self.store is None:
+            return
+        if self.preferences_window is not None:
+            self.preferences_window.present()
+            return
+        window = Adw.PreferencesWindow()
+        window.set_application(self)
+        window.set_title("Index Preferences")
+        window.set_default_size(470, 340)
+        window.set_transient_for(self.window)
+        window.set_modal(True)
+        window.connect("close-request", self._preferences_closed)
+
+        page = Adw.PreferencesPage()
+        group = Adw.PreferencesGroup()
+        group.set_title("Appearance")
+        group.set_description(
+            "Your selection stays on this device. It does not change "
+            "Linux system settings or enable network synchronization."
+        )
+        selector = Adw.ComboRow()
+        selector.set_title("Color scheme")
+        selector.set_subtitle("Light by default; Auto follows the operating system")
+        selector.set_model(Gtk.StringList.new([
+            "Light", "Dark", "Auto · Follow system",
+        ]))
+        selector.set_selected({"light": 0, "dark": 1, "auto": 2}[
+            self.store.get_appearance_mode()
+        ])
+        selector.connect("notify::selected", self._appearance_changed)
+        group.add(selector)
+        self.appearance_selector = selector
+
+        reset = Adw.ActionRow()
+        reset.set_title("Reset appearance")
+        reset.set_subtitle("Remove saved choice and return to Light")
+        reset_button = Gtk.Button(label="Reset to Light")
+        reset_button.set_valign(Gtk.Align.CENTER)
+        reset_button.update_property(
+            [Gtk.AccessibleProperty.LABEL], ["Reset appearance to default Light"],
+        )
+        reset_button.connect("clicked", self._reset_appearance)
+        reset.add_suffix(reset_button)
+        reset.set_activatable_widget(reset_button)
+        group.add(reset)
+        page.add(group)
+        window.add(page)
+        self.preferences_window = window
+        window.present()
+
+    def _preferences_closed(self, *_unused) -> bool:
+        self.preferences_window = None
+        self.appearance_selector = None
+        return False
+
+    def _appearance_changed(self, row: Adw.ComboRow, *_unused) -> None:
+        if self.store is None or self._updating_appearance_selector:
+            return
+        selected = row.get_selected()
+        if selected not in (0, 1, 2):
+            return
+        mode = ("light", "dark", "auto")[selected]
+        try:
+            self.store.set_appearance_mode(mode)
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            # Failed writes must not present an unsaved choice as applied.
+            # Use the last *applied* state: a damaged/locked DB may not even
+            # permit a SELECT to re-read it in the error path.
+            self._updating_appearance_selector = True
+            try:
+                row.set_selected({"light": 0, "dark": 1, "auto": 2}[
+                    self._appearance_mode
+                ])
+            finally:
+                self._updating_appearance_selector = False
+            self._set_status(f"Could not save appearance: {exc}")
+            return
+        self._apply_appearance(mode)
+        self._set_status(f"Appearance: {mode.capitalize()}")
+
+    def _reset_appearance(self, *_unused) -> None:
+        if self.store is None:
+            return
+        try:
+            self.store.reset_appearance_mode()
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._set_status(f"Could not reset appearance: {exc}")
+            return
+        self._apply_appearance("light")
+        if self.appearance_selector is not None:
+            self._updating_appearance_selector = True
+            try:
+                self.appearance_selector.set_selected(0)
+            finally:
+                self._updating_appearance_selector = False
+        self._set_status("Appearance reset to Light")
 
     def _show_roots(self, *_unused) -> None:
         """Expose and revoke explicit indexing consent without a terminal."""

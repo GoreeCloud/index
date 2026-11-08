@@ -74,6 +74,12 @@ def check_layout(width: int, height: int) -> None:
                 assert app.status_label.get_mapped()
                 assert app.selection_label.get_mapped()
                 assert app.mode_buttons["files"].get_mapped()
+                # A compact Spotlight-inspired segmented filter must wrap
+                # its icon controls, not paint a mostly empty full-width bar.
+                group = app.mode_buttons["all"].get_parent()
+                assert 0 < group.get_width() <= 250, (
+                    f"Icon filter background stretched to {group.get_width()}px"
+                )
                 assert app.search_entry.get_mapped()
                 assert len(app.hits) >= 12
                 adjustment = app.page_scroll.get_vadjustment()

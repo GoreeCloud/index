@@ -14,11 +14,16 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   undecorated rounded panel with a large search field, subtle semantic
   translucency, inline icon filters (All / Apps / Files / Actions), and
   a clean scrollable results list with installed applications' native icons.
-  A small settings button manages folder permissions; refresh and close remain
-  explicit controls. It does not include Apple assets or a global system shortcut.
+  Distinct Preferences and indexed-folder permission controls keep cosmetic
+  settings separate from privacy consent; refresh and close remain explicit.
+  It does not include Apple assets or a global system shortcut.
 - Up/Down selects results without losing search focus; Enter opens the
   selected result. Result rows and selection/status feedback expose
   accessible names and roles. Clipboard history remains off.
+- Native Preferences window with **Light by default** on a first launch,
+  explicit saved Dark or Auto/Follow system modes, and Reset to Light. The
+  choice is retained only in the existing private Index SQLite database;
+  selecting Auto is optional and does not change host-wide desktop settings.
 - Application listing and launching through Gio/freedesktop app registry.
 - Identity-bound consent for each authorized root (filesystem device + inode);
   stored search hits are hidden if a root is replaced or unbound.
@@ -81,10 +86,11 @@ signal is handled explicitly, so Escape works even when the search field
 consumes the key event before the window controller.
 
 The floating palette has compact icon-only mode buttons with accessible
-names and tooltips. Use the gear button to manage explicitly approved folders;
-refresh and close buttons remain keyboard accessible. The window is draggable
-through its native GTK handle, with appearance governed by system light/dark
-colors. True compositor background blur, global Spotlight-style invocation,
+names and tooltips. Use Preferences to change the local appearance and
+Manage indexed folders to edit explicit filesystem consent; refresh and close
+buttons remain keyboard accessible. The window is draggable through its native
+GTK handle. The first-launch **Light** scheme overrides the OS preference;
+user-saved Dark stays dark, while **Auto** follows the desktop preference. True compositor background blur, global Spotlight-style invocation,
 window placement across Wayland compositors and Apple feature parity are **not**
 claimed.
 
@@ -101,17 +107,47 @@ These automated checks do **not** establish real Orca screen-reader, Wayland,
 KDE, system high-contrast, WCAG, or founder visual/GC UI acceptance.
 See [Linux accessibility acceptance](docs/ACCESSIBILITY-ACCEPTANCE.md).
 
+## Native appearance preferences and GC UI adoption
+
+Index starts in **Light** when there is no saved appearance choice, even if
+Linux is currently using dark colors. The **Preferences** button offers Light,
+Dark and optional **Auto · Follow system** modes, switching immediately and
+storing the explicit choice locally in the owner-only SQLite index. **Reset to
+Light** removes the saved mode. No operating-system, account, cloud, tracking,
+clipboard or other application's settings are changed. This is a per-device
+preference; its database persists across normal package upgrades and purges.
+
+The floating panel, search results and compact controls now use the verified
+large/small/extra-small **GC UI v1 reference radii** (26/12/6 px) from
+[GoreeCloud UI token contract](https://github.com/GoreeCloud/gc-ui/blob/7f33289f52ef1aea82e1372df7e81d7b9d08789c/tokens/gc.v1.tokens.json).
+These are first-party numerical geometry alignments. GTK/libadwaita still
+supplies semantic platform colors and high-contrast behavior, avoiding a
+fabricated compulsory brand hue. This is **not complete GC UI component or
+Foundations package adoption**, or independent full visual/contrast approval.
+
 ## Spotlight-inspired Linux desktop previews
 
 These first-party X11/Xvfb screenshots use **only synthetic application data**
-and show the new compact floating search palette in system-semantic light/dark
-themes. The result is visually inspired by macOS Spotlight, while remaining
+and show the compact floating search palette in platform-semantic light/dark
+themes (both now available from Preferences). The result is visually inspired by macOS Spotlight, while remaining
 an original Linux GTK interface without Apple's artwork or proprietary code.
 The images are **not** proof of real-desktop, Orca, Wayland, or Stable acceptance.
 
 | Light appearance | Dark appearance |
 | --- | --- |
 | ![GoreeCloud Index compact light screenshot](docs/screenshots/linux-compact-light.png) | ![GoreeCloud Index compact dark screenshot](docs/screenshots/linux-compact-dark.png) |
+
+The checked-in 660×448 screenshots are generated from actual private-Xvfb
+GTK windows, never Apple artwork or a user's app/file list. Recreate them
+only on a disposable Xvfb display, with `xwd` and `ffmpeg` already installed:
+
+```bash
+for appearance in light dark; do
+  GOREECLOUD_INDEX_SYNTHETIC_CAPTURE=1 GDK_BACKEND=x11 PYTHONPATH=src \
+    xvfb-run -a -s '-screen 0 960x740x24' /usr/bin/python3 \
+      tools/render_screenshots_gtk.py --appearance "$appearance"
+done
+```
 
 The search panel reflows at compact widths and uses vertically scrollable
 results when larger fonts or short displays require additional room. The
