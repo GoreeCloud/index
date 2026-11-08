@@ -113,3 +113,17 @@ jobs:
             GOREECLOUD_INDEX_PORTAL_ISOLATED=1 GOREECLOUD_INDEX_FAKE_PORTAL="$response" \
               dbus-run-session -- /usr/bin/python3 tools/smoke_portal_fd.py
           done
+
+  linux-wayland-headless:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install distribution-provided headless Wayland compositor and GTK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            weston python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 dbus
+      - name: Run private Weston GTK native Wayland layout/consent/scaling smoke
+        shell: bash
+        run: bash tools/verify_weston_ci.sh

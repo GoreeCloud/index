@@ -1,11 +1,11 @@
 """Isolated GTK system-text scaling and semantic contrast smoke.
 
-Only use this with GDK_BACKEND=x11 xvfb-run. The test mocks the installed
-application list, uses a disposable XDG data root, and changes Gtk.Settings
-only in the disposable GTK process. It never changes the owner's settings,
-operates a real input device, opens a personal file, or activates applications.
-
-This is limited X11 layout evidence, NOT real Wayland, Orca or WCAG acceptance.
+Use this with private GDK_BACKEND=x11 Xvfb, or on a disposable GitHub-hosted
+runner with a guarded private Weston Wayland socket. It mocks applications,
+uses a disposable XDG data root, and changes only process-local Gtk.Settings.
+It never changes the owner's desktop settings, operates physical inputs,
+opens personal files or launches installed applications. This is layout
+regression evidence, NOT actual GNOME/KDE/Orca or WCAG acceptance.
 """
 
 from __future__ import annotations
@@ -26,8 +26,21 @@ from goreecloud_index.apps import Application
 
 
 def check(width: int) -> None:
-    if os.environ.get("GDK_BACKEND") != "x11" or not os.environ.get("DISPLAY"):
-        raise RuntimeError("Run text-scaling checks in a separate X11/Xvfb display")
+    backend = os.environ.get("GDK_BACKEND")
+    private_x11 = backend == "x11" and bool(os.environ.get("DISPLAY"))
+    runtime = Path(os.environ.get("XDG_RUNTIME_DIR", "/nonexistent"))
+    ci_root = Path(os.environ.get("RUNNER_TEMP", "/nonexistent"))
+    private_wayland = (
+        backend == "wayland"
+        and os.environ.get("GOREECLOUD_INDEX_PRIVATE_WAYLAND") == "1"
+        and os.environ.get("GITHUB_ACTIONS") == "true"
+        and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted"
+        and os.environ.get("WAYLAND_DISPLAY") == "gc-index-ci-wl"
+        and runtime.resolve().is_relative_to(ci_root.resolve())
+        and (runtime / "gc-index-ci-wl").is_socket()
+    )
+    if not (private_x11 or private_wayland):
+        raise RuntimeError("Text scaling requires isolated X11/Xvfb or private hosted Weston")
 
     # No application discovery or user-filesystem index roots are necessary.
     ui.list_applications = lambda: [

@@ -123,3 +123,16 @@ be too verbose or insufficiently announced. Result selection is bounded and UI l
 scrolling and actual keyboard event routing require real-display validation.
 No claim of
 complete GC UI design compliance, WCAG conformance or release readiness.
+
+## Guarded headless Wayland regression (development CI only)
+
+The separate `linux-wayland-headless` GitHub-hosted Ubuntu 24.04 job installs
+Weston from the distribution and runs `tools/verify_weston_ci.sh` as an
+unprivileged process. The script refuses to start on an ordinary machine,
+uses a private `XDG_RUNTIME_DIR` and `dbus-run-session`, avoids the owner’s
+compositor/input/session, and checks native GTK layout at 390/440 px,
+synthetic consent UI, and nominal 100/200/400% system-font scaling over
+`GDK_BACKEND=wayland`. Cleanup terminates Weston and removes only the
+created temporary fixture. The job is a **candidate** until its hosted run
+passes; never interpret it as physical GNOME/KDE, Orca, keyboard routing,
+real desktop portal backend, WCAG or founder visual approval.
