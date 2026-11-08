@@ -485,6 +485,114 @@ class IndexTests(unittest.TestCase):
         self.assertTrue(self.store.result_is_authorized(document))
         self.assertEqual(archived.read_text(encoding="utf-8"), "first")
 
+    def test_same_inode_file_edit_refused_until_explicit_rescan(self) -> None:
+        import os
+        import time
+
+        file = self.files / "stable-report.md"
+        file.write_text("original", encoding="utf-8")
+        root = self.store.add_root(self.files, include_content=True)
+        scan_root(self.store, root)
+        before = file.stat()
+        self.assertTrue(self.store.result_is_authorized(file))
+        time.sleep(0.02)  # Allow file-system ctime resolution to advance.
+        file.write_text("altered!", encoding="utf-8")  # Same byte count.
+        os.utime(file, ns=(before.st_atime_ns, before.st_mtime_ns))
+        after = file.stat()
+        self.assertEqual((after.st_dev, after.st_ino, after.st_size,
+                          after.st_mtime_ns),
+                         (before.st_dev, before.st_ino, before.st_size,
+                          before.st_mtime_ns))
+        self.assertNotEqual(after.st_ctime_ns, before.st_ctime_ns)
+        self.assertFalse(self.store.result_is_authorized(file))
+        with self.assertRaisesRegex(ValueError, "replaced"):
+            self.store.open_authorized_result_fd(file)
+        scan_root(self.store, root)
+        self.assertTrue(self.store.result_is_authorized(file))
+        fd = self.store.open_authorized_result_fd(file)
+        try:
+            self.assertEqual(os.fstat(fd).st_ino, before.st_ino)
+        finally:
+            os.close(fd)
+
+    def test_simulated_reused_inode_with_stale_ctime_is_refused(self) -> None:
+        """Even when device/inode match, stale file metadata fail closed."""
+        import os
+        file = self.files / "reused.md"
+        file.write_text("record", encoding="utf-8")
+        root = self.store.add_root(self.files)
+        scan_root(self.store, root)
+        with self.store.connect() as conn:
+            conn.execute(
+                "UPDATE items SET ctime_ns = ctime_ns - 1000000000 "
+                "WHERE path = ?", (str(file),)
+            )
+        self.assertFalse(self.store.result_is_authorized(file))
+        with self.assertRaisesRegex(ValueError, "replaced"):
+            self.store.open_authorized_result_fd(file)
+        self.assertEqual([v.name for v in search_files(self.store, "reused")],
+                         ["reused.md"])  # Candidate remains visible until rescan.
+        scan_root(self.store, root)
+        fd = self.store.open_authorized_result_fd(file)
+        os.close(fd)
+
+    def test_text_changed_during_scan_is_not_committed(self) -> None:
+        from unittest.mock import patch
+        from goreecloud_index import scanner
+
+        target = self.files / "changing.md"
+        target.write_text("consented-original", encoding="utf-8")
+        root = self.store.add_root(self.files, include_content=True)
+        original = scanner._read_text
+        mutated = False
+
+        def edit_after_read(path, size, enabled):
+            nonlocal mutated
+            content = original(path, size, enabled)
+            if path.name == target.name and not mutated:
+                mutated = True
+                target.write_text("replaced-secret-value", encoding="utf-8")
+            return content
+
+        with patch.object(scanner, "_read_text", side_effect=edit_after_read):
+            report = scan_root(self.store, root)
+        self.assertTrue(mutated)
+        self.assertGreater(report.errors, 0)
+        self.assertEqual(self.store.count(), 0)
+        self.assertEqual(search_files(self.store, "consented"), [])
+        self.assertEqual(search_files(self.store, "secret"), [])
+        self.assertTrue(target.is_file())
+        scan_root(self.store, root)
+        self.assertEqual([v.name for v in search_files(self.store, "secret")],
+                         ["changing.md"])
+
+    def test_missing_ctime_from_existing_database_needs_rescan(self) -> None:
+        import os
+        import sqlite3
+        file = self.files / "legacy-ctime.md"
+        file.write_text("content", encoding="utf-8")
+        root = self.store.add_root(self.files)
+        scan_root(self.store, root)
+        with sqlite3.connect(self.store.path) as conn:
+            conn.execute("ALTER TABLE items DROP COLUMN ctime_ns")
+        restored = IndexStore(self.store.path)
+        with restored.connect() as conn:
+            row = conn.execute(
+                "SELECT device, inode, ctime_ns FROM items WHERE path = ?",
+                (str(file),),
+            ).fetchone()
+        self.assertIsNotNone(row["device"])
+        self.assertIsNotNone(row["inode"])
+        self.assertIsNone(row["ctime_ns"])
+        self.assertEqual(search_files(restored, "legacy-ctime"), [])
+        self.assertFalse(restored.result_is_authorized(file))
+        with self.assertRaisesRegex(ValueError, "unbound"):
+            restored.open_authorized_result_fd(file)
+        scan_root(restored, restored.roots()[0])
+        self.assertTrue(restored.result_is_authorized(file))
+        fd = restored.open_authorized_result_fd(file)
+        os.close(fd)
+
     def test_entry_validation_rejects_symlinked_parent_and_item(self) -> None:
         nested = self.files / "nested"
         nested.mkdir()

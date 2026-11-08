@@ -61,10 +61,13 @@ Status: **Linux development preview**, not an audited security product.
 - Directory opens verify each path component with `O_NOFOLLOW`.
   Older databases migrate to nullable identity columns, leaving old roots
   unbound until the user explicitly reauthorizes them.
-- The scanner records each indexed file/directory's own device/inode.
-  The UI rechecks indexed membership, root consent **and the individual item's
-  identity** immediately before opening, through descriptor-anchored
-  non-symlink path traversal. A replacement at the same pathname is refused
+- The scanner records each indexed file/directory's own device/inode,
+  and also records ctime, mtime, and size for regular files. After bounded
+  content reads it rechecks the sampled metadata so in-scan file changes do
+  not create mixed/stale entries. The UI rechecks index membership, root
+  consent **and the individual item's identity** immediately before opening,
+  through descriptor-anchored non-symlink traversal. A modified regular file
+  remains unopenable until an explicit rescan. A replacement at the same pathname is refused
   until a new scan records it. Legacy databases acquire nullable item identity
   columns and hide their previously cached results until rescanned; no
   existing file is silently assigned a new inode at migration.
@@ -72,8 +75,10 @@ Status: **Linux development preview**, not an audited security product.
   portal; no subsequent Gio pathname URI is constructed by Index.
 - Explicit reauthorization resets text permission to metadata-only, clears
   indexed metadata and prior exclusion rules, and leaves original files
-  untouched. Filesystem inode reuse remains a limitation: a newer file
-  can theoretically acquire the same device/inode identity after deletion.
+  untouched. ctime/mtime/size reduce—but do not eliminate—possible inode
+  reuse after deletion; a replacement could have matching values on a
+  low-resolution or manipulated filesystem. Folder ctime is intentionally
+  not required for activation because normal child updates change it.
 - Scans do not follow symbolic links or cross filesystem devices.
 - Overlapping indexed roots are rejected to prevent conflicting content-access
   permissions and stale-entry ownership. User-selected exclusion folders must
@@ -112,8 +117,9 @@ Status: **Linux development preview**, not an audited security product.
   file opening. Unavailable or rejected requests fail closed; no legacy Gio
   path-based fallback is attempted. A real GNOME/KDE external-opening test and
   compositor-specific policy review remain **OPEN** before Stable.
-  Existing users must explicitly rescan after item-identity migration to
-  make old files searchable/openable again; no automatic scan runs.
+  Existing users must explicitly rescan after the new ctime-column
+  migration to make legacy rows searchable/openable again; the additive
+  migration never silently approves a pathname and no automatic scan runs.
 - No claim of malware detection or threat scanning is made for GoreeCloud Index.
 
 Report security issues privately to the repository owner; do not file sensitive

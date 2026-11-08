@@ -24,11 +24,13 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   stored search hits are hidden if a root is replaced or unbound.
 - Explicit reauthorization in GTK or CLI resets the root to metadata-only and
   clears the old index/exclusions, without touching original files.
-- Indexed files and folders are now pinned to their **own** filesystem
-  device/inode when scanned, in addition to the authorized root. If an item is
-  replaced at the same pathname, opening it is refused until a manual rescan
-  approves the new identity. Existing databases without pinned item identity
-  hide those old search results until a rescan; source files are never altered.
+- Indexed files and folders are pinned to their own device/inode. Regular
+  files additionally record Linux ctime, mtime, and size at scan time. If a
+  file is edited or replaced in place, opening it is refused until a manual
+  rescan refreshes the approved metadata. These secondary checks mitigate rare
+  inode reuse, but do not cryptographically prove filesystem identity. Legacy
+  database rows missing ctime stay hidden until rescanned. Source files are
+  never changed by Index.
 - Selected indexed files are opened through verified Linux `O_PATH`
   descriptors and freedesktop `OpenURI.OpenFile` over the session D-Bus.
   Passing the pinned FD instead of a pathname prevents Index's earlier

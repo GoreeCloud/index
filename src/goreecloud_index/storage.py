@@ -7,7 +7,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import database_path, safe_root, root_identity, entry_identity, open_entry_descriptor
+from .config import database_path, safe_root, root_identity, open_entry_descriptor
 
 
 @dataclass(frozen=True)
@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS items (
     content TEXT NOT NULL DEFAULT '',
     generation INTEGER NOT NULL,
     device INTEGER,
-    inode INTEGER
+    inode INTEGER,
+    ctime_ns INTEGER
 );
 CREATE INDEX IF NOT EXISTS items_root_idx ON items(root);
 CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
@@ -102,11 +103,11 @@ class IndexStore:
             for column in ("device", "inode"):
                 if column not in cols:
                     conn.execute(f"ALTER TABLE roots ADD COLUMN {column} INTEGER")
-            # Old indexed rows have no reliable per-file identity and must
-            # not be opened until an explicitly authorized rescan replaces
-            # their NULL metadata. Never bless them by current pathname.
+            # Old rows lacking inode or ctime identity must not be opened
+            # until an explicitly authorized rescan records current metadata.
+            # Never bless legacy rows by their current path alone.
             item_cols = {row["name"] for row in conn.execute("PRAGMA table_info(items)")}
-            for column in ("device", "inode"):
+            for column in ("device", "inode", "ctime_ns"):
                 if column not in item_cols:
                     conn.execute(f"ALTER TABLE items ADD COLUMN {column} INTEGER")
 
@@ -192,7 +193,9 @@ class IndexStore:
         with self.connect() as conn:
             row = conn.execute(
                 "SELECT i.root, i.mime, i.device AS item_device, "
-                "i.inode AS item_inode, r.include_content, r.device, r.inode "
+                "i.inode AS item_inode, i.ctime_ns AS item_ctime_ns, "
+                "i.size AS item_size, i.mtime_ns AS item_mtime_ns, "
+                "r.include_content, r.device, r.inode "
                 "FROM items i JOIN roots r ON r.path = i.root WHERE i.path = ?",
                 (item,),
             ).fetchone()
@@ -204,15 +207,28 @@ class IndexStore:
             return False
         if not self.root_is_current(root):
             return False
-        if row["item_device"] is None or row["item_inode"] is None:
+        if any(row[key] is None for key in (
+            "item_device", "item_inode", "item_ctime_ns"
+        )):
             return False
+        import stat
         try:
-            device, inode, is_dir = entry_identity(root.path, item)
+            fd = open_entry_descriptor(root.path, item)
+            try:
+                current = os.fstat(fd)
+            finally:
+                os.close(fd)
         except (OSError, ValueError, RuntimeError):
             return False
         return (
-            (device, inode) == (row["item_device"], row["item_inode"])
-            and is_dir == (row["mime"] == "inode/directory")
+            (current.st_dev, current.st_ino)
+            == (row["item_device"], row["item_inode"])
+            and stat.S_ISDIR(current.st_mode) == (row["mime"] == "inode/directory")
+            and (stat.S_ISDIR(current.st_mode) or (
+                current.st_ctime_ns == row["item_ctime_ns"]
+                and current.st_mtime_ns == row["item_mtime_ns"]
+                and current.st_size == row["item_size"]
+            ))
         )
 
     def open_authorized_result_fd(self, item_path: str | Path) -> int:
@@ -231,13 +247,15 @@ class IndexStore:
             conn.execute("BEGIN")
             row = conn.execute(
                 "SELECT i.root, i.mime, i.device AS item_device, "
-                "i.inode AS item_inode, r.device AS root_device, "
+                "i.inode AS item_inode, i.ctime_ns AS item_ctime_ns, "
+                "i.mtime_ns AS item_mtime_ns, i.size AS item_size, "
+                "r.device AS root_device, "
                 "r.inode AS root_inode FROM items i "
                 "JOIN roots r ON r.path = i.root WHERE i.path = ?",
                 (item,),
             ).fetchone()
             if row is None or any(row[key] is None for key in (
-                "item_device", "item_inode", "root_device", "root_inode"
+                "item_device", "item_inode", "item_ctime_ns", "root_device", "root_inode"
             )):
                 raise ValueError("File result is unindexed, unbound, or no longer authorized")
             root = row["root"]
@@ -263,9 +281,18 @@ class IndexStore:
                     != (row["item_device"], row["item_inode"])
                     or stat.S_ISDIR(current.st_mode)
                     != (row["mime"] == "inode/directory")
+                    # For files, ctime is an additional guard against inode
+                    # reuse after unlink, and rejects same-inode file edits
+                    # until the user rescans. Directory ctime changes during
+                    # normal child updates, so do not pin it for folders.
+                    or (stat.S_ISREG(current.st_mode) and (
+                        current.st_ctime_ns != row["item_ctime_ns"]
+                        or current.st_mtime_ns != row["item_mtime_ns"]
+                        or current.st_size != row["item_size"]
+                    ))
                     or root_identity(root) != (row["root_device"], row["root_inode"])
                 ):
-                    raise ValueError("Indexed file or root was replaced; rescan")
+                    raise ValueError("Indexed file changed or was replaced; rescan")
                 return fd
             except BaseException:
                 os.close(fd)
