@@ -53,10 +53,11 @@ def search_files(store: IndexStore, query: str = "", limit: int = 40) -> list[Fi
     if not trusted:
         return []
     joins = ""
-    # Legacy rows without a recorded file identity are hidden until rescanned.
-    # A same-path different-inode replacement is blocked at activation time.
+    # Conservatively hide records without the current inode/ctime identity
+    # metadata. A user-initiated rescan rebinds these legacy entries.
     clauses = ["i.root IN (" + ", ".join("?" for _ in trusted) + ")",
-               "i.device IS NOT NULL", "i.inode IS NOT NULL"]
+               "i.device IS NOT NULL", "i.inode IS NOT NULL",
+               "i.ctime_ns IS NOT NULL"]
     params: list[object] = list(trusted)
     sort = "i.mtime_ns DESC, i.name COLLATE NOCASE"
     words = re.findall(r"[^\W_]+", " ".join(terms), flags=re.UNICODE)[:12]

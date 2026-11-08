@@ -3,7 +3,8 @@
 All descendant traversal and file opening is relative to verified directory
 descriptors. Symlink swaps cannot redirect file-content reads outside an
 authorized directory. Roots and indexed items are identity-checked. This
-is a development preview, not a filesystem sandbox or race-free URI opener.
+is a development preview, not a filesystem sandbox or a guarantee about
+downstream third-party portal/handler semantics.
 """
 
 from __future__ import annotations
@@ -197,7 +198,16 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
                         # recording the displayed path. A stale file path is
                         # not safe to expose as an openable search result.
                         latest = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
-                        if (latest.st_dev, latest.st_ino) != (st.st_dev, st.st_ino):
+                        if (
+                            (latest.st_dev, latest.st_ino) != (st.st_dev, st.st_ino)
+                            or latest.st_size != st.st_size
+                            or latest.st_mtime_ns != st.st_mtime_ns
+                            or latest.st_ctime_ns != st.st_ctime_ns
+                        ):
+                            # A same-inode modification during opt-in text
+                            # extraction must not create a mixed/stale index
+                            # row or be mistaken for a complete successful
+                            # scan. Never purge old rows after such an error.
                             errors += 1
                             continue
                         if not path_still_matches_fd(current, dir_fd):
@@ -207,18 +217,19 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
                         conn.execute(
                             """INSERT INTO items
                                (path, root, name, extension, mime, size, mtime_ns,
-                                content, generation, device, inode)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                content, generation, device, inode, ctime_ns)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                                ON CONFLICT(path) DO UPDATE SET
                                root=excluded.root, name=excluded.name,
                                extension=excluded.extension, mime=excluded.mime,
                                size=excluded.size, mtime_ns=excluded.mtime_ns,
                                content=excluded.content, generation=excluded.generation,
-                               device=excluded.device, inode=excluded.inode""",
+                               device=excluded.device, inode=excluded.inode,
+                               ctime_ns=excluded.ctime_ns""",
                             (str(entry), root.path, name,
                              "" if is_dir else entry.suffix.lower().lstrip("."),
                              mime, st.st_size, st.st_mtime_ns, content, generation,
-                             st.st_dev, st.st_ino),
+                             st.st_dev, st.st_ino, st.st_ctime_ns),
                         )
                         count += 1
                     except (OSError, ValueError):

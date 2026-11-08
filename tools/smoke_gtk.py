@@ -208,7 +208,15 @@ def main() -> int:
                 assert "replaced" in app.status_label.get_text() or "identity changed" in app.status_label.get_text()
                 stale_hit_file.unlink()
                 moved_file.rename(stale_hit_file)
+                # The original inode was restored, but its ctime was changed
+                # by the rename. Its old index row must still fail closed
+                # until an explicitly requested rescan renews that identity.
+                assert not app.store.result_is_authorized(stale_hit_file)
+                scan_root(app.store, replacement_root)
                 assert app.store.result_is_authorized(stale_hit_file)
+                app._refresh()
+                stale_row = app.list_box.get_row_at_index(0)
+                assert stale_row is not None
                 # Positive UI path: the request must receive the *pinned*
                 # inode fd, not a pathname. The fake callback consumes the fd;
                 # no desktop backend or third-party file opener is contacted.
