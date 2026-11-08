@@ -21,6 +21,39 @@ class IndexTests(unittest.TestCase):
         self.files.mkdir()
         self.store = IndexStore(self.base / "private" / "index.sqlite3")
 
+    def test_appearance_is_light_first_and_persists_separately_from_index(self) -> None:
+        self.assertEqual(self.store.get_appearance_mode(), "light")
+        self.store.set_appearance_mode("dark")
+        self.assertEqual(IndexStore(self.store.path).get_appearance_mode(), "dark")
+        self.store.set_appearance_mode("auto")
+        self.assertEqual(IndexStore(self.store.path).get_appearance_mode(), "auto")
+        self.store.clear_items()
+        self.assertEqual(self.store.get_appearance_mode(), "auto")
+        self.store.set_appearance_mode("light")
+        self.assertEqual(IndexStore(self.store.path).get_appearance_mode(), "light")
+        self.store.reset_appearance_mode()
+        with self.store.connect() as conn:
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) FROM appearance_preference"
+            ).fetchone()[0], 0)
+        self.assertEqual(IndexStore(self.store.path).get_appearance_mode(), "light")
+
+    def test_appearance_rejects_invalid_modes_without_overwriting(self) -> None:
+        import sqlite3
+
+        self.store.set_appearance_mode("dark")
+        for invalid in ("system", "DARK", "", "light; DROP TABLE roots", None):
+            with self.subTest(mode=invalid):
+                with self.assertRaises(ValueError):
+                    self.store.set_appearance_mode(invalid)
+                self.assertEqual(self.store.get_appearance_mode(), "dark")
+        with self.store.connect() as conn:
+            with self.assertRaises(sqlite3.IntegrityError):
+                conn.execute(
+                    "UPDATE appearance_preference SET mode='invalid' WHERE singleton=1"
+                )
+        self.assertEqual(self.store.get_appearance_mode(), "dark")
+
     def test_empty_store_has_no_roots_or_items(self) -> None:
         self.assertEqual(self.store.roots(), [])
         self.assertEqual(self.store.count(), 0)

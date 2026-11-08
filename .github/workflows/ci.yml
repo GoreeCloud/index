@@ -96,6 +96,9 @@ jobs:
           # descriptions and active-descendant updates without a system bus.
           # This is not an AT-SPI or Orca screen-reader test.
           GTK_A11Y=test G_DEBUG=fatal-warnings xvfb-run -a /usr/bin/python3 tools/smoke_gtk.py
+          # Private unconnected D-Bus and memory GSettings: preference tests
+          # never alter the owner's desktop or activate a real portal backend.
+          GTK_A11Y=test G_DEBUG=fatal-warnings xvfb-run -a /usr/bin/python3 tools/smoke_appearance_gtk.py
           xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 390
           xvfb-run -a /usr/bin/python3 tools/smoke_layout_gtk.py --width 440
           # Simulate native 100/200/400% font preferences on a private

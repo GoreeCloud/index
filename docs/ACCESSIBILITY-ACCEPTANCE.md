@@ -23,7 +23,8 @@ Do not infer adoption of GC UI Foundations tokens or completed GC UI migration.
 | Result accessible label | Identifies the kind, name and subtitle as plain text (no markup execution) |
 | Result feedback | Position and title of the current selection appear in a GTK accessibility status role |
 | Indexing status | Summary and action feedback use a GTK accessibility status role |
-| Folder consent | Compact gear control opens the full native folder manager; folder additions default to metadata-only and content, root reauthorization or revocation require separate confirmation |
+| Folder consent | Dedicated native folder-manager button opens explicit consent controls; folder additions default to metadata-only and text, root reauthorization or revocation require separate confirmation |
+| Appearance preference | Dedicated native Preferences window exposes Light (first-launch default), Dark, explicitly selected Auto and Reset to Light. A GTK ComboRow remains keyboard/AT navigable; choices persist locally and immediately adapt the libadwaita palette without changing OS settings |
 
 The search palette uses icon-only All/Apps/Files/Actions filters with explicit
 accessible labels and shortcuts, plus separate manage/refresh/close controls.
@@ -41,6 +42,7 @@ behavior still need a real assistive-technology and desktop-session audit.
 Run from the checkout in a Linux environment with GTK4/libadwaita and Xvfb:
 
     PYTHONPATH=src xvfb-run -a /usr/bin/python3 tools/smoke_gtk.py
+    GDK_BACKEND=x11 GTK_A11Y=test PYTHONPATH=src xvfb-run -a /usr/bin/python3 tools/smoke_appearance_gtk.py
     PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 The GTK smoke covers selection movement and wrap, modifier filtering, focus
@@ -60,7 +62,9 @@ without reading a user's real files:
 
 Source-reviewed, synthetic [light](screenshots/linux-compact-light.png) and
 [dark](screenshots/linux-compact-dark.png) screenshots provide initial
-Spotlight-inspired palette visual evidence at approximately 650x460. GTK semantic appearance follows the OS;
+Spotlight-inspired palette visual evidence at 660×448 pixels (private
+Xvfb captures from original GTK controls and synthetic app fixtures). New
+preferences start Light and make Dark and Auto explicitly selectable;
 neither image specifies a mandatory GoreeCloud palette. Compact result rows
 may require vertical scrolling; these checks do not measure contrast ratios,
 test screen-reader announcements or establish final premium design approval.

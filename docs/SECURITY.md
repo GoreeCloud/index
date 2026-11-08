@@ -21,6 +21,12 @@ Status: **Linux development preview**, not an audited security product.
   from future scans, and any previously indexed results are purged immediately
   with boundary-safe path comparisons. The original files are never removed.
   Removing an exclusion does not re-index until a later explicit rescan.
+- Appearance preferences (Light/Dark/Auto) are held in the same owner-only
+  SQLite database as the Index metadata. A first launch without a saved
+  choice starts Light; user-selected Auto may follow only the OS appearance
+  signal, never an external service. Explicit Reset deletes the local saved
+  mode, reverting to Light. Neither appearance changes nor the indexed-file
+  consent UI modify system-wide desktop settings or expose a network API.
 - The source code has **no network search, telemetry, account login, or cloud sync**.
 - A native in-app folder manager lists approved indexing roots and metadata-only
   versus opt-in text access. Revocation requires confirmation and removes only
