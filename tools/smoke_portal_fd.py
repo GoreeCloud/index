@@ -121,13 +121,22 @@ def run() -> None:
                 fd = db.open_authorized_result_fd(item)
                 item.rename(old)
                 item.write_text("attacker-replacement", encoding="utf-8")
-                request_open_fd(fd, on_result)
-                try:
-                    os.fstat(fd)
-                except OSError:
-                    pass  # The API consumes the original descriptor.
-                else:
-                    raise AssertionError("Portal request leaked caller-owned descriptor")
+                # Checking os.fstat(fd) *after* returning is racy: D-Bus
+                # can immediately reuse the same integer for an unrelated
+                # descriptor. Verify the exact caller fd was closed instead.
+                from unittest.mock import patch
+                from goreecloud_index import portal
+                actual_close = os.close
+                closed: list[int] = []
+
+                def tracked_close(number: int) -> None:
+                    if number == fd:
+                        closed.append(number)
+                    actual_close(number)
+
+                with patch.object(portal.os, "close", side_effect=tracked_close):
+                    request_open_fd(fd, on_result)
+                assert closed == [fd], "Portal request did not consume caller fd"
             except Exception:
                 state["error"] = traceback.format_exc()
                 loop.quit()
