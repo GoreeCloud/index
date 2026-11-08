@@ -231,6 +231,29 @@ def main() -> int:
                     portal.assert_called_once()
                 assert "Desktop accepted" in app.status_label.get_text()
 
+                # Indexing/search remains useful for launchers, but clicking
+                # one must never invoke an arbitrary OS-assigned file opener.
+                blocked = another / "blocked-launcher.desktop"
+                blocked.write_text(
+                    "[Desktop Entry]\nType=Application\nExec=/bin/true\n",
+                    encoding="utf-8",
+                )
+                scan_root(app.store, replacement_root)
+                app.search_entry.set_text("blocked-launcher")
+                app._refresh()
+                blocked_row = app.list_box.get_row_at_index(0)
+                assert blocked_row is not None
+                assert app.hits[0].value == str(blocked)
+                with patch("goreecloud_index.ui.request_open_fd") as blocked_portal:
+                    app._activate_row(app.list_box, blocked_row)
+                    blocked_portal.assert_not_called()
+                assert "Executable and launcher" in app.status_label.get_text()
+                assert blocked.is_file()
+                app.search_entry.set_text("activation-check")
+                app._refresh()
+                stale_row = app.list_box.get_row_at_index(0)
+                assert stale_row is not None
+
                 previous = home / "previous-root"
                 another.rename(previous)
                 another.mkdir()

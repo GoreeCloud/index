@@ -71,6 +71,16 @@ END;
 """
 
 
+# File handlers selected by the operating system can run programs, not merely
+# display content. Until their behavior is accepted across real Linux desktops,
+# never hand executable files or common launchers to an untrusted handler.
+# Do not inspect file contents: metadata-only indexing stays metadata-only.
+EXECUTABLE_LAUNCH_SUFFIXES = frozenset({
+    ".desktop", ".appimage", ".run", ".sh", ".bash", ".zsh", ".fish",
+    ".exe", ".com", ".bat", ".cmd", ".ps1", ".jar", ".msi", ".scr",
+})
+
+
 class IndexStore:
     def __init__(self, db: Path | None = None) -> None:
         self.path = Path(db) if db else database_path()
@@ -325,6 +335,17 @@ class IndexStore:
                     or root_identity(root) != (row["root_device"], row["root_inode"])
                 ):
                     raise ValueError("Indexed file changed or was replaced; rescan")
+                # Search can still show these files, but pressing Enter must
+                # not trigger execution through a system-selected handler.
+                # Check the pinned FD's actual mode, never a racy path stat.
+                if stat.S_ISREG(current.st_mode) and (
+                    current.st_mode & 0o111
+                    or Path(item).suffix.casefold() in EXECUTABLE_LAUNCH_SUFFIXES
+                ):
+                    raise ValueError(
+                        "Executable and launcher files cannot be opened from "
+                        "Index; inspect them in your file manager instead"
+                    )
                 return fd
             except BaseException:
                 os.close(fd)

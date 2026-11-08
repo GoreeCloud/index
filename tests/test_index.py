@@ -236,6 +236,61 @@ class IndexTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unindexed"):
             self.store.open_authorized_result_fd(linked / "document.txt")
 
+    def test_launcher_and_executable_files_cannot_open_via_portal(self) -> None:
+        import os
+
+        cases = [
+            ("launcher.desktop", "[Desktop Entry]\nType=Application\nExec=/bin/true\n"),
+            ("script.sh", "echo synthetic\n"),
+            ("run.AppImage", "binary-synthetic"),
+            ("file.exe", "synthetic"),
+            ("windows.PS1", "synthetic"),
+            ("executable.txt", "not actually executable content"),
+        ]
+        root = self.store.add_root(self.files)
+        for filename, data in cases:
+            source = self.files / filename
+            source.write_text(data, encoding="utf-8")
+            source.chmod(0o755 if filename == "executable.txt" else 0o644)
+        safe = self.files / "ordinary.txt"
+        safe.write_text("safe synthetic text", encoding="utf-8")
+        folder = self.files / "scripts"
+        folder.mkdir()
+        report = scan_root(self.store, root)
+        self.assertEqual(report.errors, 0)
+        self.assertEqual(report.indexed, len(cases) + 2)
+        for filename, data in cases:
+            source = self.files / filename
+            self.assertTrue(self.store.result_is_authorized(source))
+            with self.assertRaisesRegex(ValueError, "Executable and launcher"):
+                self.store.open_authorized_result_fd(source)
+            self.assertEqual(source.read_text(encoding="utf-8"), data)
+        for target in (safe, folder):
+            fd = self.store.open_authorized_result_fd(target)
+            try:
+                self.assertEqual(os.fstat(fd).st_ino, target.stat().st_ino)
+            finally:
+                os.close(fd)
+
+    def test_file_chmod_to_executable_stays_blocked_even_after_rescan(self) -> None:
+        import os
+
+        text = self.files / "innocent.txt"
+        text.write_text("nonexecuting synthetic text", encoding="utf-8")
+        text.chmod(0o644)
+        root = self.store.add_root(self.files)
+        scan_root(self.store, root)
+        text.chmod(0o755)
+        with self.assertRaisesRegex(ValueError, "changed or was replaced"):
+            self.store.open_authorized_result_fd(text)
+        scan_root(self.store, root)
+        with self.assertRaisesRegex(ValueError, "Executable and launcher"):
+            self.store.open_authorized_result_fd(text)
+        text.chmod(0o644)
+        scan_root(self.store, root)
+        fd = self.store.open_authorized_result_fd(text)
+        os.close(fd)
+
     def test_fd_handoff_stays_on_original_inode_after_path_replacement(self) -> None:
         import os
         first = self.files / "file.txt"

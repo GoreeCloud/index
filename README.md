@@ -42,6 +42,12 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   pathname-substitution race. The system portal and its backend are required;
   failures never trigger an insecure pathname-URI fallback. Real portal
   backend and third-party handler FD semantics remain a Stable-release gate.
+- File results that are executable, `.desktop` launchers, or common script/
+  program formats remain searchable but will **not** launch from Index: use
+  the file manager to inspect them intentionally. This prevents automatic
+  handoff to a potentially executing file handler, without reading content,
+  modifying original files, or disabling normal installed-app launching.
+  It is defense in depth, not a guarantee about every custom file handler.
 - Consent-based indexing of named local directories with SQLite FTS5.
 - Native indexed-folder manager that shows approved roots and their content
   access level, with confirmation before revoking access and deleting index data.

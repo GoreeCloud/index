@@ -50,6 +50,15 @@ Status: **Linux development preview**, not an audited security product.
   the authorized root and sends **that descriptor**, not the pathname, to
   the freedesktop `org.freedesktop.portal.OpenURI.OpenFile` portal through local
   D-Bus. No shell or pathname-URI fallback is used when the portal is absent.
+- Executable regular files (any execute permission bit) and common program/
+  launcher suffixes (`.desktop`, `.AppImage`, shell scripts, Windows launchers,
+  Java archives, etc.) are **searchable but cannot be opened** through the
+  indexed-file action. This check uses the already authorized descriptor's
+  `fstat()` mode plus the selected filename, **before** portal handoff. It
+  closes the fd on refusal and reports how to inspect the item via the file
+  manager. Normal installed applications remain launchable only through their
+  registered application ID. This is a conservative guard; there is no safe
+  guarantee that other file associations never execute code.
 - Linux scans use descriptor-anchored `os.fwalk`, `stat(..., dir_fd=...)`
   and file-content `openat` with `O_NOFOLLOW`, device/inode checks, and
   stale-path validation. File and directory symlink swaps cannot redirect
@@ -105,8 +114,14 @@ Status: **Linux development preview**, not an audited security product.
 
 - No continuous filesystem watcher, sandbox, encrypted index, credential-aware
   classification, binary/PDF extraction, audit log, or verified global shortcut.
-- Default file associations can launch third-party applications. The user
-  explicitly controls when to open a result.
+- Default file associations can launch third-party applications. Even files
+  lacking executable bits and excluded launcher suffixes may have dangerous
+  user-configured handlers. The filename/permission guard is not an arbitrary
+  code-execution sandbox; user activation and third-party app choice still
+  matter. A November 8 private synthetic Xvfb experiment reached the system
+  Open With chooser, but did not confirm synthetic handler receipt; therefore
+  real GNOME/KDE portal and external file handler acceptance remain OPEN.
+  No owner's real desktop/session or private files were used.
 - Native GTK application behavior needs interactive accessibility, Wayland/X11,
   packaging and distribution-specific acceptance before stable release.
 - Existing indexed entries remain stored until a rescan or explicit removal.
