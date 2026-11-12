@@ -98,8 +98,11 @@ class CliTests(unittest.TestCase):
                 selected.rename(relocated)
                 selected.mkdir()
                 (selected / "new.md").write_text("unauthorized-canary")
+                # An invalid root is now reported as a partial scan (1),
+                # while missing explicit reauthorization still fails (2).
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(["scan"]), 1)
                 with contextlib.redirect_stderr(io.StringIO()):
-                    self.assertEqual(main(["scan"]), 2)
                     self.assertEqual(main(["reauthorize", str(selected)]), 2)
                 with contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(main(["reauthorize", str(selected), "--yes"]), 0)
