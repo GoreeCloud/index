@@ -495,6 +495,7 @@ class IndexApplication(Adw.Application):
             return
         query = self.search_entry.get_text().strip()
         hits: list[Hit] = []
+        search_error = ""
         if self.mode in ("all", "apps"):
             for app in self.apps:
                 if not query or query.casefold() in (app.name + " " + app.description).casefold():
@@ -507,7 +508,7 @@ class IndexApplication(Adw.Application):
                 matches = search_files(self.store, query, 40)
             except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
                 matches = []
-                self._set_status(f"File search unavailable: {exc}")
+                search_error = f"File search unavailable: {exc}"
             for item in matches:
                 is_folder = item.mime == "inode/directory"
                 hits.append(Hit("file", item.name, item.path, item.path,
@@ -599,14 +600,23 @@ class IndexApplication(Adw.Application):
                 self.list_box.select_row(first)
         else:
             self._selection_changed(self.list_box, None)
-        self._set_status()
+        self._set_status(search_error)
 
     def _set_status(self, info: str = "") -> None:
         if self.status_label is None or self.store is None:
             return
-        summary = (f"{self.store.count()} indexed items · {len(self.store.roots())} folders"
-                   " · local only · clipboard history off")
-        self.status_label.set_text(info or summary)
+        # Error reporting must never depend on another successful database
+        # read. In particular, a locked/corrupt store must not break the UI.
+        if info:
+            self.status_label.set_text(info)
+            return
+        try:
+            summary = (f"{self.store.count()} indexed items · "
+                       f"{len(self.store.roots())} folders"
+                       " · local only · clipboard history off")
+        except (OSError, ValueError, RuntimeError, sqlite3.Error):
+            summary = "Local index unavailable · check storage and retry"
+        self.status_label.set_text(summary)
 
     def _activate_first(self, *_unused) -> None:
         if self.list_box is None or not self.hits:
