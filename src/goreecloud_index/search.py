@@ -61,6 +61,10 @@ def search_files(store: IndexStore, query: str = "", limit: int = 40) -> list[Fi
     params: list[object] = list(trusted)
     sort = "i.mtime_ns DESC, i.name COLLATE NOCASE"
     words = re.findall(r"[^\W_]+", " ".join(terms), flags=re.UNICODE)[:12]
+    # Nonempty punctuation-only searches are not an implicit "list every file".
+    # Filter-only queries such as kind:pdf intentionally remain supported.
+    if terms and not words:
+        return []
     if words:
         joins = " JOIN items_fts ON items_fts.rowid = i.rowid "
         match = " AND ".join('"' + word.replace('"', '""') + '"*' for word in words)

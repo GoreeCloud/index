@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sqlite3
 import tempfile
 from pathlib import Path
 
@@ -45,6 +46,20 @@ def main() -> int:
                 assert app.search_entry.get_accessible_role() == Gtk.AccessibleRole.SEARCH_BOX
                 assert app.list_box is not None
                 assert app.list_box.get_accessible_role() == Gtk.AccessibleRole.LIST
+                # A locked or damaged local index must not throw out of the
+                # GTK callback or strand the scan state as busy.
+                from unittest.mock import patch
+                with patch("goreecloud_index.ui.search_files",
+                           side_effect=sqlite3.OperationalError("simulated lock")):
+                    app._select_mode("files")
+                    assert "File search unavailable" in app.status_label.get_text()
+                app.busy = True
+                with patch.object(app, "_render_roots",
+                                  side_effect=sqlite3.OperationalError("simulated lock")):
+                    app._scan_finished("Scan failed: simulated lock")
+                assert not app.busy
+                assert "Scan failed" in app.status_label.get_text()
+                app._select_mode("all")
                 assert app.search_entry.get_at_context() is not None
                 # Native app icons come from the local Gio registry; no
                 # image download or generic override when one is supplied.

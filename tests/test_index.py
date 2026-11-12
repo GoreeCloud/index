@@ -824,6 +824,15 @@ class IndexTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "open indexed directory"):
             scan_root(self.store, Root(str(alias / "inside"), False))
 
+    def test_punctuation_only_query_does_not_list_all_indexed_files(self) -> None:
+        (self.files / "private-file.txt").write_text("metadata-only", encoding="utf-8")
+        scan_root(self.store, self.store.add_root(self.files))
+        for query in ("...", "!!!", "::", "—"):
+            with self.subTest(query=query):
+                self.assertEqual(search_files(self.store, query), [])
+        self.assertEqual([r.name for r in search_files(self.store, "kind:file")],
+                         ["private-file.txt"])
+
     def test_bad_query_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             parse_query('"unterminated')
