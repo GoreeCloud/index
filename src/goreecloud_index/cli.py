@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import sys
 
 from .calculator import calculate
@@ -104,9 +105,13 @@ def main(argv: list[str] | None = None) -> int:
                 return 0 if not report.errors and not report.truncated else 1
             print(f"Text indexing disabled for {root.path}; indexed text purged immediately.")
         elif args.command == "scan":
-            for report in scan_all(store):
+            reports = scan_all(store)
+            for report in reports:
                 print(f"{report.root}: {report.indexed} items, {report.errors} errors, "
                       f"{report.removed_stale} removed, truncated={report.truncated}")
+            # A partial scan must not be reported as successful to automation.
+            if any(report.errors or report.truncated for report in reports):
+                return 1
         elif args.command == "search":
             results = search_files(store, " ".join(args.query), args.limit)
             if args.json:
@@ -129,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Indexed items: {store.count()}")
             print(f"Selected directories: {len(store.roots())}")
         return 0
-    except (ValueError, OSError) as exc:
+    except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
         print(f"Index: {exc}", file=sys.stderr)
         return 2
 
