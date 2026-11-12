@@ -3,12 +3,14 @@ from __future__ import annotations
 import contextlib
 import io
 import os
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from goreecloud_index.cli import main
+from goreecloud_index.scanner import ScanReport
 
 
 class CliTests(unittest.TestCase):
@@ -113,6 +115,30 @@ class CliTests(unittest.TestCase):
                     self.assertEqual(main(["search", "canary"]), 0)
                 self.assertEqual(private.getvalue(), "")
                 self.assertTrue((relocated / "original.md").is_file())
+
+    def test_scan_reports_partial_work_as_nonzero(self) -> None:
+        with tempfile.TemporaryDirectory() as base:
+            with patch.dict(os.environ, {"XDG_DATA_HOME": str(Path(base) / "data")}):
+                partial = ScanReport("/selected", 2, 1, False, 0)
+                with patch("goreecloud_index.cli.scan_all", return_value=[partial]):
+                    output = io.StringIO()
+                    with contextlib.redirect_stdout(output):
+                        self.assertEqual(main(["scan"]), 1)
+                    self.assertIn("1 errors", output.getvalue())
+                truncated = ScanReport("/selected", 2, 0, True, 0)
+                with patch("goreecloud_index.cli.scan_all", return_value=[truncated]):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        self.assertEqual(main(["scan"]), 1)
+
+    def test_database_errors_return_clean_cli_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as base:
+            with patch.dict(os.environ, {"XDG_DATA_HOME": str(Path(base) / "data")}):
+                with patch("goreecloud_index.cli.search_files",
+                           side_effect=sqlite3.OperationalError("database is locked")):
+                    errors = io.StringIO()
+                    with contextlib.redirect_stderr(errors):
+                        self.assertEqual(main(["search", "report"]), 2)
+                    self.assertIn("Index: database is locked", errors.getvalue())
 
     def test_clear_requires_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as base:
