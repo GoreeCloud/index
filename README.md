@@ -69,6 +69,11 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   inode checks against mid-scan symlink swaps, owner-only data-directory
   permissions, and a local CLI.
 - Core unit tests and Linux CI gates.
+- A local CLI `doctor` command checks SQLite quick-check consistency and
+  whether selected roots still match their authorized filesystem identities;
+  `--json` provides machine-readable health status. The diagnostic is not a
+  full FTS, filesystem, security or release-readiness audit, and it neither
+  rescans nor expands indexing permissions.
 - Reproducible, rootlessly assembled Debian/Ubuntu .deb development package.
 - Offline disposable-container dpkg install/upgrade/rollback/purge lifecycle validation
   (dependency checks intentionally bypassed; not distro acceptance).
@@ -178,6 +183,7 @@ PYTHONPATH=src python3 -m goreecloud_index add ~/Documents
 PYTHONPATH=src python3 -m goreecloud_index search "ext:md meeting"
 PYTHONPATH=src python3 -m goreecloud_index calc "12% of 75"
 PYTHONPATH=src python3 -m goreecloud_index status
+PYTHONPATH=src python3 -m goreecloud_index doctor --json
 ```
 
 Alternatively, create a virtual environment with access to the system's

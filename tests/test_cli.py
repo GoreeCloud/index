@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import os
 import sqlite3
 import tempfile
@@ -139,6 +140,53 @@ class CliTests(unittest.TestCase):
                     with contextlib.redirect_stderr(errors):
                         self.assertEqual(main(["search", "report"]), 2)
                     self.assertIn("Index: database is locked", errors.getvalue())
+
+    def test_doctor_reports_root_health_without_changing_consent(self) -> None:
+        with tempfile.TemporaryDirectory() as base:
+            home = Path(base)
+            root = home / "documents"
+            root.mkdir()
+            (root / "private.md").write_text("do-not-touch", encoding="utf-8")
+            with patch.dict(os.environ, {"XDG_DATA_HOME": str(home / "data")}):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(["add", str(root)]), 0)
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    self.assertEqual(main(["doctor", "--json"]), 0)
+                result = json.loads(output.getvalue())
+                self.assertTrue(result["healthy"])
+                self.assertEqual(result["sqlite_quick_check"], "ok")
+                self.assertEqual(result["configured_roots"], 1)
+                self.assertEqual(result["indexed_items"], 1)
+                self.assertEqual(result["unverified_roots"], [])
+                renamed = home / "original"
+                root.rename(renamed)
+                root.mkdir()
+                (root / "private.md").write_text("unapproved", encoding="utf-8")
+                with contextlib.redirect_stdout(output := io.StringIO()):
+                    self.assertEqual(main(["doctor", "--json"]), 1)
+                result = json.loads(output.getvalue())
+                self.assertFalse(result["healthy"])
+                self.assertEqual(result["unverified_roots"], [str(root)])
+                self.assertEqual((renamed / "private.md").read_text(), "do-not-touch")
+                self.assertEqual((root / "private.md").read_text(), "unapproved")
+
+    def test_doctor_fails_closed_on_sqlite_integrity_problem(self) -> None:
+        from goreecloud_index.cli import inspect_local_index
+        from goreecloud_index.storage import IndexStore
+        with tempfile.TemporaryDirectory() as base:
+            store = IndexStore(Path(base) / "index.sqlite3")
+            from unittest.mock import MagicMock
+            connection = MagicMock()
+            connection.__enter__.return_value.execute.return_value.fetchone.return_value = (
+                "database corruption reported",
+            )
+            with patch.object(store, "connect", return_value=connection):
+                report = inspect_local_index(store)
+            self.assertFalse(report["healthy"])
+            self.assertEqual(report["sqlite_quick_check"], "database corruption reported")
+            self.assertIsNone(report["indexed_items"])
+            self.assertIsNone(report["configured_roots"])
 
     def test_clear_requires_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as base:
