@@ -505,8 +505,9 @@ class IndexApplication(Adw.Application):
         if self.mode in ("all", "files"):
             try:
                 matches = search_files(self.store, query, 40)
-            except ValueError:
+            except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
                 matches = []
+                self._set_status(f"File search unavailable: {exc}")
             for item in matches:
                 is_folder = item.mime == "inode/directory"
                 hits.append(Hit("file", item.name, item.path, item.path,
@@ -1076,7 +1077,12 @@ class IndexApplication(Adw.Application):
         if self.busy or self.store is None:
             return
         self.busy = True
-        self._render_roots()
+        try:
+            self._render_roots()
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+            self.busy = False
+            self._set_status(f"Could not prepare scan: {exc}")
+            return
         self._set_status("Indexing selected folder…")
         store = self.store
 
@@ -1085,7 +1091,7 @@ class IndexApplication(Adw.Application):
                 report = scan_root(store, root)
                 message = (f"Indexed {report.indexed} entries"
                            + (" · partial scan" if report.errors or report.truncated else ""))
-            except (OSError, ValueError) as exc:
+            except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
                 message = f"Scan failed: {exc}"
             GLib.idle_add(self._scan_finished, message)
 
@@ -1095,7 +1101,12 @@ class IndexApplication(Adw.Application):
         if self.busy or self.store is None:
             return
         self.busy = True
-        self._render_roots()
+        try:
+            self._render_roots()
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+            self.busy = False
+            self._set_status(f"Could not prepare refresh: {exc}")
+            return
         self._set_status("Refreshing selected folders…")
         store = self.store
 
@@ -1105,7 +1116,7 @@ class IndexApplication(Adw.Application):
                 count = sum(item.indexed for item in reports)
                 partial = any(r.errors or r.truncated for r in reports)
                 message = f"Refreshed {count} entries" + (" · partial scan" if partial else "")
-            except (OSError, ValueError) as exc:
+            except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
                 message = f"Refresh failed: {exc}"
             GLib.idle_add(self._scan_finished, message)
 
@@ -1113,7 +1124,11 @@ class IndexApplication(Adw.Application):
 
     def _scan_finished(self, message: str) -> bool:
         self.busy = False
-        self._refresh()
-        self._render_roots()
+        try:
+            self._refresh()
+            self._render_roots()
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+            self._set_status(f"{message} · Could not refresh folders: {exc}")
+            return GLib.SOURCE_REMOVE
         self._set_status(message)
         return GLib.SOURCE_REMOVE
