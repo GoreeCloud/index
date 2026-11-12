@@ -13,6 +13,31 @@ from .search import search_files
 from .storage import IndexStore
 
 
+def inspect_local_index(store: IndexStore) -> dict[str, object]:
+    """Read-only diagnostic checks after normal IndexStore initialization.
+
+    SQLite quick_check verifies basic database B-tree consistency, not every
+    FTS5 relationship or a complete filesystem/security audit. This command
+    never rescans, changes root consent, or opens indexed source files.
+    """
+    with store.connect() as conn:
+        check = conn.execute("PRAGMA quick_check(1)").fetchone()
+    integrity = str(check[0]) if check is not None else "no SQLite response"
+    if integrity != "ok":
+        return {
+            "healthy": False, "sqlite_quick_check": integrity,
+            "indexed_items": None, "configured_roots": None,
+            "unverified_roots": [],
+        }
+    roots = store.roots()
+    unverified = [root.path for root in roots if not store.root_is_current(root)]
+    return {
+        "healthy": not unverified, "sqlite_quick_check": "ok",
+        "indexed_items": store.count(), "configured_roots": len(roots),
+        "unverified_roots": unverified,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="goreecloud-index",
                                      description="Privacy-first Linux desktop search")
@@ -50,6 +75,8 @@ def build_parser() -> argparse.ArgumentParser:
     calc = commands.add_parser("calc", help="Compute a safe expression or unit conversion")
     calc.add_argument("expression", nargs="+")
     commands.add_parser("status", help="Show local database and index counts")
+    doctor = commands.add_parser("doctor", help="Check SQLite and authorized root health locally")
+    doctor.add_argument("--json", action="store_true", help="Emit machine-readable diagnostics")
     return parser
 
 
@@ -133,6 +160,22 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Database: {store.path}")
             print(f"Indexed items: {store.count()}")
             print(f"Selected directories: {len(store.roots())}")
+        elif args.command == "doctor":
+            report = inspect_local_index(store)
+            if args.json:
+                print(json.dumps(report, ensure_ascii=False))
+            else:
+                print(f"SQLite quick check: {report['sqlite_quick_check']}")
+                if report["indexed_items"] is not None:
+                    print(f"Indexed items: {report['indexed_items']}")
+                    print(f"Configured roots: {report['configured_roots']}")
+                for root in report["unverified_roots"]:
+                    print(f"REAUTHORIZATION OR ACCESS CHECK REQUIRED: {root}")
+                if report["healthy"]:
+                    print("Local diagnostic checks: PASS")
+                else:
+                    print("Local diagnostic checks: ATTENTION REQUIRED")
+            return 0 if report["healthy"] else 1
         return 0
     except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
         print(f"Index: {exc}", file=sys.stderr)
