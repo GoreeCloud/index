@@ -98,8 +98,11 @@ class CliTests(unittest.TestCase):
                 selected.rename(relocated)
                 selected.mkdir()
                 (selected / "new.md").write_text("unauthorized-canary")
+                # An invalid root is now reported as a partial scan (1),
+                # while missing explicit reauthorization still fails (2).
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(["scan"]), 1)
                 with contextlib.redirect_stderr(io.StringIO()):
-                    self.assertEqual(main(["scan"]), 2)
                     self.assertEqual(main(["reauthorize", str(selected)]), 2)
                 with contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(main(["reauthorize", str(selected), "--yes"]), 0)
@@ -130,6 +133,43 @@ class CliTests(unittest.TestCase):
                 with patch("goreecloud_index.cli.scan_all", return_value=[truncated]):
                     with contextlib.redirect_stdout(io.StringIO()):
                         self.assertEqual(main(["scan"]), 1)
+
+
+    def test_scan_continues_after_replaced_root_without_indexing_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as base:
+            home = Path(base)
+            stale = home / "a-stale"
+            healthy = home / "z-healthy"
+            stale.mkdir()
+            healthy.mkdir()
+            (stale / "prior.txt").write_text("original", encoding="utf-8")
+            with patch.dict(os.environ, {"XDG_DATA_HOME": str(home / "data")}):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(["add", str(stale)]), 0)
+                    self.assertEqual(main(["add", str(healthy)]), 0)
+                original = home / "original"
+                stale.rename(original)
+                stale.mkdir()
+                (stale / "unapproved.txt").write_text("unapproved", encoding="utf-8")
+                (healthy / "freshsafe.txt").write_text("approved", encoding="utf-8")
+
+                scan_output = io.StringIO()
+                with contextlib.redirect_stdout(scan_output):
+                    self.assertEqual(main(["scan"]), 1)
+                self.assertIn(f"{stale}: 0 items, 1 errors", scan_output.getvalue())
+                self.assertIn(f"{healthy}: 1 items, 0 errors", scan_output.getvalue())
+
+                found = io.StringIO()
+                with contextlib.redirect_stdout(found):
+                    self.assertEqual(main(["search", "freshsafe"]), 0)
+                self.assertIn("freshsafe.txt", found.getvalue())
+                refused = io.StringIO()
+                with contextlib.redirect_stdout(refused):
+                    self.assertEqual(main(["search", "unapproved"]), 0)
+                self.assertEqual(refused.getvalue(), "")
+                self.assertTrue((original / "prior.txt").is_file())
+                self.assertTrue((stale / "unapproved.txt").is_file())
+
 
     def test_database_errors_return_clean_cli_failure(self) -> None:
         with tempfile.TemporaryDirectory() as base:

@@ -247,4 +247,19 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
 
 
 def scan_all(store: IndexStore) -> list[ScanReport]:
-    return [scan_root(store, root) for root in store.roots()]
+    """Refresh independent approved roots despite an invalid single root.
+
+    A moved, revoked, or inaccessible root raises ValueError from scan_root.
+    Record that root's failure without aborting other consented roots.
+    Database and unexpected system failures still propagate instead of being
+    disguised as isolated path failures.
+    """
+    reports: list[ScanReport] = []
+    for root in store.roots():
+        try:
+            reports.append(scan_root(store, root))
+        except ValueError:
+            # Never mark a failed root as complete or delete its old entries.
+            # Search/open paths independently recheck root identity.
+            reports.append(ScanReport(root.path, 0, 1, False, 0))
+    return reports
