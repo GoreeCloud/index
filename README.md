@@ -27,6 +27,10 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 - Application listing and launching through Gio/freedesktop app registry.
 - Identity-bound consent for each authorized root (filesystem device + inode);
   stored search hits are hidden if a root is replaced or unbound.
+- Before returning an in-flight file search, Index rechecks the root's
+  stored consent and metadata, returned items and folder exclusions. Detected
+  mid-query revocation, content downgrade, exclusion or clearing suppresses
+  stale results rather than exposing cached filenames or text snippets.
 - Explicit reauthorization in GTK or CLI resets the root to metadata-only and
   clears the old index/exclusions, without touching original files.
 - Indexed files and folders are pinned to their own device/inode. Regular
