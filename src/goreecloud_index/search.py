@@ -33,11 +33,19 @@ def parse_query(query: str) -> tuple[list[str], dict[str, str]]:
         raise ValueError("Unclosed quote in search query") from exc
     filters: dict[str, str] = {}
     terms: list[str] = []
+    valid_kinds = {"folder", "directory", "file", "pdf", "image", "audio", "video", "text"}
     for part in parts:
         if ":" in part:
             key, value = part.split(":", 1)
-            if key.lower() in {"kind", "ext", "path"} and value:
-                filters[key.lower()] = value[:128]
+            key = key.lower()
+            if key in {"kind", "ext", "path"}:
+                # Never silently drop or truncate a user-specified restriction:
+                # an invalid filter must not broaden the set of local results.
+                if not value or len(value) > 128:
+                    raise ValueError(f"Invalid {key} search filter")
+                if key == "kind" and value.lower() not in valid_kinds:
+                    raise ValueError("Unsupported kind search filter")
+                filters[key] = value
                 continue
         terms.append(part)
     return terms, filters
