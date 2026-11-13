@@ -60,7 +60,7 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   file-content indexing requires a second explicit per-root confirmation in
   Manage indexed folders. Optional text extraction remains bounded to supported
   small UTF-8-ish source and document formats.
-- Search terms and basic `kind:`, `ext:`, and `path:` filters. Recognized filters reject blank, overlong or unsupported values instead of silently widening a local search.
+- Search terms and basic `kind:`, `ext:`, and `path:` filters. Recognized filters reject blank, overlong, repeated or unsupported values; searches with more than 12 words return an error instead of silently ignoring constraints.
 - Sandboxed arithmetic, percentages, temperature and offline unit conversions.
 - Submit indexed file/folder descriptors to the user-mediated desktop
   portal, with no local shell or insecure pathname-based fallback.
