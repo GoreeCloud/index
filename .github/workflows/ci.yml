@@ -92,6 +92,10 @@ jobs:
           export PYTHONPATH=src
           export GDK_BACKEND=x11
           xvfb-run -a /usr/bin/python3 tools/smoke_gtk.py
+          # Only on a disposable hosted runner, test a true 640x360 logical
+          # monitor rather than only shrinking the app inside a larger Xvfb.
+          GOREECLOUD_INDEX_PRIVATE_XVFB=1 xvfb-run -a -s '-screen 0 640x360x24' \
+            /usr/bin/python3 tools/smoke_windowed_gtk.py
           # GTK's deterministic accessibility backend checks native roles,
           # descriptions and active-descendant updates without a system bus.
           # This is not an AT-SPI or Orca screen-reader test.
