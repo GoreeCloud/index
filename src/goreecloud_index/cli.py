@@ -134,20 +134,24 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Text indexing disabled for {root.path}; indexed text purged immediately.")
         elif args.command == "scan":
             reports = scan_all(store)
+            # No approved roots means that no refresh occurred.
+            no_roots = not reports
             partial = any(report.errors or report.truncated for report in reports)
             if args.json:
                 # Local-only output: authorized root paths may be sensitive,
                 # and are never submitted to a network service by Index.
                 print(json.dumps({
-                    "status": "partial" if partial else "ok",
+                    "status": "empty" if no_roots else ("partial" if partial else "ok"),
                     "roots": [report.__dict__ for report in reports],
                 }, ensure_ascii=False))
             else:
+                if no_roots:
+                    print("No indexed roots are authorized. Select a directory before scanning.")
                 for report in reports:
                     print(f"{report.root}: {report.indexed} items, {report.errors} errors, "
                           f"{report.removed_stale} removed, truncated={report.truncated}")
-            # A partial scan must not be reported as successful to automation.
-            if partial:
+            # Empty or partial scans are not successful refreshes.
+            if no_roots or partial:
                 return 1
         elif args.command == "search":
             results = search_files(store, " ".join(args.query), args.limit)
