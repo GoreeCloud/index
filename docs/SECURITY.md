@@ -69,6 +69,12 @@ Status: **Linux development preview**, not an audited security product.
   it to the portal. A later filename replacement cannot redirect the FD that
   the portal receives. This does not prove that a third-party handler, after
   the portal completes, never re-resolves a pathname internally.
+- Search delivery rechecks the live root consent, content opt-in, indexed
+  metadata and excluded subfolders after its initial SQLite query. The
+  bounded consistency check suppresses results when consent or records are
+  found to have changed mid-query. It does not retroactively remove results
+  already displayed, guarantee the absence of subsequent races, or replace
+  the FD-pinned permission check immediately before opening a file.
 - Authorizations pin the top-level root's filesystem device and inode.
   Every scan checks that identity against its opened root descriptor, and
   each search hides cached results from missing, replaced, or legacy
