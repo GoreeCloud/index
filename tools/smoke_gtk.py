@@ -15,6 +15,7 @@ from gi.repository import Gdk, GLib  # noqa: E402
 from goreecloud_index.ui import Adw, Gtk, IndexApplication  # noqa: E402
 from goreecloud_index.scanner import scan_root  # noqa: E402
 from goreecloud_index.search import search_files  # noqa: E402
+from goreecloud_index.windowing import palette_startup_size  # noqa: E402
 
 
 def main() -> int:
@@ -37,7 +38,14 @@ def main() -> int:
                 # a resizable *normal* window, never an immersive launch.
                 # Both Xvfb and hosted private Weston run this assertion.
                 assert app.window.get_resizable()
-                assert app.window.get_default_size() == (660, 448)
+                display = Gdk.Display.get_default()
+                assert display is not None
+                monitors = display.get_monitors()
+                assert monitors.get_n_items() >= 1
+                geometry = monitors.get_item(0).get_geometry()
+                assert app.window.get_default_size() == palette_startup_size(
+                    geometry.width, geometry.height,
+                )
                 assert not app.window.is_maximized()
                 assert not app.window.is_fullscreen()
                 assert isinstance(app.window.get_content(), Gtk.WindowHandle)
