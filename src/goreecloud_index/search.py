@@ -45,6 +45,8 @@ def parse_query(query: str) -> tuple[list[str], dict[str, str]]:
                     raise ValueError(f"Invalid {key} search filter")
                 if key == "kind" and value.lower() not in valid_kinds:
                     raise ValueError("Unsupported kind search filter")
+                if key in filters:
+                    raise ValueError(f"Repeated {key} search filter")
                 filters[key] = value
                 continue
         terms.append(part)
@@ -68,7 +70,11 @@ def search_files(store: IndexStore, query: str = "", limit: int = 40) -> list[Fi
                "i.ctime_ns IS NOT NULL"]
     params: list[object] = list(trusted)
     sort = "i.mtime_ns DESC, i.name COLLATE NOCASE"
-    words = re.findall(r"[^\W_]+", " ".join(terms), flags=re.UNICODE)[:12]
+    words = re.findall(r"[^\W_]+", " ".join(terms), flags=re.UNICODE)
+    # Never silently omit search words: results must satisfy every requested
+    # term rather than broadening a user's explicit local-search constraints.
+    if len(words) > 12:
+        raise ValueError("Too many search terms (maximum 12)")
     # Nonempty punctuation-only searches are not an implicit "list every file".
     # Filter-only queries such as kind:pdf intentionally remain supported.
     if terms and not words:
