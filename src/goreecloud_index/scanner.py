@@ -16,7 +16,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import MAX_FILES_PER_ROOT, MAX_TEXT_BYTES, TEXT_SUFFIXES, skip_name, open_root_directory
+from .config import MAX_FILES_PER_ROOT, MAX_TEXT_BYTES, TEXT_SUFFIXES, skip_name, open_root_directory, root_identity
 from .storage import IndexStore, Root
 
 
@@ -236,6 +236,20 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
                         errors += 1
                 if truncated:
                     break
+            # A root may be replaced after the last fwalk entry and before
+            # stale-row reconciliation. Recheck the pathname against the
+            # approved open inode before treating this as a complete scan.
+            # A mismatch is a partial failure: never delete old generation
+            # entries or report success for a replaced root.
+            if errors == 0 and not truncated:
+                try:
+                    final_device, final_inode = root_identity(path)
+                    if (final_device, final_inode) != (
+                        root_stat.st_dev, root_stat.st_ino
+                    ):
+                        errors += 1
+                except (OSError, ValueError):
+                    errors += 1
             if errors == 0 and not truncated:
                 removed = conn.execute(
                     "DELETE FROM items WHERE root = ? AND generation != ?",
