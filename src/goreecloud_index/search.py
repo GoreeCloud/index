@@ -59,7 +59,8 @@ def search_files(store: IndexStore, query: str = "", limit: int = 40) -> list[Fi
     terms, filters = parse_query(query)
     # Never surface cached results from roots whose approved directory inode
     # has disappeared or been replaced, even before the next manual scan.
-    trusted = [r.path for r in store.roots() if store.root_is_current(r)]
+    approved = [r for r in store.roots() if store.root_is_current(r)]
+    trusted = [r.path for r in approved]
     if not trusted:
         return []
     joins = ""
@@ -110,8 +111,15 @@ def search_files(store: IndexStore, query: str = "", limit: int = 40) -> list[Fi
            + joins + where + " ORDER BY " + sort + " LIMIT ?")
     params.append(limit)
     with store.connect() as conn:
-        return [
+        results = [
             FileResult(row["path"], row["name"], row["mime"],
                        row["size"], row["mtime_ns"], row["snippet"])
             for row in conn.execute(sql, params)
         ]
+    # A root can be renamed/replaced after the initial consent check while
+    # SQLite is querying cached rows. Recheck every approved root before
+    # returning search metadata or user-consented text snippets. A later
+    # filesystem change still requires the already existing pinned-open guard.
+    if not all(store.root_is_current(root) for root in approved):
+        return []
+    return results
