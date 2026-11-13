@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import shlex
 from dataclasses import dataclass
@@ -116,10 +117,46 @@ def search_files(store: IndexStore, query: str = "", limit: int = 40) -> list[Fi
                        row["size"], row["mtime_ns"], row["snippet"])
             for row in conn.execute(sql, params)
         ]
-    # A root can be renamed/replaced after the initial consent check while
-    # SQLite is querying cached rows. Recheck every approved root before
-    # returning search metadata or user-consented text snippets. A later
-    # filesystem change still requires the already existing pinned-open guard.
+    # Check both the filesystem and the *current* permission records before
+    # returning cached metadata or consented text. An unchanged inode alone
+    # does not prove consent is still granted: another thread could revoke a
+    # root, downgrade content access, clear items, or exclude a subfolder while
+    # the first SQLite query is returning results.
     if not all(store.root_is_current(root) for root in approved):
         return []
+    if not results:
+        return []
+
+    with store.connect() as conn:
+        current_roots = {
+            row["path"]: (bool(row["include_content"]), row["device"], row["inode"])
+            for row in conn.execute("SELECT path, include_content, device, inode FROM roots")
+        }
+        if any(current_roots.get(root.path) !=
+               (root.include_content, root.device, root.inode) for root in approved):
+            return []
+
+        placeholders = ", ".join("?" for _ in results)
+        latest = {
+            row["path"]: FileResult(row["path"], row["name"], row["mime"],
+                                    row["size"], row["mtime_ns"], row["snippet"])
+            for row in conn.execute(
+                "SELECT path, name, mime, size, mtime_ns, "
+                "substr(content, 1, 180) AS snippet FROM items "
+                f"WHERE path IN ({placeholders})",
+                [result.path for result in results],
+            )
+        }
+        if any(latest.get(result.path) != result for result in results):
+            return []
+        excluded = [row["path"] for row in conn.execute(
+            "SELECT path FROM exclusions WHERE root IN ("
+            + ", ".join("?" for _ in trusted) + ")", trusted,
+        )]
+        if any(result.path == path or result.path.startswith(path + os.sep)
+               for result in results for path in excluded):
+            return []
+    # This reduces in-flight consent races; no unbounded client-side result
+    # lifetime can guarantee revocation after the final check. The GUI still
+    # requires the separate FD-pinned permission check on open.
     return results
