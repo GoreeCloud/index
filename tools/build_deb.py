@@ -17,7 +17,8 @@ PACKAGE = "goreecloud-index"
 MODULE = "goreecloud_index"
 MODULE_FILES = (
     "__init__.py", "__main__.py", "apps.py", "calculator.py", "cli.py",
-    "config.py", "portal.py", "scanner.py", "search.py", "storage.py", "ui.py", "index.css",
+    "config.py", "portal.py", "scanner.py", "search.py", "storage.py", "ui.py",
+    "windowing.py", "index.css",
 )
 BIN_SCRIPT = """#!/usr/bin/python3
 from goreecloud_index.cli import main
