@@ -85,9 +85,18 @@ class IndexStore:
     def __init__(self, db: Path | None = None) -> None:
         self.path = Path(db) if db else database_path()
         parent = self.path.parent
-        if parent.is_symlink():
-            raise ValueError("Index storage folder cannot be a symbolic link")
+
+        def reject_symlink_ancestors() -> None:
+            # Do not follow a symlink hidden *above* the final storage folder.
+            # This is a preflight guard, not a substitute for private
+            # directory permissions or a descriptor-anchored filesystem API.
+            absolute_parent = Path(os.path.abspath(parent))
+            if any(p.is_symlink() for p in (absolute_parent, *absolute_parent.parents)):
+                raise ValueError("Index storage path contains a symbolic link")
+
+        reject_symlink_ancestors()
         parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        reject_symlink_ancestors()
         if db is None and os.name == "posix":
             parent.chmod(0o700)
         if self.path.is_symlink():
@@ -107,6 +116,11 @@ class IndexStore:
                 os.close(fd)
         if not self.path.is_file() or self.path.is_symlink():
             raise ValueError("Index database must be a regular file")
+        # A SQLite database with multiple hard links can change another
+        # location's contents and may inadvertently share indexed metadata.
+        # Reject it before chmod, migrations or database writes.
+        if os.name == "posix" and os.stat(self.path, follow_symlinks=False).st_nlink != 1:
+            raise ValueError("Index database cannot be hard-linked")
         if os.name == "posix":
             self.path.chmod(0o600)
         with self.connect() as conn:
