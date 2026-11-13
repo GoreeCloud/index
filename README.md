@@ -64,7 +64,7 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 - Sandboxed arithmetic, percentages, temperature and offline unit conversions.
 - Submit indexed file/folder descriptors to the user-mediated desktop
   portal, with no local shell or insecure pathname-based fallback.
-- Manual rescans, stale-entry reconciliation, revocation-aware scan permissions,
+- Manual rescans with final root-inode verification before stale-entry reconciliation, revocation-aware scan permissions,
   privacy-oriented exclusions, descriptor-anchored Linux file traversal with
   inode checks against mid-scan symlink swaps, owner-only data-directory
   permissions, and a local CLI.
