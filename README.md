@@ -240,6 +240,8 @@ goreecloud-index exclusions ROOT             List excluded subfolders
 goreecloud-index unexclude ROOT SUBDIR       Allow again; then rescan
 goreecloud-index scan            Manually rescan all chosen roots
 goreecloud-index scan --json     Local machine-readable per-root scan results
+# Empty root registries return exit status 1 (JSON: {"status": "empty", "roots": []}).
+# Partial/truncated scans also return exit status 1.
 goreecloud-index search TERMS    Search local files
 goreecloud-index search --json TERMS
 goreecloud-index calc EXPRESSION Offline calculation / conversion
