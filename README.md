@@ -239,6 +239,7 @@ goreecloud-index exclude ROOT SUBDIR         Exclude and purge a subfolder
 goreecloud-index exclusions ROOT             List excluded subfolders
 goreecloud-index unexclude ROOT SUBDIR       Allow again; then rescan
 goreecloud-index scan            Manually rescan all chosen roots
+goreecloud-index scan --json     Local machine-readable per-root scan results
 goreecloud-index search TERMS    Search local files
 goreecloud-index search --json TERMS
 goreecloud-index calc EXPRESSION Offline calculation / conversion

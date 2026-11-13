@@ -63,7 +63,8 @@ def build_parser() -> argparse.ArgumentParser:
     modes = consent.add_mutually_exclusive_group(required=True)
     modes.add_argument("--content", action="store_true", help="Opt in to small-text content indexing")
     modes.add_argument("--metadata-only", action="store_true", help="Immediately purge stored text")
-    commands.add_parser("scan", help="Refresh configured index roots")
+    scan = commands.add_parser("scan", help="Refresh configured index roots")
+    scan.add_argument("--json", action="store_true", help="Machine-readable root scan reports")
     search = commands.add_parser("search", help="Search the local index")
     search.add_argument("query", nargs="*", help="Terms and kind:/ext:/path: filters")
     search.add_argument("--json", action="store_true", help="Emit machine-readable results")
@@ -133,11 +134,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Text indexing disabled for {root.path}; indexed text purged immediately.")
         elif args.command == "scan":
             reports = scan_all(store)
-            for report in reports:
-                print(f"{report.root}: {report.indexed} items, {report.errors} errors, "
-                      f"{report.removed_stale} removed, truncated={report.truncated}")
+            partial = any(report.errors or report.truncated for report in reports)
+            if args.json:
+                # Local-only output: authorized root paths may be sensitive,
+                # and are never submitted to a network service by Index.
+                print(json.dumps({
+                    "status": "partial" if partial else "ok",
+                    "roots": [report.__dict__ for report in reports],
+                }, ensure_ascii=False))
+            else:
+                for report in reports:
+                    print(f"{report.root}: {report.indexed} items, {report.errors} errors, "
+                          f"{report.removed_stale} removed, truncated={report.truncated}")
             # A partial scan must not be reported as successful to automation.
-            if any(report.errors or report.truncated for report in reports):
+            if partial:
                 return 1
         elif args.command == "search":
             results = search_files(store, " ".join(args.query), args.limit)
