@@ -80,7 +80,7 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 - GitHub-hosted disposable Ubuntu 24.04 apt acceptance gate for a real
   dependency-checked install, installed GTK smoke, upgrade, downgrade and purge;
   it never installs the package on the owner's laptop.
-- Index database symlink protections and prohibition on overlapping search roots.
+- Index database symlink and hard-link protections, plus database inode checks on subsequent SQLite connections; these are conservative preflight checks, not a race-free SQLite filesystem sandbox. Overlapping search roots are prohibited.
 
 Not yet implemented: PDF/OCR extraction, file monitoring, content provider
 plugins, remote/cloud search, AI, Quick Keys, global hotkeys, clipboard capture

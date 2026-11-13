@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -123,6 +124,8 @@ class IndexStore:
             raise ValueError("Index database cannot be hard-linked")
         if os.name == "posix":
             self.path.chmod(0o600)
+        db_stat = os.stat(self.path, follow_symlinks=False)
+        self._db_identity = (db_stat.st_dev, db_stat.st_ino)
         with self.connect() as conn:
             conn.executescript(SCHEMA)
             # Conservative legacy migration: existing roots get NULL identity.
@@ -140,6 +143,22 @@ class IndexStore:
                     conn.execute(f"ALTER TABLE items ADD COLUMN {column} INTEGER")
 
     def connect(self) -> sqlite3.Connection:
+        # Do not reopen a different path identity after initialization.
+        # The earlier startup checks alone cannot protect later calls if
+        # the database is replaced with a symlink, hard link or other inode.
+        parent = Path(os.path.abspath(self.path.parent))
+        if any(p.is_symlink() for p in (parent, *parent.parents)):
+            raise ValueError("Index storage path contains a symbolic link")
+        try:
+            current = os.stat(self.path, follow_symlinks=False)
+        except OSError as exc:
+            raise ValueError("Index database is no longer accessible") from exc
+        if (not stat.S_ISREG(current.st_mode)
+                or current.st_nlink != 1
+                or (current.st_dev, current.st_ino) != self._db_identity):
+            raise ValueError("Index database identity changed; reopen explicitly")
+        # This is a defensive preflight, not a race-free O_NOFOLLOW SQLite
+        # descriptor handoff; keep the owner-only storage directory isolated.
         conn = sqlite3.connect(self.path, timeout=10.0)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
