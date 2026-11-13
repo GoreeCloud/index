@@ -18,10 +18,13 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   settings separate from privacy consent; refresh and close remain explicit.
   It does not include Apple assets or a global system shortcut.
   **Normal window by default:** the GTK palette starts as a resizable,
-  non-maximized, non-full-screen 660×448 desktop window. A window manager
-  retains final placement control; this is not a full desktop window manager
-  or universal GNOME/KDE/device acceptance claim. Native GTK smoke tests check
-  this default under isolated Xvfb and hosted private Weston Wayland.
+  non-maximized, non-full-screen desktop window, normally 660×448.
+  On smaller displays it scales down to 90% of the selected monitor's
+  logical dimensions, with a tested 390×300 compact-layout floor.
+  GDK4 monitor geometry is not guaranteed to exclude desktop panels, and
+  the compositor retains final placement control. This is not universal
+  GNOME/KDE/device acceptance. Native GTK smoke tests check the startup
+  policy under isolated Xvfb and hosted private Weston Wayland.
 - Up/Down selects results without losing search focus; Enter opens the
   selected result. Result rows and selection/status feedback expose
   accessible names and roles. Clipboard history remains off.
