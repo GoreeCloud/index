@@ -17,6 +17,11 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   Distinct Preferences and indexed-folder permission controls keep cosmetic
   settings separate from privacy consent; refresh and close remain explicit.
   It does not include Apple assets or a global system shortcut.
+  **Normal window by default:** the GTK palette starts as a resizable,
+  non-maximized, non-full-screen 660×448 desktop window. A window manager
+  retains final placement control; this is not a full desktop window manager
+  or universal GNOME/KDE/device acceptance claim. Native GTK smoke tests check
+  this default under isolated Xvfb and hosted private Weston Wayland.
 - Up/Down selects results without losing search focus; Enter opens the
   selected result. Result rows and selection/status feedback expose
   accessible names and roles. Clipboard history remains off.
