@@ -33,6 +33,13 @@ def main() -> int:
             try:
                 assert app.window is not None and app.store is not None
                 assert not app.window.get_decorated()
+                # Founder GC UI desktop requirement: the live GTK palette is
+                # a resizable *normal* window, never an immersive launch.
+                # Both Xvfb and hosted private Weston run this assertion.
+                assert app.window.get_resizable()
+                assert app.window.get_default_size() == (660, 448)
+                assert not app.window.is_maximized()
+                assert not app.window.is_fullscreen()
                 assert isinstance(app.window.get_content(), Gtk.WindowHandle)
                 assert app.results_heading is not None
                 assert app.results_heading.get_text() == "SUGGESTIONS"
