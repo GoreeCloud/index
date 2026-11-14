@@ -166,6 +166,13 @@ jobs:
           python -m unittest discover -s tests -p 'test_qtquick_preview.py' -v
           python -m unittest discover -s tests -p 'test_palette.py' -v
           python -m unittest discover -s tests -p 'test_portal_fd_lifetime.py' -v
+          # Build and extract the unsigned development .deb. Confirm its
+          # opt-in Qt files are real installed payload, not source checkout.
+          python tools/build_deb.py --output-dir "$RUNNER_TEMP/qt-deb"
+          mkdir -p "$RUNNER_TEMP/qt-deb-extracted"
+          dpkg-deb -x "$RUNNER_TEMP/qt-deb/goreecloud-index_0.1.0-1_all.deb" \
+            "$RUNNER_TEMP/qt-deb-extracted"
+          python tools/smoke_extracted_qtquick.py "$RUNNER_TEMP/qt-deb-extracted"
           # No real desktop bus or handler: dbus-run-session owns a fresh,
           # private fake OpenFile portal. Synthetic rename/replacement proves
           # Qt timer -> GLib callback -> SCM_RIGHTS integration in 4 modes.
