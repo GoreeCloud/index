@@ -73,6 +73,7 @@ class IndexBridge(QObject):
             app.styleHints().colorSchemeChanged.connect(self._update_dark)
         self._reload_roots()
         self.refresh("", "all")
+        self._index_snapshot = self._current_index_snapshot()
 
     @Property(int, constant=True)
     def startupWidth(self):
@@ -129,6 +130,46 @@ class IndexBridge(QObject):
             for root in self._store.roots()
         ]
         self.rootsChanged.emit()
+
+    def _current_index_snapshot(self) -> tuple[object, ...]:
+        """Small bounded consent/metadata fingerprint; never read source text.
+
+        Root identity and excluded directories are included because consent
+        may be changed from the CLI or another Index process while the Qt
+        window is open. Indexed-item count also catches external clear.
+        """
+        roots = self._store.roots()
+        return (
+            tuple((root.path, root.include_content, root.device, root.inode,
+                   self._store.root_is_current(root),
+                   tuple(self._store.exclusions(root.path))) for root in roots),
+            self._store.count(),
+        )
+
+    @Slot()
+    def reconcileExternalChanges(self) -> None:
+        """Best-effort GUI cache refresh after external consent/index changes.
+
+        Activated files remain independently checked via an inode-pinned FD.
+        This polling pass hides stale visible path metadata within the UI
+        cadence; it does not claim instantaneous cross-process invalidation.
+        """
+        try:
+            snapshot = self._current_index_snapshot()
+            if snapshot == self._index_snapshot:
+                return
+            self._index_snapshot = snapshot
+            self._reload_roots()
+            self.refresh(self._query, self._mode)
+            self._set_status("Local index permissions or entries changed externally")
+        except (OSError, ValueError, RuntimeError, sqlite3.Error):
+            # A broken/locked DB cannot justify retaining cached private
+            # local paths/snippets in the visible QML results model.
+            previous = len(self._results)
+            self._results = [hit for hit in self._results if hit["kind"] != "file"]
+            if len(self._results) != previous:
+                self.resultsChanged.emit()
+            self._set_status("Index permissions unavailable; cached file hits hidden")
 
     @Slot(str, str)
     def refresh(self, query: str, mode: str) -> None:

@@ -80,6 +80,16 @@ An isolated QAccessible test uses only a disposable calculator-copy fixture;
 no app launches or file opens are performed by the test. Real Orca/AT-SPI
 and interaction acceptance remain pending.
 
+The opt-in Qt UI also periodically rechecks selected-root identity, content
+consent, subfolder exclusions and indexed entry count while its window is
+visible. If another Index CLI/process revokes or downgrades access, deletes
+index entries, or changes exclusions, cached file-result metadata is reloaded
+without waiting for a new keystroke. An unavailable local permission check
+fails closed and hides cached file hits. This is a **best-effort, 1.2-second
+poll**, not instantaneous cross-process notification or proof that already
+opened third-party file descriptors can be revoked; file activation retains
+its independent inode-pinned authorization check.
+
 The Qt preview's portal bridge is also covered by a strictly isolated,
 synthetic D-Bus `OpenFile` regression for accepted, canceled, rejected and
 backend-error outcomes with inode-preserving FD handoff after same-path
