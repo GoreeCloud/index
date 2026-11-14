@@ -1,0 +1,6 @@
+# GoreeCloud Index opt-in Qt Quick 6.12.0 preview smoke.
+# Linux x86_64 / CPython 3.12 / manylinux_2_34; not a universal lock.
+# Official PyPI binary wheels inspected and hashed on November 13, 2026.
+# These wheels supply Qt Quick/QML without unused WebEngine/PDF bundles.
+PySide6_Essentials==6.12.0 --hash=sha256:16f4b5e41daf49235ae048458243da9efe5f3d8040f9cc5aa454ce69893d3bd9
+shiboken6==6.12.0 --hash=sha256:3bde565bb0890044b5c7f63808adddede5abc241e9395a2bfed61919884d6240

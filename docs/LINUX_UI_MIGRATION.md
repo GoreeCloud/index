@@ -9,9 +9,9 @@
 - The existing Linux development preview implements **real local privacy, consent, file identity and desktop portal controls** and has passing GTK Xvfb/Weston and Debian lifecycle tests, but that does **not** make its primary UI framework compliant.
 - Source-level compliance is not proven by a QML file, third-party Flutter widget or a Qt library anywhere in the dependency tree.
 
-## Selected migration candidate (not yet implemented)
+## Selected migration target and implemented opt-in source preview
 
-**Qt Quick on Qt 6.12.0** is the preferred candidate for the first migration feasibility spike because Index has a substantial Python backend and needs a native keyboard-accessible floating window. Before committing, compare Qt Quick's actual **6.12.0** dependency/runtime, accessibility, display scaling, packaging and portal integration with Slint's lightweight Rust/C++ architecture and Qt/Python interoperability; document the selection using real source and tests, not preference alone.
+**Qt Quick on Qt 6.12.0** is selected for an **opt-in source preview**, retaining the existing Python backend. The official PySide6 Essentials 6.12.0 wheel supplies QML, Qt Quick, Qt Quick Controls and QtDBus without unrelated WebEngine/PDF wheels. PySide6/Qt and shiboken binaries carry separate LGPL/GPL/commercial obligations; a redistributable signed package and full license notices are still unverified. Slint/Flutter remain permitted alternatives if comparative parity or packaging tests reveal a blocker.
 
 Migration workstreams, in dependency order:
 
@@ -22,4 +22,12 @@ Migration workstreams, in dependency order:
 5. **Cross-platform Linux qualification.** Test keyboard, 100–400% text scaling, high contrast, Orca, file portal success/denial/cancellation, safe preferences, filesystem identity races and user-consent privacy on GNOME/KDE Wayland/X11. Run deterministic offline and disposable Xvfb/Weston acceptance, packaging/upgrade/rollback/purge, and representative real-device tests.
 6. **Controlled migration.** Compare old/new search result behavior and data compatibility; provide rollback and in-place user-data preservation. Retire GTK from the **primary Linux UI** after verified replacement, not before.
 
-**No Qt Quick runtime, migrated UI, source/package/runtime compliance or Stable release is claimed.** Continue important GoreeShield privacy and Wardveil security maintenance on legacy GTK code during transition. Keep `docs/linux-ui-framework-status.json` marked `migration-required` until the actual approved UI is source-, package- and runtime-verified.
+## November 13, 2026 — isolated source prototype evidence
+
+- Opt-in `goreecloud-index gui-qt` loads a real Qt Quick 6.12 window with a normal/windowed 660×488 startup; the legacy `gui` entry remains GTK and is **noncompliant**.
+- QML uses existing GoreeCloud UI alpha semantic tokens and optional Lagoon accent, not an invented mandatory global hue. The Python Qt bridge delegates to the existing SQLite/consent/scanner/portal backend and introduces no network API, background watcher or database migration.
+- Source covers four search modes, safe local file/app result display, calculator/copy, metadata-first folder addition, confirmation for content opt-in/removal/reauthorization, user-selected appearance, and manual rescan. Missing subfolder-exclusion controls, real portal backend acceptance, full keyboard/Orca/high-contrast/scale visual evidence and package installer parity are open.
+- The installed isolated PySide6 Essentials runtime was independently measured at **Qt 6.12.0**. Synthetic offscreen QML initialization and unit tests passed; the new Qt window also launched in the authorized laptop's actual **Zorin/GNOME Wayland** session at 100% and 200% Qt scaling without touching a real user index. [Synthetic 100% capture](screenshots/linux-qtquick-wayland-100.png) and [200% capture](screenshots/linux-qtquick-wayland-200.png) are visual regression evidence, **not founder visual acceptance**. Existing Linux GTK source remains unchanged apart from a portal FD-ownership fix. Dedicated optional Qt test CI installs only reviewed, SHA-256-pinned manylinux x86_64 Essentials and shiboken6 wheels, without WebEngine or PDF.
+- No owner's real index/consent data, desktop appearance, system UI settings, or external file handler was modified by these synthetic smoke tests. Do not infer a tested complete replacement, signed release, production deployment, or migration compliance from them.
+
+**Still migration-required:** Qt Quick is not yet the installed, default or fully qualified primary Linux GUI. Continue GoreeShield privacy, Wardveil security, and existing GTK regression work until source/feature/portal/packaging parity and rollback are accepted. Keep `docs/linux-ui-framework-status.json` accurately noncompliant.

@@ -10,6 +10,29 @@ discovering installed applications, searching explicitly selected folders, openi
 results, performing safe calculations, and refreshing a private local search index.
 No GoreeCloud account, telemetry, server, or external search provider is required.
 
+## Opt-in Qt Quick 6.12.0 migration preview
+
+A **separate, non-default** Qt Quick/QML window now exercises local search,
+installed-app discovery/launch, offline calculations, clipboard copying,
+metadata-only folder grants, explicit text opt-in/revocation, manual rescans,
+appearance settings, and the existing inode-pinned portal handoff. Run in a
+disposable XDG data environment when evaluating it:
+
+```bash
+python3 -m venv --system-site-packages .venv-qt
+.venv-qt/bin/pip install -e '.[qtquick]'
+XDG_DATA_HOME="$(mktemp -d)" .venv-qt/bin/goreecloud-index gui-qt
+```
+
+The temporary data directory above is deliberately user-managed; remove it
+only when certain it contains no information to retain. The `gui` entry point
+continues to use legacy GTK until the Qt replacement passes feature parity,
+file-portal backend, real desktop, packaging and rollback checks. The QML
+preview is **not the default primary Linux GUI and not framework compliant
+as a released application**. Qt Python Essentials and shiboken6 have separate
+LGPL/GPL/commercial obligations; no Qt binaries are bundled in this repo.
+[Current migration gates](docs/LINUX_UI_MIGRATION.md). Synthetic [100% Wayland](docs/screenshots/linux-qtquick-wayland-100.png) and [200% Wayland](docs/screenshots/linux-qtquick-wayland-200.png) captures are preliminary native-runtime visual evidence, not real user data or Stable/design acceptance.
+
 ## Implemented today
 
 - **Spotlight-inspired floating GTK4/libadwaita search palette:** a compact,
