@@ -60,7 +60,9 @@ ApplicationWindow {
         anchors.fill: parent; anchors.margins: 10
         radius: 26; color: win.surface; border.color: win.outline
         ColumnLayout {
-            anchors.fill: parent; anchors.margins: 20; spacing: 12
+            anchors.fill: parent
+            anchors.margins: win.height < 400 ? 12 : 20
+            spacing: win.height < 400 ? 8 : 12
             RowLayout {
                 Layout.fillWidth: true; spacing: 10
                 Rectangle {
@@ -101,7 +103,9 @@ ApplicationWindow {
                 }
             }
             Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 54; radius: 17
+                Layout.fillWidth: true
+                Layout.preferredHeight: win.height < 400 ? 46 : 54
+                radius: 17
                 color: win.tonal; border.color: query.activeFocus ? win.accent : win.outline
                 border.width: query.activeFocus ? 2 : 1
                 RowLayout {

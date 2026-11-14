@@ -25,6 +25,12 @@ python3 -m venv --system-site-packages .venv-qt
 XDG_DATA_HOME="$(mktemp -d)" .venv-qt/bin/goreecloud-index gui-qt
 ```
 
+The Qt window starts normally (not maximized) and uses the same conservative
+logical-monitor sizing contract as GTK: a preferred 660×488 footprint, a
+390×300 minimum, and approximately 10% margins when small/mixed monitors
+require it. [Synthetic 640×360 monitor geometry test](docs/screenshots/linux-qtquick-compact-synthetic.png)
+shows a 576×324 Qt window, not physical small-display hardware acceptance.
+
 The temporary data directory above is deliberately user-managed; remove it
 only when certain it contains no information to retain. The `gui` entry point
 continues to use legacy GTK until the Qt replacement passes feature parity,
