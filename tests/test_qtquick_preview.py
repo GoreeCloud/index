@@ -206,6 +206,60 @@ class QtQuickPreviewTests(unittest.TestCase):
         self.assertEqual(mode_apps.property("text"), "Apps")
         window.close()
 
+    def test_tiny_window_long_path_consent_scrolls_and_cancel_preserves_grants(self):
+        """A very long local folder path cannot hide consent buttons.
+
+        This uses a disposable SQLite store and a nonexistent synthetic
+        path; it never grants root access, indexes real files, or invokes a
+        system directory picker.
+        """
+        from PySide6.QtCore import QObject, QEventLoop, QMetaObject, QTimer, QUrl
+        from PySide6.QtQml import QQmlApplicationEngine
+        from goreecloud_index.qtquick_app import IndexBridge
+
+        with patch("goreecloud_index.qtquick_app._qt_screen_sizes",
+                   return_value=[(390, 300)]):
+            limited = IndexBridge(self.store, applications=[])
+        engine = QQmlApplicationEngine()
+        engine.rootContext().setContextProperty("indexBackend", limited)
+        qml = (Path(__file__).resolve().parents[1] /
+               "src/goreecloud_index/qtquick/Main.qml")
+        engine.load(QUrl.fromLocalFile(str(qml)))
+        self.assertTrue(engine.rootObjects())
+        window = engine.rootObjects()[0]
+        self.assertEqual((window.width(), window.height()), (390, 300))
+
+        dialog = window.findChild(QObject, "indexConsentDialog")
+        scroll = window.findChild(QObject, "indexConsentScroll")
+        message = window.findChild(QObject, "indexConsentText")
+        self.assertIsNotNone(dialog)
+        self.assertIsNotNone(scroll)
+        self.assertIsNotNone(message)
+
+        long_path = str(self.root / ("private-subfolder-" * 180))
+        self.assertTrue(dialog.setProperty("path", long_path))
+        self.assertTrue(dialog.setProperty("action", "enable"))
+        self.assertTrue(QMetaObject.invokeMethod(dialog, "open"))
+        loop = QEventLoop()
+        QTimer.singleShot(100, loop.quit)
+        loop.exec()
+        self.assertTrue(dialog.property("visible"))
+        self.assertLessEqual(dialog.property("width"), window.width() - 24)
+        self.assertLessEqual(dialog.property("height"), window.height() - 24)
+        self.assertTrue(scroll.property("clip"))
+        self.assertIn(long_path, message.property("text"))
+        self.assertGreater(
+            float(message.property("implicitHeight")),
+            float(scroll.property("height")),
+            "Long permission explanation should scroll, not expand the dialog",
+        )
+        # Denial is inert and cannot mutate the local consent store.
+        self.assertTrue(QMetaObject.invokeMethod(dialog, "reject"))
+        self.app.processEvents()
+        self.assertFalse(dialog.property("visible"))
+        self.assertEqual(self.store.roots(), [])
+        window.close()
+
     def test_real_qt_accessibility_tree_and_safe_press_action(self):
         """Exercise actual QAccessible interfaces, not text-only source checks.
 
