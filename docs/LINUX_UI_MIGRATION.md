@@ -37,6 +37,19 @@ Migration workstreams, in dependency order:
 
 **Still migration-required:** Qt Quick is not yet the installed, default or fully qualified primary Linux GUI. Continue GoreeShield privacy, Wardveil security, and existing GTK regression work until source/feature/portal/packaging parity and rollback are accepted. Keep `docs/linux-ui-framework-status.json` accurately noncompliant.
 
+## Compact permission-confirmation lifecycle
+
+The source-only Qt Quick permission confirmation now caps its modal width
+and height to the current compact window and places long, plain-text local
+folder paths inside a vertically scrollable control. The existing **explicit
+OK/Cancel** semantics and the backend's metadata-first grant/revoke
+boundary are unchanged. An offscreen **390×300** native regression loads
+a disposable private SQLite store, injects an extreme non-existent path,
+asserts the modal stays inside the window and text is scrollable, then
+rejects the prompt and checks that no grant was recorded. This is a
+synthetic usability/privacy guard, not real Orca, font-scale, GNOME/KDE,
+Qt packaging or physical-device consent acceptance.
+
 ## Minimum-viewport Qt Quick regression
 
 A follow-on Qt Quick test found the header Appearance control and Actions filter **horizontally clipped** at an actual 390×300 window, despite previous startup-geometry checks. The QML view now shrinks the brand header, keeps a named and accessible compact Appearance button, displays the full Apps/Files/Actions navigation, and permits its result list to fit the minimum geometry. Automated Qt offscreen item-bound checks verify button/search/result edges stay inside the window, and the original [390×300 synthetic QML capture](screenshots/linux-qtquick-minimum-390x300.png) was visually inspected. A 440×340 logical monitor results in a 396×306 window with matching containment. This is not human GNOME/KDE/Orca, high text-scale, installed-package UI, or Stable acceptance.
