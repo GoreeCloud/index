@@ -374,13 +374,22 @@ ApplicationWindow {
         }
     }
     Dialog {
-        id: consentDialog
+        id: consentDialog; objectName: "indexConsentDialog"
         property string path: ""; property string action: ""
         title: "Confirm folder permission"; modal: true
-        anchors.centerIn: Overlay.overlay; width: Math.min(win.width - 30, 490)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(win.width - 30, 490)
+        // Long local paths must never push the consent/deny controls
+        // outside a compact work area. The explanation scrolls instead.
+        height: Math.min(win.height - 30, 330)
         standardButtons: Dialog.Ok | Dialog.Cancel
-        contentItem: Text {
-            width: consentDialog.availableWidth
+        contentItem: ScrollView {
+            id: consentScroll; objectName: "indexConsentScroll"
+            clip: true
+            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+            Text {
+                id: consentText; objectName: "indexConsentText"
+                width: consentScroll.availableWidth
             text: consentDialog.action === "enable"
                 ? "Index bounded local text? Private content could appear in local results. No upload.\n\n" + consentDialog.path
                 : consentDialog.action === "disable"
@@ -388,7 +397,12 @@ ApplicationWindow {
                 : consentDialog.action === "reauthorize"
                 ? "Rebind the current directory and clear old indexed data? Text access resets to off.\n\n" + consentDialog.path
                 : "Remove indexing permission and cached rows? Original files remain.\n\n" + consentDialog.path
-            color: win.foreground; wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText
+                color: win.foreground
+                wrapMode: Text.WrapAnywhere
+                textFormat: Text.PlainText
+                Accessible.role: Accessible.StaticText
+                Accessible.name: text
+            }
         }
         onAccepted: {
             if (action === "enable") indexBackend.setContent(path, true)
