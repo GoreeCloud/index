@@ -154,6 +154,58 @@ class QtQuickPreviewTests(unittest.TestCase):
         self.assertFalse(window.isVisible())
         self.app.clipboard().clear()
 
+    def test_minimum_width_qml_keeps_search_modes_and_actions_visible(self):
+        """The real Qt layout must fit 390 px, not only request 390 px."""
+        from PySide6.QtCore import QObject, QPointF, QEventLoop, QTimer, QUrl
+        from PySide6.QtQml import QQmlApplicationEngine
+        from goreecloud_index.qtquick_app import IndexBridge
+
+        with patch("goreecloud_index.qtquick_app._qt_screen_sizes",
+                   return_value=[(390, 300)]):
+            limited = IndexBridge(self.store, applications=[
+                Application("synthetic.desktop", "Synthetic App", "Offline fixture")
+            ])
+        engine = QQmlApplicationEngine()
+        engine.rootContext().setContextProperty("indexBackend", limited)
+        qml = Path(__file__).resolve().parents[1] / (
+            "src/goreecloud_index/qtquick/Main.qml")
+        engine.load(QUrl.fromLocalFile(str(qml)))
+        self.assertTrue(engine.rootObjects())
+        window = engine.rootObjects()[0]
+        self.assertEqual((window.width(), window.height()), (390, 300))
+
+        loop = QEventLoop()
+        QTimer.singleShot(100, loop.quit)
+        loop.exec()
+
+        def find_visual(name):
+            # Repeater delegates are parented visually to QQuickItems, not
+            # necessarily through the QObject parent chain of QQuickWindow.
+            stack = [window.contentItem()]
+            while stack:
+                item = stack.pop()
+                if item.objectName() == name:
+                    return item
+                stack.extend(item.childItems())
+            return None
+
+        for name in ("foldersButton", "indexAppearanceButton",
+                     "indexSearchField", "indexResults", "indexModeall",
+                     "indexModeapps", "indexModefiles", "indexModeactions"):
+            with self.subTest(element=name):
+                item = find_visual(name)
+                self.assertIsNotNone(item)
+                point = item.mapToScene(QPointF(0, 0))
+                self.assertGreaterEqual(point.x(), 8)
+                self.assertLessEqual(point.x() + item.width(), window.width() - 8)
+                self.assertGreaterEqual(point.y(), 8)
+                self.assertLessEqual(point.y() + item.height(), window.height() - 8)
+        appearance = find_visual("indexAppearanceButton")
+        self.assertEqual(appearance.property("text"), "◐")
+        mode_apps = find_visual("indexModeapps")
+        self.assertEqual(mode_apps.property("text"), "Apps")
+        window.close()
+
     def test_real_qt_accessibility_tree_and_safe_press_action(self):
         """Exercise actual QAccessible interfaces, not text-only source checks.
 

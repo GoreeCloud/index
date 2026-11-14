@@ -36,3 +36,7 @@ Migration workstreams, in dependency order:
 - No owner's real index/consent data, desktop appearance, system UI settings, or external file handler was modified by these synthetic smoke tests. Do not infer a tested complete replacement, signed release, production deployment, or migration compliance from them.
 
 **Still migration-required:** Qt Quick is not yet the installed, default or fully qualified primary Linux GUI. Continue GoreeShield privacy, Wardveil security, and existing GTK regression work until source/feature/portal/packaging parity and rollback are accepted. Keep `docs/linux-ui-framework-status.json` accurately noncompliant.
+
+## Minimum-viewport Qt Quick regression
+
+A follow-on Qt Quick test found the header Appearance control and Actions filter **horizontally clipped** at an actual 390×300 window, despite previous startup-geometry checks. The QML view now shrinks the brand header, keeps a named and accessible compact Appearance button, displays the full Apps/Files/Actions navigation, and permits its result list to fit the minimum geometry. Automated Qt offscreen item-bound checks verify button/search/result edges stay inside the window, and the original [390×300 synthetic QML capture](screenshots/linux-qtquick-minimum-390x300.png) was visually inspected. A 440×340 logical monitor results in a 396×306 window with matching containment. This is not human GNOME/KDE/Orca, high text-scale, installed-package UI, or Stable acceptance.

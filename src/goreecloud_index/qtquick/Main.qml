@@ -29,6 +29,7 @@ ApplicationWindow {
     readonly property color onAccentSurface: dark ? "#D7FAFF" : "#064D58"
     color: canvas
 
+    readonly property bool compact: width < 520
     property string mode: "all"
     property int selected: 0
     property string chosenExclusionRoot: ""
@@ -64,19 +65,33 @@ ApplicationWindow {
             anchors.margins: win.height < 400 ? 12 : 20
             spacing: win.height < 400 ? 8 : 12
             RowLayout {
-                Layout.fillWidth: true; spacing: 10
+                Layout.fillWidth: true; spacing: win.compact ? 6 : 10
                 Rectangle {
-                    width: 40; height: 40; radius: 13; color: win.accentSurface
-                    Text { anchors.centerIn: parent; text: "⌕"; color: win.onAccentSurface; font.pixelSize: 28 }
+                    width: win.compact ? 34 : 40
+                    height: win.compact ? 34 : 40
+                    radius: 13; color: win.accentSurface
+                    Text { anchors.centerIn: parent; text: "⌕"; color: win.onAccentSurface; font.pixelSize: win.compact ? 24 : 28 }
                 }
                 ColumnLayout {
-                    Layout.fillWidth: true; spacing: 1
-                    Text { text: "GoreeCloud Index"; color: win.foreground; font.pixelSize: 19; font.bold: true; textFormat: Text.PlainText }
-                    Text { text: "LOCAL-FIRST · QT QUICK PREVIEW"; font.pixelSize: 10; color: win.secondary; font.letterSpacing: 1.3; textFormat: Text.PlainText }
+                    Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 1
+                    Text {
+                        Layout.fillWidth: true; Layout.minimumWidth: 0
+                        text: "GoreeCloud Index"; color: win.foreground
+                        font.pixelSize: win.compact ? 15 : 19
+                        font.bold: true; textFormat: Text.PlainText; elide: Text.ElideRight
+                    }
+                    Text {
+                        Layout.fillWidth: true; Layout.minimumWidth: 0
+                        text: win.compact ? "LOCAL · QT PREVIEW" : "LOCAL-FIRST · QT QUICK PREVIEW"
+                        font.pixelSize: win.compact ? 8 : 10
+                        color: win.secondary; font.letterSpacing: win.compact ? 0.6 : 1.3
+                        textFormat: Text.PlainText; elide: Text.ElideRight
+                    }
                 }
                 Button {
                     objectName: "foldersButton"; text: "Folders"
-                    implicitHeight: 40; implicitWidth: 82
+                    implicitHeight: win.compact ? 34 : 40
+                    implicitWidth: win.compact ? 69 : 82
                     Accessible.name: "Manage indexing folders"
                     onClicked: foldersDialog.open()
                     background: Rectangle { radius: 12; color: win.tonal; border.color: win.outline }
@@ -89,7 +104,10 @@ ApplicationWindow {
                     }
                 }
                 Button {
-                    text: "Appearance"; implicitHeight: 40; implicitWidth: 110
+                    objectName: "indexAppearanceButton"
+                    text: win.compact ? "◐" : "Appearance"
+                    implicitHeight: win.compact ? 34 : 40
+                    implicitWidth: win.compact ? 34 : 110
                     Accessible.name: "Local appearance preferences"
                     onClicked: themeDialog.open()
                     background: Rectangle { radius: 12; color: win.tonal; border.color: win.outline }
@@ -142,7 +160,10 @@ ApplicationWindow {
                     model: win.modes
                     delegate: Button {
                         required property var modelData
-                        Layout.fillWidth: true; text: modelData.label
+                        objectName: "indexMode" + modelData.value
+                        Layout.fillWidth: true; Layout.minimumWidth: 0
+                        Layout.preferredWidth: 1
+                        text: win.compact && modelData.value === "apps" ? "Apps" : modelData.label
                         checkable: true; checked: win.mode === modelData.value
                         onClicked: win.switchMode(modelData.value)
                         background: Rectangle {
@@ -153,7 +174,8 @@ ApplicationWindow {
                             text: parent.text; horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
                             color: parent.checked ? win.onAccentSurface : win.foreground
-                            font.pixelSize: 12; font.bold: parent.checked
+                            font.pixelSize: win.compact ? 11 : 12
+                            font.bold: parent.checked
                             textFormat: Text.PlainText
                         }
                     }
@@ -204,7 +226,8 @@ ApplicationWindow {
                             }
                         }
                         ColumnLayout {
-                            Layout.fillWidth: true; spacing: 3
+                            Layout.fillWidth: true; Layout.minimumWidth: 0
+                            spacing: 3
                             Text {
                                 Layout.fillWidth: true; text: modelData.title
                                 textFormat: Text.PlainText; elide: Text.ElideRight

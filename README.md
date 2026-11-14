@@ -30,6 +30,11 @@ logical-monitor sizing contract as GTK: a preferred 660×488 footprint, a
 390×300 minimum, and approximately 10% margins when small/mixed monitors
 require it. [Synthetic 640×360 monitor geometry test](docs/screenshots/linux-qtquick-compact-synthetic.png)
 shows a 576×324 Qt window, not physical small-display hardware acceptance.
+The Qt preview also now reflows its header and four search modes at the
+**390×300 minimum**: the folders and appearance controls, local search,
+mode buttons and results stay inside the window. [Synthetic minimum-viewport
+capture](docs/screenshots/linux-qtquick-minimum-390x300.png) shows the
+actual offscreen QML renderer, not physical-device or 400%-font acceptance.
 
 The rootless development Debian package now includes the exact first-party
 `qtquick_app.py`, palette service and QML source assets as an **opt-in**
