@@ -29,6 +29,7 @@ ApplicationWindow {
 
     property string mode: "all"
     property int selected: 0
+    property string chosenExclusionRoot: ""
     readonly property var modes: [
         {label: "All", value: "all"}, {label: "Applications", value: "apps"},
         {label: "Files", value: "files"}, {label: "Actions", value: "actions"}
@@ -231,8 +232,14 @@ ApplicationWindow {
         id: picker; title: "Choose a local folder (metadata only)"
         onAccepted: indexBackend.addFolder(selectedFolder.toString())
     }
+    FolderDialog {
+        id: exclusionPicker
+        title: "Exclude a subfolder of the selected indexing root"
+        onAccepted: indexBackend.excludeFolder(win.chosenExclusionRoot, selectedFolder.toString())
+    }
     Dialog {
-        id: foldersDialog; modal: true; title: "Folder permissions"
+        id: foldersDialog; objectName: "indexFoldersDialog"
+        modal: true; title: "Folder permissions"
         anchors.centerIn: Overlay.overlay
         width: Math.min(win.width - 24, 610); height: Math.min(win.height - 24, 410)
         standardButtons: Dialog.Close
@@ -244,8 +251,12 @@ ApplicationWindow {
                 Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 7
                 model: indexBackend.roots; ScrollBar.vertical: ScrollBar {}
                 delegate: Rectangle {
+                    id: rootEntry
                     required property var modelData
-                    width: ListView.view.width; height: 82; radius: 12; color: win.tonal
+                    readonly property string rootPath: modelData.path
+                    width: ListView.view.width
+                    height: 120 + modelData.exclusions.length * 38
+                    radius: 12; color: win.tonal
                     ColumnLayout {
                         anchors.fill: parent; anchors.margins: 8; spacing: 3
                         Text { Layout.fillWidth: true; text: modelData.path; color: win.foreground; elide: Text.ElideMiddle; textFormat: Text.PlainText; font.pixelSize: 11 }
@@ -256,7 +267,8 @@ ApplicationWindow {
                                 color: win.secondary; font.pixelSize: 11
                             }
                             Item { Layout.fillWidth: true }
-                            Button {
+                            CloudButton {
+                                uiTokens: win
                                 text: !modelData.current ? "Reauthorize" : modelData.content ? "Disable text" : "Enable text"
                                 enabled: !indexBackend.busy
                                 onClicked: {
@@ -265,17 +277,56 @@ ApplicationWindow {
                                     consentDialog.open()
                                 }
                             }
-                            Button {
+                            CloudButton {
+                                uiTokens: win
                                 text: "Remove"; enabled: !indexBackend.busy
                                 onClicked: { consentDialog.path = modelData.path; consentDialog.action = "remove"; consentDialog.open() }
+                            }
+                        }
+                        RowLayout {
+                            CloudButton {
+                                uiTokens: win
+                                text: "Exclude subfolder…"
+                                enabled: !indexBackend.busy && modelData.current
+                                Accessible.name: "Exclude a subfolder inside " + rootEntry.rootPath
+                                onClicked: {
+                                    win.chosenExclusionRoot = rootEntry.rootPath
+                                    exclusionPicker.open()
+                                }
+                            }
+                            Item { Layout.fillWidth: true }
+                            Text {
+                                text: modelData.exclusions.length + " exclusions"
+                                color: win.secondary; font.pixelSize: 10
+                                textFormat: Text.PlainText
+                            }
+                        }
+                        Repeater {
+                            model: modelData.exclusions
+                            delegate: RowLayout {
+                                required property string modelData
+                                Layout.fillWidth: true
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData; color: win.secondary
+                                    textFormat: Text.PlainText; elide: Text.ElideMiddle
+                                    font.pixelSize: 10
+                                }
+                                CloudButton {
+                                    uiTokens: win
+                                    text: "Allow"
+                                    enabled: !indexBackend.busy
+                                    Accessible.name: "Remove exclusion for " + modelData
+                                    onClicked: indexBackend.unexcludeFolder(rootEntry.rootPath, modelData)
+                                }
                             }
                         }
                     }
                 }
             }
             RowLayout {
-                Button { text: "Add folder…"; enabled: !indexBackend.busy; onClicked: picker.open() }
-                Button { text: "Rescan"; enabled: !indexBackend.busy; onClicked: indexBackend.rescan() }
+                CloudButton { uiTokens: win; text: "Add folder…"; enabled: !indexBackend.busy; onClicked: picker.open() }
+                CloudButton { uiTokens: win; text: "Rescan"; enabled: !indexBackend.busy; onClicked: indexBackend.rescan() }
             }
         }
     }

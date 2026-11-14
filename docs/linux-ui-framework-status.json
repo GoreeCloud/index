@@ -17,11 +17,13 @@
   "evidencePaths": [
     "src/goreecloud_index/ui.py",
     "src/goreecloud_index/qtquick/Main.qml",
+    "src/goreecloud_index/qtquick/CloudButton.qml",
     "src/goreecloud_index/qtquick_app.py",
     "src/goreecloud_index/palette.py",
     "tests/test_qtquick_preview.py",
     "docs/screenshots/linux-qtquick-wayland-100.png",
     "docs/screenshots/linux-qtquick-wayland-200.png",
+    "docs/screenshots/linux-qtquick-folder-exclusions.png",
     "tools/qtquick-linux-x86_64.requirements.txt",
     "pyproject.toml"
   ],
