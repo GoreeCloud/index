@@ -47,6 +47,12 @@ It never sends global shortcuts, starts applications or opens real files.
 Physical keyboard, focus behavior under actual GNOME/KDE compositors and
 Orca remain separate acceptance items.
 
+The Qt QML result list now exposes actual accessible List/ListItem roles,
+selected-state changes and a Press action through Qt's accessibility API.
+An isolated QAccessible test uses only a disposable calculator-copy fixture;
+no app launches or file opens are performed by the test. Real Orca/AT-SPI
+and interaction acceptance remain pending.
+
 The Qt preview's portal bridge is also covered by a strictly isolated,
 synthetic D-Bus `OpenFile` regression for accepted, canceled, rejected and
 backend-error outcomes with inode-preserving FD handoff after same-path
