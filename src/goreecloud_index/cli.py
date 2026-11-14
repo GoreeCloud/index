@@ -42,7 +42,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="goreecloud-index",
                                      description="Privacy-first Linux desktop search")
     commands = parser.add_subparsers(dest="command")
-    commands.add_parser("gui", help="Open the native GTK desktop interface")
+    commands.add_parser("gui", help="Open the legacy GTK Linux development preview")
+    commands.add_parser("gui-qt", help="Open the opt-in Qt Quick 6.12 migration preview")
     add = commands.add_parser("add", help="Opt in a directory for local indexing")
     add.add_argument("directory")
     add.add_argument("--content", action="store_true", help="Also index bounded text contents")
@@ -83,6 +84,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "gui-qt":
+        try:
+            from .qtquick_app import launch_qtquick
+            return launch_qtquick([])
+        except (ImportError, RuntimeError, ValueError, sqlite3.Error) as exc:
+            print(f"Qt Quick 6.12 preview unavailable: {exc}", file=sys.stderr)
+            return 2
     if args.command in (None, "gui"):
         try:
             from .ui import IndexApplication

@@ -29,10 +29,15 @@ def request_open_fd(fd: int, on_result: Callable[[bool, str], None]) -> None:
     """
     if not isinstance(fd, int) or fd < 0:
         raise ValueError("Invalid file descriptor")
-    import gi
-
-    gi.require_version("Gio", "2.0")
-    from gi.repository import Gio, GLib
+    try:
+        import gi
+        gi.require_version("Gio", "2.0")
+        from gi.repository import Gio, GLib
+    except BaseException:
+        # This function consumes the caller's verified inode FD. Even a
+        # missing backend binding must not leak it in a long-lived Qt client.
+        os.close(fd)
+        raise
 
     connection = None
     fd_list = None

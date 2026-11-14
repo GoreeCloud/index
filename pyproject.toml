@@ -20,6 +20,9 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
 ]
 
+[project.optional-dependencies]
+qtquick = ["PySide6_Essentials==6.12.0"]
+
 [project.scripts]
 goreecloud-index = "goreecloud_index.cli:main"
 
@@ -31,4 +34,4 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 
 [tool.setuptools.package-data]
-goreecloud_index = ["index.css"]
+goreecloud_index = ["index.css", "qtquick/*.qml"]

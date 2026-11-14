@@ -9,6 +9,9 @@ dist/
 # Linux package staging and outputs
 *.deb
 .venv/
+.venv-*/
+.wheels/
+*.log
 *.db
 *.db-*
 .env
