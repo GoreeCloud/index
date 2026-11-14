@@ -62,6 +62,12 @@ It never sends global shortcuts, starts applications or opens real files.
 Physical keyboard, focus behavior under actual GNOME/KDE compositors and
 Orca remain separate acceptance items.
 
+The opt-in Qt Quick **folder permission confirmation** is now designed
+to remain inside a 390×300 window even for unusually long local paths:
+the explanation scrolls while OK/Cancel stay accessible. This is source
+and isolated Qt offscreen evidence only; physical GNOME/KDE/Orca
+acceptance and the default GTK migration remain pending.
+
 The Qt QML result list now exposes actual accessible List/ListItem roles,
 selected-state changes and a Press action through Qt's accessibility API.
 An isolated QAccessible test uses only a disposable calculator-copy fixture;
