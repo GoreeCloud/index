@@ -30,6 +30,14 @@ ApplicationWindow {
     color: canvas
 
     readonly property bool compact: width < 520
+    // Recheck local consent and indexed-entry status while a window is
+    // visible. The inode-pinned desktop portal path enforces authorization.
+    Timer {
+        interval: 1200
+        running: win.visible
+        repeat: true
+        onTriggered: indexBackend.reconcileExternalChanges()
+    }
     property string mode: "all"
     property int selected: 0
     property string chosenExclusionRoot: ""

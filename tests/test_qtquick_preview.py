@@ -58,6 +58,86 @@ class QtQuickPreviewTests(unittest.TestCase):
         fail.stop()
         self.assertFalse(self.bridge.busy, self.bridge.status)
 
+    def test_external_metadata_changes_invalidate_visible_file_hits(self):
+        """Other Index processes may revoke consent while this GUI is open."""
+        for mutation in ("remove", "exclude", "clear", "content"):
+            with self.subTest(mutation=mutation):
+                with tempfile.TemporaryDirectory(prefix="gc-external-consent-") as tmp:
+                    base = Path(tmp)
+                    selected = base / "selected"
+                    private = selected / "secret"
+                    private.mkdir(parents=True)
+                    source = private / "report.md"
+                    source.write_text("synthetic-privacy-canary", encoding="utf-8")
+                    store = IndexStore(base / "private" / "index.sqlite3")
+                    root = store.add_root(selected, include_content=True)
+                    scan_root(store, root)
+                    from goreecloud_index.qtquick_app import IndexBridge
+                    bridge = IndexBridge(store, applications=[])
+                    bridge.refresh("synthetic-privacy-canary", "files")
+                    self.assertEqual(len(bridge.results), 1)
+                    if mutation == "remove":
+                        store.remove_root(selected)
+                    elif mutation == "exclude":
+                        store.add_exclusion(selected, private)
+                    elif mutation == "clear":
+                        store.clear_items()
+                    else:
+                        store.set_root_content(selected, False)
+                    # Explicitly execute the same method the QML timer calls.
+                    bridge.reconcileExternalChanges()
+                    self.assertEqual(bridge.results, [], mutation)
+                    self.assertTrue(source.is_file(), "No source file is deleted")
+                    self.assertIn("changed externally", bridge.status)
+
+    def test_failed_live_consent_read_hides_cached_local_file_results(self):
+        """A locked or unusable local index cannot justify stale private hits."""
+        import sqlite3
+
+        root = self.store.add_root(self.root)
+        scan_root(self.store, root)
+        self.bridge.refresh("report", "files")
+        self.assertEqual(len(self.bridge.results), 1)
+        with patch.object(self.bridge, "_current_index_snapshot",
+                          side_effect=sqlite3.DatabaseError("synthetic failure")):
+            self.bridge.reconcileExternalChanges()
+        self.assertEqual(self.bridge.results, [])
+        self.assertIn("cached file hits hidden", self.bridge.status)
+        self.assertTrue(self.fixture.is_file())
+
+    def test_qml_visible_timer_detects_external_consent_revocation(self):
+        """Real QML event loop polls external revocation without keystrokes."""
+        from PySide6.QtCore import QObject, QEventLoop, QTimer, QUrl
+        from PySide6.QtQml import QQmlApplicationEngine
+        from goreecloud_index.qtquick_app import IndexBridge
+
+        root = self.store.add_root(self.root, include_content=True)
+        scan_root(self.store, root)
+        bridge = IndexBridge(self.store, applications=[])
+        engine = QQmlApplicationEngine()
+        engine.rootContext().setContextProperty("indexBackend", bridge)
+        qml = (Path(__file__).resolve().parents[1] /
+               "src/goreecloud_index/qtquick/Main.qml")
+        engine.load(QUrl.fromLocalFile(str(qml)))
+        self.assertTrue(engine.rootObjects())
+        window = engine.rootObjects()[0]
+        search = window.findChild(QObject, "indexSearchField")
+        self.assertIsNotNone(search)
+        search.setProperty("text", "only-opt-in-canary")
+        self.app.processEvents()
+        self.assertEqual(len(bridge.results), 1)
+
+        # A separate Index store connection changes consent after the result
+        # has already been rendered. No typing is allowed to refresh it.
+        self.store.remove_root(self.root)
+        loop = QEventLoop()
+        QTimer.singleShot(1900, loop.quit)
+        loop.exec()
+        self.assertEqual(bridge.results, [])
+        self.assertTrue(self.fixture.is_file())
+        self.assertIn("changed externally", bridge.status)
+        window.close()
+
     def test_approved_qml_engine_loads_normal_window(self):
         from PySide6.QtCore import QUrl
         from PySide6.QtQml import QQmlApplicationEngine
