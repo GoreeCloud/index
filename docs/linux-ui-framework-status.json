@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "platform": "linux",
+  "product": "GoreeCloud Index",
+  "canonicalRequirement": "https://drive.google.com/file/d/1L-93POcFZE12F-vYxbSc9XquQ-KWOa6f/view",
+  "approvedPrimaryUi": [
+    "qt-quick-6.12.0",
+    "flutter-linux-desktop",
+    "slint"
+  ],
+  "currentPrimaryUi": "gtk4-libadwaita",
+  "status": "migration-required",
+  "grandfathered": false,
+  "proposedTarget": "qt-quick-6.12.0",
+  "targetStatus": "design-and-feasibility-only",
+  "evidencePaths": [
+    "src/goreecloud_index/ui.py",
+    "pyproject.toml"
+  ],
+  "runtimeTargetVerified": false,
+  "releasedCompliant": false,
+  "plan": "docs/LINUX_UI_MIGRATION.md"
+}
