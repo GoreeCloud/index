@@ -1,5 +1,7 @@
 # GoreeCloud Index
 
+**Linux UI framework compliance: migration required.** This functional GTK4/libadwaita preview does **not** yet satisfy the founder's mandatory [Qt Quick 6.12.0 / Flutter Linux Desktop / Slint-only standard](https://drive.google.com/file/d/1L-93POcFZE12F-vYxbSc9XquQ-KWOa6f/view), applicable to all existing apps without grandfathering. [Migration plan](docs/LINUX_UI_MIGRATION.md) · [machine-readable status](docs/linux-ui-framework-status.json). Existing privacy, search and windowing tests remain regression baselines, not proof of framework compliance.
+
 **Linux-first, local-first desktop search and action palette.**
 **Status: v0.1.0 development preview — not Stable, not a published installer.**
 
