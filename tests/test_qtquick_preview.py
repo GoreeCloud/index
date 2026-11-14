@@ -154,6 +154,80 @@ class QtQuickPreviewTests(unittest.TestCase):
         self.assertFalse(window.isVisible())
         self.app.clipboard().clear()
 
+    def test_real_qt_accessibility_tree_and_safe_press_action(self):
+        """Exercise actual QAccessible interfaces, not text-only source checks.
+
+        The only action under test copies an offline calculator fixture. Never
+        launch real apps, handlers or open a file from a screen reader probe.
+        """
+        if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
+            self.skipTest("QT accessibility contract requires isolated offscreen QPA")
+
+        from PySide6.QtCore import QObject, QEventLoop, QTimer, QUrl
+        from PySide6.QtGui import QAccessible
+        from PySide6.QtQml import QQmlApplicationEngine
+
+        engine = QQmlApplicationEngine()
+        engine.rootContext().setContextProperty("indexBackend", self.bridge)
+        qml = (Path(__file__).resolve().parents[1] /
+               "src/goreecloud_index/qtquick/Main.qml")
+        engine.load(QUrl.fromLocalFile(str(qml)))
+        self.assertTrue(engine.rootObjects())
+        window = engine.rootObjects()[0]
+        # The ListView instantiates delegates when the offscreen event loop
+        # renders its first frame, not synchronously during engine.load.
+        loop = QEventLoop()
+        QTimer.singleShot(100, loop.quit)
+        loop.exec()
+
+        search = window.findChild(QObject, "indexSearchField")
+        results = window.findChild(QObject, "indexResults")
+        status = window.findChild(QObject, "indexStatusText")
+        self.assertIsNotNone(search)
+        self.assertIsNotNone(results)
+        self.assertIsNotNone(status)
+        search_ax = QAccessible.queryAccessibleInterface(search)
+        results_ax = QAccessible.queryAccessibleInterface(results)
+        self.assertEqual(search_ax.role(), QAccessible.Role.EditableText)
+        self.assertEqual(search_ax.text(QAccessible.Text.Name),
+                         "Search GoreeCloud Index")
+        self.assertEqual(results_ax.role(), QAccessible.Role.List)
+        self.assertEqual(results_ax.text(QAccessible.Text.Name),
+                         "Local Index search results")
+        self.assertGreaterEqual(results_ax.childCount(), 2)
+        first = results_ax.child(0)
+        second = results_ax.child(1)
+        self.assertEqual(first.role(), QAccessible.Role.ListItem)
+        self.assertTrue(first.state().selected)
+        self.assertFalse(second.state().selected)
+        window.setProperty("selected", 1)
+        self.app.processEvents()
+        self.assertFalse(first.state().selected)
+        self.assertTrue(second.state().selected)
+
+        # Accessibility Press must share the click/keyboard backend path.
+        # It is never tested on a file or an installed-app result.
+        window.setProperty("mode", "actions")
+        window.setProperty("selected", 0)
+        search.setProperty("text", "2+3")
+        self.app.processEvents()
+        self.assertEqual(self.bridge.results[0]["kind"], "copy")
+        self.app.clipboard().clear()
+        copied = QAccessible.queryAccessibleInterface(results).child(0)
+        self.assertIn("copy", copied.text(QAccessible.Text.Name))
+        action = copied.actionInterface()
+        self.assertIsNotNone(action)
+        self.assertIn("Press", action.actionNames())
+        action.doAction("Press")
+        self.app.processEvents()
+        self.assertEqual(self.app.clipboard().text(), "5")
+        self.assertEqual(
+            QAccessible.queryAccessibleInterface(status).text(
+                QAccessible.Text.Name), self.bridge.status
+        )
+        self.app.clipboard().clear()
+        window.close()
+
     def test_local_folder_and_metadata_only_default(self):
         from PySide6.QtCore import QUrl
         self.bridge.addFolder("https://example.org/forbidden")
