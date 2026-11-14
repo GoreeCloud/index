@@ -21,6 +21,8 @@
     "src/goreecloud_index/qtquick_app.py",
     "src/goreecloud_index/palette.py",
     "tests/test_qtquick_preview.py",
+    "tests/test_qt_portal_smoke_guard.py",
+    "tools/smoke_qt_portal_fd.py",
     "docs/screenshots/linux-qtquick-wayland-100.png",
     "docs/screenshots/linux-qtquick-wayland-200.png",
     "docs/screenshots/linux-qtquick-folder-exclusions.png",
