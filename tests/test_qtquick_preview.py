@@ -101,6 +101,59 @@ class QtQuickPreviewTests(unittest.TestCase):
         self.assertEqual(window.visibility(), QWindow.Visibility.Windowed)
         window.close()
 
+    def test_offscreen_keyboard_navigation_shortcut_copy_and_escape(self):
+        # No real desktop keyboard or application/file launch is permitted.
+        if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
+            self.skipTest("Qt keyboard smoke requires isolated offscreen QPA")
+
+        from PySide6.QtCore import Qt, QUrl
+        from PySide6.QtQml import QQmlApplicationEngine
+        from PySide6.QtTest import QTest
+
+        engine = QQmlApplicationEngine()
+        engine.rootContext().setContextProperty("indexBackend", self.bridge)
+        qml = (Path(__file__).resolve().parents[1] /
+               "src/goreecloud_index/qtquick/Main.qml")
+        engine.load(QUrl.fromLocalFile(str(qml)))
+        self.assertTrue(engine.rootObjects())
+        window = engine.rootObjects()[0]
+        search = window.findChild(object, "indexSearchField")
+        self.assertIsNotNone(search)
+        search.forceActiveFocus()
+        window.requestActivate()
+        self.app.processEvents()
+        self.assertTrue(search.property("activeFocus"))
+
+        # Search focus remains in the text field during result navigation.
+        QTest.keyClick(window, Qt.Key_Down)
+        self.app.processEvents()
+        self.assertEqual(window.property("selected"), 1)
+        self.assertTrue(search.property("activeFocus"))
+        QTest.keyClick(window, Qt.Key_Up)
+        self.app.processEvents()
+        self.assertEqual(window.property("selected"), 0)
+
+        # Switch modes, then use Return only for a harmless synthetic
+        # calculation-copy action. Never launch an app or open a source file.
+        QTest.keyClick(window, Qt.Key_4, Qt.ControlModifier)
+        self.app.processEvents()
+        self.assertEqual(window.property("mode"), "actions")
+        search.setProperty("text", "2+3")
+        self.app.processEvents()
+        self.assertEqual(self.bridge.results[0]["kind"], "copy")
+        QTest.keyClick(window, Qt.Key_Return)
+        self.app.processEvents()
+        self.assertEqual(self.app.clipboard().text(), "5")
+
+        # First Escape clears the query; second Escape closes normally.
+        QTest.keyClick(window, Qt.Key_Escape)
+        self.app.processEvents()
+        self.assertEqual(search.property("text"), "")
+        QTest.keyClick(window, Qt.Key_Escape)
+        self.app.processEvents()
+        self.assertFalse(window.isVisible())
+        self.app.clipboard().clear()
+
     def test_local_folder_and_metadata_only_default(self):
         from PySide6.QtCore import QUrl
         self.bridge.addFolder("https://example.org/forbidden")

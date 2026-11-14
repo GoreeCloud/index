@@ -40,6 +40,13 @@ as a released application**. Qt Python Essentials and shiboken6 have separate
 LGPL/GPL/commercial obligations; no Qt binaries are bundled in this repo.
 [Current migration gates](docs/LINUX_UI_MIGRATION.md). Synthetic [100% Wayland](docs/screenshots/linux-qtquick-wayland-100.png) and [200% Wayland](docs/screenshots/linux-qtquick-wayland-200.png) captures are preliminary native-runtime visual evidence, not real user data or Stable/design acceptance.
 
+An isolated offscreen QML keyboard regression checks native Up/Down navigation,
+Ctrl+4 mode switching, Enter activation of a **synthetic calculator-copy**
+result, and Escape clear/close behavior while preserving search focus.
+It never sends global shortcuts, starts applications or opens real files.
+Physical keyboard, focus behavior under actual GNOME/KDE compositors and
+Orca remain separate acceptance items.
+
 The Qt preview's portal bridge is also covered by a strictly isolated,
 synthetic D-Bus `OpenFile` regression for accepted, canceled, rejected and
 backend-error outcomes with inode-preserving FD handoff after same-path
