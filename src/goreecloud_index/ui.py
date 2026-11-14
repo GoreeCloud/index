@@ -19,7 +19,7 @@ from .calculator import calculate
 from .scanner import scan_all, scan_root
 from .search import FileResult, search_files
 from .storage import IndexStore
-from .windowing import palette_startup_size
+from .windowing import palette_startup_size_for_monitors
 
 
 @dataclass(frozen=True)
@@ -165,20 +165,21 @@ class IndexApplication(Adw.Application):
         window = Adw.ApplicationWindow(application=self)
         window.set_title("GoreeCloud Index")
         window.set_decorated(False)
-        # GDK4 monitor rectangles use logical application pixels; Wayland
-        # compositors still own window placement and panel/work-area rules.
-        # Use the existing 660x448 default unless the screen is unusually small.
-        monitor_width = monitor_height = 0
+        # GDK4 reports logical monitor dimensions, not always panel-reduced
+        # work areas. The compositor may place an unmapped window on any
+        # attached screen, so conservatively size for the smallest usable
+        # dimensions across monitors, independent of enumeration order.
+        monitor_sizes = []
         display = Gdk.Display.get_default()
         if display is not None:
             monitors = display.get_monitors()
-            if monitors.get_n_items():
-                monitor = monitors.get_item(0)
+            for index in range(monitors.get_n_items()):
+                monitor = monitors.get_item(index)
                 if monitor is not None:
                     bounds = monitor.get_geometry()
-                    monitor_width, monitor_height = bounds.width, bounds.height
+                    monitor_sizes.append((bounds.width, bounds.height))
         window.set_default_size(
-            *palette_startup_size(monitor_width, monitor_height)
+            *palette_startup_size_for_monitors(monitor_sizes)
         )
         window.add_css_class("spotlight-window")
         self.window = window
