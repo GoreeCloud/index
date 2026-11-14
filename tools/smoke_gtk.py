@@ -15,7 +15,7 @@ from gi.repository import Gdk, GLib  # noqa: E402
 from goreecloud_index.ui import Adw, Gtk, IndexApplication  # noqa: E402
 from goreecloud_index.scanner import scan_root  # noqa: E402
 from goreecloud_index.search import search_files  # noqa: E402
-from goreecloud_index.windowing import palette_startup_size  # noqa: E402
+from goreecloud_index.windowing import palette_startup_size_for_monitors  # noqa: E402
 
 
 def main() -> int:
@@ -42,9 +42,14 @@ def main() -> int:
                 assert display is not None
                 monitors = display.get_monitors()
                 assert monitors.get_n_items() >= 1
-                geometry = monitors.get_item(0).get_geometry()
-                assert app.window.get_default_size() == palette_startup_size(
-                    geometry.width, geometry.height,
+                sizes = []
+                for index in range(monitors.get_n_items()):
+                    monitor = monitors.get_item(index)
+                    if monitor is not None:
+                        geometry = monitor.get_geometry()
+                        sizes.append((geometry.width, geometry.height))
+                assert app.window.get_default_size() == (
+                    palette_startup_size_for_monitors(sizes)
                 )
                 assert not app.window.is_maximized()
                 assert not app.window.is_fullscreen()
