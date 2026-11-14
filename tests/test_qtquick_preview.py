@@ -101,6 +101,31 @@ class QtQuickPreviewTests(unittest.TestCase):
         self.assertEqual(self.store.count(), 0)
         self.assertTrue(self.fixture.exists())
 
+    def test_subfolder_exclusion_purges_hits_and_requires_manual_rescan(self):
+        from PySide6.QtCore import QUrl
+
+        child = self.root / "private"
+        child.mkdir()
+        protected_file = child / "private-canary.md"
+        protected_file.write_text("synthetic", encoding="utf-8")
+        root = self.store.add_root(self.root)
+        scan_root(self.store, root)
+        self.bridge.refresh("private-canary", "files")
+        self.assertEqual(len(self.bridge.results), 1)
+        self.bridge.excludeFolder(str(self.root), QUrl.fromLocalFile(str(child)).toString())
+        self.assertEqual(self.bridge.results, [])
+        self.assertEqual(self.bridge.roots[0]["exclusions"], [str(child)])
+        self.assertTrue(protected_file.is_file())
+        self.bridge.excludeFolder(str(self.root), "https://example.org/remote")
+        self.assertEqual(self.bridge.roots[0]["exclusions"], [str(child)])
+        self.bridge.unexcludeFolder(str(self.root), str(child))
+        self.assertEqual(self.bridge.roots[0]["exclusions"], [])
+        self.assertEqual(self.bridge.results, [], "Removing a rule cannot silently rescan")
+        scan_root(self.store, self.store.roots()[0])
+        self.bridge.refresh("private-canary", "files")
+        self.assertEqual(len(self.bridge.results), 1)
+        self.assertTrue(protected_file.is_file())
+
     def test_pinned_portal_handoff_and_no_pathname_fallback(self):
         root = self.store.add_root(self.root)
         scan_root(self.store, root)

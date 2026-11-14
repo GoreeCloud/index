@@ -103,7 +103,8 @@ class IndexBridge(QObject):
     def _reload_roots(self) -> None:
         self._roots = [
             {"path": root.path, "content": root.include_content,
-             "current": self._store.root_is_current(root)}
+             "current": self._store.root_is_current(root),
+             "exclusions": self._store.exclusions(root.path)}
             for root in self._store.roots()
         ]
         self.rootsChanged.emit()
@@ -209,6 +210,40 @@ class IndexBridge(QObject):
                 self._set_status("Indexed text removed; original files unchanged")
         except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
             self._set_status(f"Consent update blocked: {exc}")
+
+    @Slot(str, str)
+    def excludeFolder(self, root_path: str, folder_url: str) -> None:
+        """Exclude only a real local child of an already consented root."""
+        if self._busy:
+            return
+        selected = QUrl(folder_url)
+        if not selected.isLocalFile() or selected.host() not in ("", "localhost"):
+            self._set_status("Only local subfolders may be excluded")
+            return
+        try:
+            excluded = self._store.add_exclusion(root_path, selected.toLocalFile())
+            # add_exclusion purges stale metadata immediately; no rescan.
+            self._reload_roots()
+            self.refresh(self._query, self._mode)
+            self._set_status(f"Excluded {excluded}; original files unchanged")
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._set_status(f"Could not exclude subfolder: {exc}")
+
+    @Slot(str, str)
+    def unexcludeFolder(self, root_path: str, folder_path: str) -> None:
+        """Lift a specific rule without automatically re-indexing the folder."""
+        if self._busy:
+            return
+        try:
+            removed = self._store.remove_exclusion(root_path, folder_path)
+            self._reload_roots()
+            self.refresh(self._query, self._mode)
+            self._set_status(
+                "Exclusion removed; refresh manually to index again"
+                if removed else "Subfolder was not excluded"
+            )
+        except (ValueError, OSError, RuntimeError, sqlite3.Error) as exc:
+            self._set_status(f"Could not remove exclusion: {exc}")
 
     @Slot(str)
     def removeFolder(self, path: str) -> None:

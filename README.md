@@ -14,7 +14,8 @@ No GoreeCloud account, telemetry, server, or external search provider is require
 
 A **separate, non-default** Qt Quick/QML window now exercises local search,
 installed-app discovery/launch, offline calculations, clipboard copying,
-metadata-only folder grants, explicit text opt-in/revocation, manual rescans,
+metadata-only folder grants, explicit text opt-in/revocation, explicit
+subfolder exclusion/reallow controls with manual reindexing, manual rescans,
 appearance settings, and the existing inode-pinned portal handoff. Run in a
 disposable XDG data environment when evaluating it:
 
