@@ -14,7 +14,7 @@ import threading
 from importlib.resources import files
 from pathlib import Path
 
-from PySide6.QtCore import Property, QObject, QTimer, QUrl, Qt, Signal, Slot
+from PySide6.QtCore import Property, QObject, QTimer, QUrl, Qt, Signal, Slot, qVersion
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
@@ -378,8 +378,28 @@ class IndexBridge(QObject):
         self._set_status("Appearance preference saved locally")
 
 
+APPROVED_QT_RUNTIME = "6.12.0"
+
+
+def _require_approved_qt_runtime() -> None:
+    """Reject incompatible Qt *before* constructing a window or reading a store.
+
+    The founder's Linux framework policy pins Qt Quick to Qt 6.12.0. A
+    system-installed PySide6 with a mismatched Qt runtime must fail clearly,
+    instead of attempting a partial QML import and leaving ambiguous state.
+    """
+    actual = qVersion()
+    if actual != APPROVED_QT_RUNTIME:
+        raise RuntimeError(
+            "GoreeCloud Index Qt Quick preview requires Qt "
+            f"{APPROVED_QT_RUNTIME}; found Qt {actual}. "
+            "The existing GTK GUI remains available."
+        )
+
+
 def launch_qtquick(argv: list[str] | None = None) -> int:
     """Opt-in Qt Quick GUI preview; never silently replace the legacy GTK UI."""
+    _require_approved_qt_runtime()
     QQuickStyle.setStyle("Basic")
     app = QGuiApplication(argv if argv is not None else sys.argv)
     app.setApplicationName("GoreeCloud Index — Qt Quick Preview")

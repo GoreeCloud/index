@@ -25,6 +25,12 @@ python3 -m venv --system-site-packages .venv-qt
 XDG_DATA_HOME="$(mktemp -d)" .venv-qt/bin/goreecloud-index gui-qt
 ```
 
+The `gui-qt` entry point rejects any Qt runtime other than **6.12.0**
+before creating the QML window or opening the local Index store. A mismatched
+Qt version receives an explicit error while the legacy GTK entry point remains
+available. This startup version guard is not a Qt dependency installation,
+redistribution or Stable release qualification.
+
 The Qt window starts normally (not maximized) and uses the same conservative
 logical-monitor sizing contract as GTK: a preferred 660×488 footprint, a
 390×300 minimum, and approximately 10% margins when small/mixed monitors

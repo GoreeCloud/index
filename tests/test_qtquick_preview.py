@@ -137,6 +137,20 @@ class QtQuickPreviewTests(unittest.TestCase):
         self.assertTrue(self.fixture.is_file())
         self.assertIn("changed externally", bridge.status)
         window.close()
+    def test_qt_runtime_policy_rejects_mismatch_before_gui_or_store(self):
+        """Fail without changing any Index data when installed Qt is not 6.12.0."""
+        from goreecloud_index import qtquick_app
+
+        self.assertEqual(qtquick_app.APPROVED_QT_RUNTIME, "6.12.0")
+        for version in ("6.11.3", "6.12.1", "6.13.0", "5.15.2"):
+            with self.subTest(qt=version):
+                with patch.object(qtquick_app, "qVersion", return_value=version):
+                    with patch.object(qtquick_app, "QGuiApplication") as app:
+                        with self.assertRaisesRegex(RuntimeError, "requires Qt 6.12.0"):
+                            qtquick_app.launch_qtquick([])
+                        app.assert_not_called()
+        with patch.object(qtquick_app, "qVersion", return_value="6.12.0"):
+            qtquick_app._require_approved_qt_runtime()
 
     def test_approved_qml_engine_loads_normal_window(self):
         from PySide6.QtCore import QUrl
