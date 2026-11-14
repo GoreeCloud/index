@@ -9,7 +9,9 @@ ApplicationWindow {
     id: win
     objectName: "indexQtWindow"
     title: "GoreeCloud Index — Qt Quick preview"
-    width: 660; height: 488
+    // Fit the smallest available logical monitor; never request fullscreen.
+    // Sizes come from the same pure policy as GTK, with Qt's 660×488 ideal.
+    width: indexBackend.startupWidth; height: indexBackend.startupHeight
     minimumWidth: 390; minimumHeight: 300
     visible: true
     flags: Qt.Window

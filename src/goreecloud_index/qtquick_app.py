@@ -24,6 +24,16 @@ from .palette import PaletteHit, collect_hits
 from .portal import request_open_fd
 from .scanner import scan_all, scan_root
 from .storage import IndexStore
+from .windowing import palette_startup_size_for_monitors
+
+
+def _qt_screen_sizes() -> list[tuple[int, int]]:
+    """Read ephemeral Qt logical geometries without retaining screen identity."""
+    app = QGuiApplication.instance()
+    if app is None:
+        return []
+    return [(screen.geometry().width(), screen.geometry().height())
+            for screen in app.screens()]
 
 
 class IndexBridge(QObject):
@@ -42,6 +52,9 @@ class IndexBridge(QObject):
                  applications: list[Application] | None = None) -> None:
         super().__init__()
         self._store = store if store is not None else IndexStore()
+        self._startup_size = palette_startup_size_for_monitors(
+            _qt_screen_sizes(), preferred_size=(660, 488)
+        )
         self._applications = applications if applications is not None else list_applications()
         self._results: list[dict[str, str]] = []
         self._roots: list[dict[str, object]] = []
@@ -60,6 +73,14 @@ class IndexBridge(QObject):
             app.styleHints().colorSchemeChanged.connect(self._update_dark)
         self._reload_roots()
         self.refresh("", "all")
+
+    @Property(int, constant=True)
+    def startupWidth(self):
+        return self._startup_size[0]
+
+    @Property(int, constant=True)
+    def startupHeight(self):
+        return self._startup_size[1]
 
     @Property("QVariantList", notify=resultsChanged)
     def results(self):
