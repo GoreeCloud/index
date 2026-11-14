@@ -24,6 +24,7 @@
     "tests/test_windowing.py",
     "src/goreecloud_index/windowing.py",
     "docs/screenshots/linux-qtquick-compact-synthetic.png",
+    "docs/screenshots/linux-qtquick-minimum-390x300.png",
     "tests/test_qt_portal_smoke_guard.py",
     "tools/smoke_extracted_qtquick.py",
     "tools/build_deb.py",
