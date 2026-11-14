@@ -19,8 +19,9 @@ No GoreeCloud account, telemetry, server, or external search provider is require
   It does not include Apple assets or a global system shortcut.
   **Normal window by default:** the GTK palette starts as a resizable,
   non-maximized, non-full-screen desktop window, normally 660×448.
-  On smaller displays it scales down to 90% of the selected monitor's
-  logical dimensions, with a tested 390×300 compact-layout floor.
+  On smaller displays it scales down to 90% of the smallest valid logical
+  monitor dimensions across all attached displays, with a tested 390×300
+  compact-layout floor. Monitor enumeration order does not decide the size.
   GDK4 monitor geometry is not guaranteed to exclude desktop panels, and
   the compositor retains final placement control. This is not universal
   GNOME/KDE/device acceptance. Native GTK smoke tests check the startup
