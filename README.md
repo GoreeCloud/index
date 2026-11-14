@@ -31,6 +31,16 @@ logical-monitor sizing contract as GTK: a preferred 660×488 footprint, a
 require it. [Synthetic 640×360 monitor geometry test](docs/screenshots/linux-qtquick-compact-synthetic.png)
 shows a 576×324 Qt window, not physical small-display hardware acceptance.
 
+The rootless development Debian package now includes the exact first-party
+`qtquick_app.py`, palette service and QML source assets as an **opt-in**
+interface. It continues to launch GTK by default, and **does not install,
+bundle or declare a version-qualified Qt Quick runtime**. To evaluate Qt from
+that package, the tester must separately provision a licensed and compatible
+Qt 6.12.0/PySide6 Essentials environment and the relevant system Gio bindings.
+CI verifies the extracted package Qt view using a synthetic offscreen fixture.
+This is package-payload and source parity, not production Qt dependency
+resolution, a signed release, installed desktop launcher migration or Stable.
+
 The temporary data directory above is deliberately user-managed; remove it
 only when certain it contains no information to retain. The `gui` entry point
 continues to use legacy GTK until the Qt replacement passes feature parity,

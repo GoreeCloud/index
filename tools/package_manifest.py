@@ -19,7 +19,7 @@ import tarfile
 import tomllib
 from pathlib import Path, PurePosixPath
 
-from .build_deb import MODULE_FILES, MODULE, PACKAGE, ROOT
+from .build_deb import MODULE_FILES, QTQUICK_FILES, MODULE, PACKAGE, ROOT
 
 MAX_PACKAGE_BYTES = 16 * 1024 * 1024
 MAX_CONTENT_BYTES = 16 * 1024 * 1024
@@ -31,6 +31,10 @@ def expected_payload() -> set[str]:
     files = {
         f"usr/lib/python3/dist-packages/{MODULE}/{name}"
         for name in MODULE_FILES
+    }
+    files |= {
+        f"usr/lib/python3/dist-packages/{MODULE}/qtquick/{name}"
+        for name in QTQUICK_FILES
     }
     return files | {
         "usr/bin/goreecloud-index",

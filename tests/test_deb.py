@@ -37,8 +37,8 @@ class DebianPackageTests(unittest.TestCase):
             first = inspect(rev1)
             second = inspect(rev2)
             self.assertEqual(first["file_count"], len(expected_payload()))
-            # One newly allowlisted first-party native sizing module is shipped.
-            self.assertEqual(first["file_count"], 17)
+            # Explicitly shipped opt-in Qt Quick service and QML resources.
+            self.assertEqual(first["file_count"], 21)
             self.assertEqual(first["files"], second["files"])
             self.assertEqual(first["version"], "0.1.0-1")
             self.assertEqual(second["version"], "0.1.0-2")
@@ -107,9 +107,20 @@ class DebianPackageTests(unittest.TestCase):
             self.assertIn("com.goreecloud.Index.desktop", contents)
             self.assertIn("/usr/bin/goreecloud-index", contents)
             self.assertIn("goreecloud_index/index.css", contents)
+            self.assertIn("goreecloud_index/qtquick/Main.qml", contents)
+            self.assertIn("goreecloud_index/qtquick/CloudButton.qml", contents)
+            self.assertIn("goreecloud_index/qtquick_app.py", contents)
+            self.assertIn("goreecloud_index/palette.py", contents)
             self.assertNotIn(".env", contents)
             extracted = root / "extracted"
             subprocess.run(["dpkg-deb", "-x", str(first), str(extracted)], check=True)
+            package_module = extracted / "usr/lib/python3/dist-packages/goreecloud_index"
+            for name in ("palette.py", "qtquick_app.py"):
+                source = Path(__file__).resolve().parents[1] / "src/goreecloud_index" / name
+                self.assertEqual((package_module / name).read_bytes(), source.read_bytes())
+            for name in ("Main.qml", "CloudButton.qml"):
+                source = Path(__file__).resolve().parents[1] / "src/goreecloud_index/qtquick" / name
+                self.assertEqual((package_module / "qtquick" / name).read_bytes(), source.read_bytes())
             env = dict(os.environ)
             env["PYTHONPATH"] = str(extracted / "usr/lib/python3/dist-packages")
             output = subprocess.check_output(

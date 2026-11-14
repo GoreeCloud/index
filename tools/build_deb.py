@@ -18,8 +18,9 @@ MODULE = "goreecloud_index"
 MODULE_FILES = (
     "__init__.py", "__main__.py", "apps.py", "calculator.py", "cli.py",
     "config.py", "portal.py", "scanner.py", "search.py", "storage.py", "ui.py",
-    "windowing.py", "index.css",
+    "windowing.py", "palette.py", "qtquick_app.py", "index.css",
 )
+QTQUICK_FILES = ("Main.qml", "CloudButton.qml")
 BIN_SCRIPT = """#!/usr/bin/python3
 from goreecloud_index.cli import main
 
@@ -63,6 +64,9 @@ def build(output_directory: Path, revision: int = 1) -> Path:
         module_target = stage / "usr/lib/python3/dist-packages" / MODULE
         for name in MODULE_FILES:
             _stage_file(ROOT / "src" / MODULE / name, module_target / name)
+        for name in QTQUICK_FILES:
+            _stage_file(ROOT / "src" / MODULE / "qtquick" / name,
+                        module_target / "qtquick" / name)
         _stage_file(
             ROOT / "data/com.goreecloud.Index.desktop",
             stage / "usr/share/applications/com.goreecloud.Index.desktop",
