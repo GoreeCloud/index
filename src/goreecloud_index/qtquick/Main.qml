@@ -135,6 +135,8 @@ ApplicationWindow {
                         font.pixelSize: 17; placeholderText: "Search apps, files or calculate…"
                         placeholderTextColor: win.secondary; focus: true
                         Accessible.name: "Search GoreeCloud Index"
+                        Accessible.searchEdit: true
+                        Accessible.description: "Search local apps, selected files and safe actions"
                         onTextChanged: { win.selected = 0; indexBackend.refresh(text, win.mode) }
                         Keys.onDownPressed: event => {
                             win.selected = Math.max(0, Math.min(indexBackend.results.length - 1, win.selected + 1))
@@ -192,14 +194,24 @@ ApplicationWindow {
                 id: hits; objectName: "indexResults"
                 Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 6
                 model: indexBackend.results; ScrollBar.vertical: ScrollBar {}
+                Accessible.role: Accessible.List
+                Accessible.name: "Local Index search results"
                 delegate: Rectangle {
                     required property var modelData
                     required property int index
+                    objectName: "indexResultItem" + index
                     width: hits.width; height: 64; radius: 13
                     color: win.selected === index ? win.accentSurface : win.tonal
                     border.color: win.selected === index ? win.accent : "transparent"
                     Accessible.role: Accessible.ListItem
                     Accessible.name: modelData.kind + ": " + modelData.title + ". " + modelData.subtitle
+                    Accessible.selectable: true
+                    Accessible.selected: win.selected === index
+                    Accessible.description: "Activate the selected local result"
+                    Accessible.onPressAction: {
+                        win.selected = index
+                        indexBackend.activate(index)
+                    }
                     RowLayout {
                         anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 10
                         Rectangle {
@@ -248,9 +260,11 @@ ApplicationWindow {
                 Layout.fillWidth: true; spacing: 8
                 Rectangle { width: 7; height: 7; radius: 4; color: indexBackend.busy ? "#955000" : "#166B4B" }
                 Text {
+                    objectName: "indexStatusText"
                     Layout.fillWidth: true; text: indexBackend.status; font.pixelSize: 11
                     textFormat: Text.PlainText; elide: Text.ElideRight; color: win.secondary
                     Accessible.role: Accessible.StaticText
+                    Accessible.name: indexBackend.status
                 }
                 BusyIndicator { running: indexBackend.busy; visible: running; Layout.preferredWidth: 22; Layout.preferredHeight: 22 }
             }
