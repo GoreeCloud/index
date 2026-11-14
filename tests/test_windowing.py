@@ -52,5 +52,38 @@ class MultiMonitorPaletteTests(unittest.TestCase):
         )
 
 
+class QtCompactWindowContractTests(unittest.TestCase):
+    """Opt-in Qt client uses the same conservative GTK-tested geometry rules."""
+
+    def test_qt_preferred_footprint_on_large_and_small_screens(self):
+        qt = (660, 488)
+        self.assertEqual(palette_startup_size_for_monitors(
+            [(1920, 1080)], preferred_size=qt), qt)
+        self.assertEqual(palette_startup_size_for_monitors(
+            [(640, 360)], preferred_size=qt), (576, 324))
+        self.assertEqual(palette_startup_size_for_monitors(
+            [(3840, 2160), (640, 360)], preferred_size=qt), (576, 324))
+        self.assertEqual(palette_startup_size_for_monitors(
+            [(640, 360), (3840, 2160)], preferred_size=qt), (576, 324))
+
+    def test_qt_uses_each_monitor_axis_and_handles_unavailable_screen(self):
+        qt = (660, 488)
+        self.assertEqual(palette_startup_size_for_monitors(
+            [(900, 1600), (2000, 390)], preferred_size=qt),
+            (660, 351))
+        self.assertEqual(palette_startup_size_for_monitors(
+            [], preferred_size=qt), qt)
+        self.assertEqual(palette_startup_size_for_monitors(
+            [(0, 0), (True, 800)], preferred_size=qt), qt)
+
+    def test_custom_preferred_sizes_reject_invalid_values(self):
+        for preferred in ((0, 488), (660, 250), (True, 488),
+                          (660,), [660, 488], ("660", 488)):
+            with self.subTest(preferred=preferred):
+                with self.assertRaises(ValueError):
+                    palette_startup_size_for_monitors(
+                        [(1920, 1080)], preferred_size=preferred)
+
+
 if __name__ == "__main__":
     unittest.main()

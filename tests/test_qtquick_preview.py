@@ -79,6 +79,28 @@ class QtQuickPreviewTests(unittest.TestCase):
         self.assertEqual(self.bridge.results[0]["kind"], "app")
         window.close()
 
+    def test_multi_monitor_qml_startup_uses_smallest_logical_screen(self):
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QWindow
+        from PySide6.QtQml import QQmlApplicationEngine
+        from goreecloud_index.qtquick_app import IndexBridge
+
+        with patch("goreecloud_index.qtquick_app._qt_screen_sizes",
+                   return_value=[(3840, 2160), (640, 360)]):
+            limited = IndexBridge(self.store, applications=[])
+        self.assertEqual((limited.startupWidth, limited.startupHeight), (576, 324))
+
+        engine = QQmlApplicationEngine()
+        engine.rootContext().setContextProperty("indexBackend", limited)
+        qml = (Path(__file__).resolve().parents[1] /
+               "src/goreecloud_index/qtquick/Main.qml")
+        engine.load(QUrl.fromLocalFile(str(qml)))
+        self.assertTrue(engine.rootObjects())
+        window = engine.rootObjects()[0]
+        self.assertEqual((window.width(), window.height()), (576, 324))
+        self.assertEqual(window.visibility(), QWindow.Visibility.Windowed)
+        window.close()
+
     def test_local_folder_and_metadata_only_default(self):
         from PySide6.QtCore import QUrl
         self.bridge.addFolder("https://example.org/forbidden")
