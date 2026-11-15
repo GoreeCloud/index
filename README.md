@@ -65,6 +65,12 @@ An isolated offscreen QML keyboard regression checks native Up/Down navigation,
 Ctrl+4 mode switching, Enter activation of a **synthetic calculator-copy**
 result, and Escape clear/close behavior while preserving search focus.
 It never sends global shortcuts, starts applications or opens real files.
+The opt-in launcher now explicitly tears down its QML engine **before** the
+Python Index bridge is released on application exit, avoiding null-context
+binding errors. An isolated child-process regression covers normal startup
+and quit with only a disposable database; a native Zorin/GNOME Wayland
+start/quit smoke also passed. This is lifecycle reliability evidence, not
+real portal-handler, Orca, Qt package or Stable acceptance.
 Physical keyboard, focus behavior under actual GNOME/KDE compositors and
 Orca remain separate acceptance items.
 
