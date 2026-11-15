@@ -90,6 +90,69 @@ class QtQuickPreviewTests(unittest.TestCase):
                     self.assertTrue(source.is_file(), "No source file is deleted")
                     self.assertIn("changed externally", bridge.status)
 
+    def test_revision_monitor_detects_same_count_same_generation_external_write(self):
+        """SQLite changes with unchanged item count/generation still clear stale hits."""
+        from goreecloud_index.qtquick_app import IndexBridge
+
+        root = self.store.add_root(self.root, include_content=True)
+        scan_root(self.store, root)
+        bridge = IndexBridge(self.store, applications=[])
+        bridge.refresh("only-opt-in-canary", "files")
+        self.assertEqual(len(bridge.results), 1)
+        with self.store.connect() as conn:
+            before = conn.execute(
+                "SELECT COUNT(*) AS n, MAX(generation) AS g FROM items"
+            ).fetchone()
+        self.fixture.write_text("new-synthetic-canary", encoding="utf-8")
+        # Simulate another Index process updating the same row, without
+        # changing a generation or the number of indexed paths.
+        with self.store.connect() as writer:
+            writer.execute("UPDATE items SET content = ? WHERE path = ?",
+                           ("new-synthetic-canary", str(self.fixture)))
+        with self.store.connect() as conn:
+            after = conn.execute(
+                "SELECT COUNT(*) AS n, MAX(generation) AS g FROM items"
+            ).fetchone()
+        self.assertEqual(tuple(before), tuple(after))
+        bridge.reconcileExternalChanges()
+        self.assertEqual(bridge.results, [])
+        self.assertIn("changed externally", bridge.status)
+        self.assertTrue(self.fixture.is_file())
+
+    def test_revision_monitor_avoids_full_items_table_aggregate(self):
+        """Unchanged UI polls use SQLite's O(1) revision, not COUNT/MAX scan."""
+        from goreecloud_index.qtquick_app import IndexBridge
+
+        bridge = IndexBridge(self.store, applications=[])
+        statements: list[str] = []
+        bridge._change_connection.set_trace_callback(statements.append)
+        for _ in range(3):
+            bridge.reconcileExternalChanges()
+        bridge._change_connection.set_trace_callback(None)
+        self.assertGreaterEqual(
+            sum("PRAGMA data_version" in sql for sql in statements), 3
+        )
+        self.assertFalse(any("COUNT(" in sql or "MAX(" in sql
+                             for sql in statements))
+        self.assertEqual(bridge.status, "Local only · clipboard history off")
+
+    def test_revision_monitor_database_identity_failure_hides_cached_hits(self):
+        """An old open SQLite handle must not bypass new file identity checks."""
+        from goreecloud_index.qtquick_app import IndexBridge
+
+        root = self.store.add_root(self.root)
+        scan_root(self.store, root)
+        bridge = IndexBridge(self.store, applications=[])
+        bridge.refresh("report", "files")
+        self.assertEqual(len(bridge.results), 1)
+        # The persistent revision reader points at the old inode, but all
+        # root reads still go through IndexStore.connect's identity check.
+        self.store.path.unlink()
+        bridge.reconcileExternalChanges()
+        self.assertEqual(bridge.results, [])
+        self.assertIn("cached file hits hidden", bridge.status)
+        self.assertTrue(self.fixture.is_file())
+
     def test_same_count_external_rescan_invalidates_cached_private_hits(self):
         """Replacing an indexed file without changing row count must refresh."""
         for mutation in ("replace-path", "replace-text"):
