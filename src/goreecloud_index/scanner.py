@@ -13,6 +13,7 @@ import mimetypes
 import os
 import stat
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -27,6 +28,10 @@ class ScanReport:
     errors: int
     truncated: bool
     removed_stale: int
+
+
+class ScanCanceled(RuntimeError):
+    """A requested stop aborts the current SQLite transaction without purge."""
 
 
 @dataclass(frozen=True)
@@ -72,7 +77,18 @@ def _read_text(path: Path | _AnchoredFile, size: int, enabled: bool) -> str:
         return ""
 
 
-def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) -> ScanReport:
+def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT,
+              *, cancel: Callable[[], bool] | None = None) -> ScanReport:
+    """Scan with optional cooperative rollback for application shutdown.
+
+    Check before and inside the database transaction. A ScanCanceled
+    exception leaves the transaction uncommitted; original files untouched.
+    """
+    def check_cancel() -> None:
+        if cancel is not None and cancel():
+            raise ScanCanceled("Index scan canceled; no partial results committed")
+
+    check_cancel()
     path = Path(root.path)
     if limit < 1 or limit > MAX_FILES_PER_ROOT:
         raise ValueError("Scan limit outside permitted range")
@@ -101,6 +117,7 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
         root_device = root_stat.st_dev
 
         with store.connect() as conn:
+            check_cancel()
             # Serialize with root and exclusion consent changes before scanning.
             conn.execute("BEGIN IMMEDIATE")
             consent = conn.execute(
@@ -148,6 +165,7 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
                 ".", topdown=True, follow_symlinks=False,
                 onerror=on_error, dir_fd=root_fd,
             ):
+                check_cancel()
                 current = path / relative
                 if is_excluded(current):
                     names[:] = []
@@ -172,6 +190,7 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
                 names[:] = sorted(kept)
 
                 for name in sorted([*kept, *files]):
+                    check_cancel()
                     if count >= limit:
                         truncated = True
                         break
@@ -250,6 +269,7 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
                         errors += 1
                 except (OSError, ValueError):
                     errors += 1
+            check_cancel()
             if errors == 0 and not truncated:
                 removed = conn.execute(
                     "DELETE FROM items WHERE root = ? AND generation != ?",
@@ -260,7 +280,8 @@ def scan_root(store: IndexStore, root: Root, limit: int = MAX_FILES_PER_ROOT) ->
     return ScanReport(root.path, count, errors, truncated, removed)
 
 
-def scan_all(store: IndexStore) -> list[ScanReport]:
+def scan_all(store: IndexStore, *,
+             cancel: Callable[[], bool] | None = None) -> list[ScanReport]:
     """Refresh independent approved roots despite an invalid single root.
 
     A moved, revoked, or inaccessible root raises ValueError from scan_root.
@@ -270,8 +291,10 @@ def scan_all(store: IndexStore) -> list[ScanReport]:
     """
     reports: list[ScanReport] = []
     for root in store.roots():
+        if cancel is not None and cancel():
+            raise ScanCanceled("Index scan canceled before the next root")
         try:
-            reports.append(scan_root(store, root))
+            reports.append(scan_root(store, root, cancel=cancel))
         except ValueError:
             # Never mark a failed root as complete or delete its old entries.
             # Search/open paths independently recheck root identity.

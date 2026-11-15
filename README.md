@@ -42,6 +42,8 @@ mode buttons and results stay inside the window. [Synthetic minimum-viewport
 capture](docs/screenshots/linux-qtquick-minimum-390x300.png) shows the
 actual offscreen QML renderer, not physical-device or 400%-font acceptance.
 
+Hosted CI now also **installs the real unsigned Debian development candidate on a disposable Ubuntu 24.04 runner**, verifies Debian's installed package status, and launches the opt-in Qt 6.12.0 GUI through the **actual installed Python module** with a separately hash-pinned Qt interpreter, disposable SQLite fixture, offscreen renderer and auto-quit. This is stronger evidence than extracting a .deb, but still does not make the installed `/usr/bin/goreecloud-index` (system Python) automatically resolve Qt 6.12.0 or change the GTK desktop default. Actual Qt distribution dependencies, license obligations, release signing, installed Qt launcher convenience and rollback remain separate release gates.
+
 The rootless development Debian package now includes the exact first-party
 `qtquick_app.py`, palette service and QML source assets as an **opt-in**
 interface. It continues to launch GTK by default, and **does not install,
@@ -111,6 +113,15 @@ fails closed and hides cached file hits. This is a **best-effort, 1.2-second
 poll**, not instantaneous cross-process notification or proof that already
 opened third-party file descriptors can be revoked; file activation retains
 its independent inode-pinned authorization check.
+
+The opt-in Qt rescan worker now cooperatively checks for app shutdown between
+bounded directory/file entries and before final index reconciliation. A
+cancel-request raises a dedicated scan exception inside the SQLite write
+transaction so all partial indexed changes roll back; original files remain
+untouched. During normal GUI quit, the bridge signals cancellation and waits
+up to five seconds before its QML engine is destroyed. A filesystem stall may
+outlive that bounded wait, so cancellation is **best effort**, not a process
+kill guarantee. Existing CLI/GTK scans retain their previous behavior.
 
 The Qt preview's portal bridge is also covered by a strictly isolated,
 synthetic D-Bus `OpenFile` regression for accepted, canceled, rejected and
