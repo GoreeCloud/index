@@ -80,6 +80,13 @@ the explanation scrolls while OK/Cancel stay accessible. This is source
 and isolated Qt offscreen evidence only; physical GNOME/KDE/Orca
 acceptance and the default GTK migration remain pending.
 
+The Qt appearance preferences now include the same **Reset to Light** behavior
+as the GTK interface. Reset deletes the stored preference, restores the
+first-run Light default and leaves GNOME/system appearance unchanged; failed
+SQLite writes retain the previous visual choice. A real QAccessible Press
+regression confirms this from the 390×300 QML appearance dialog on an isolated
+SQLite fixture. This is parity for a single preference, not complete UI migration.
+
 The Qt QML result list now exposes actual accessible List/ListItem roles,
 selected-state changes and a Press action through Qt's accessibility API.
 An isolated QAccessible test uses only a disposable calculator-copy fixture;

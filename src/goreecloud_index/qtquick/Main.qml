@@ -420,7 +420,8 @@ ApplicationWindow {
         }
     }
     Dialog {
-        id: themeDialog; modal: true; title: "Local appearance"
+        id: themeDialog; objectName: "indexThemeDialog"
+        modal: true; title: "Local appearance"
         anchors.centerIn: Overlay.overlay; width: Math.min(win.width - 40, 320)
         standardButtons: Dialog.Close
         contentItem: ColumnLayout {
@@ -434,6 +435,19 @@ ApplicationWindow {
                         + (indexBackend.appearance === modelData ? " ✓" : "")
                     onClicked: indexBackend.setAppearance(modelData)
                 }
+            }
+            Text {
+                Layout.fillWidth: true
+                text: "Reset removes the saved preference; default is Light."
+                wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                color: win.secondary; font.pixelSize: 11
+            }
+            Button {
+                objectName: "indexResetAppearanceButton"
+                Layout.fillWidth: true
+                text: "Reset to Light"
+                Accessible.name: "Reset appearance to default Light"
+                onClicked: indexBackend.resetAppearance()
             }
         }
     }
