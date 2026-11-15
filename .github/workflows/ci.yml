@@ -173,6 +173,13 @@ jobs:
           dpkg-deb -x "$RUNNER_TEMP/qt-deb/goreecloud-index_0.1.0-1_all.deb" \
             "$RUNNER_TEMP/qt-deb-extracted"
           python tools/smoke_extracted_qtquick.py "$RUNNER_TEMP/qt-deb-extracted"
+          # Install the real .deb on THIS EPHEMERAL GITHUB RUNNER, not the
+          # owner's laptop. Qt itself stays in the reviewed, hash-pinned
+          # Python venv; the Debian package still defaults to GTK.
+          sudo apt-get install -y --no-install-recommends "$RUNNER_TEMP/qt-deb/goreecloud-index_0.1.0-1_all.deb"
+          dpkg -s goreecloud-index | grep -Fx 'Status: install ok installed'
+          dpkg -s goreecloud-index | grep -Fx 'Version: 0.1.0-1'
+          GOREECLOUD_INDEX_INSTALLED_QT_ISOLATED=1 python tools/smoke_installed_qt.py
           # No real desktop bus or handler: dbus-run-session owns a fresh,
           # private fake OpenFile portal. Synthetic rename/replacement proves
           # Qt timer -> GLib callback -> SCM_RIGHTS integration in 4 modes.
