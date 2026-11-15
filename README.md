@@ -42,6 +42,8 @@ mode buttons and results stay inside the window. [Synthetic minimum-viewport
 capture](docs/screenshots/linux-qtquick-minimum-390x300.png) shows the
 actual offscreen QML renderer, not physical-device or 400%-font acceptance.
 
+Hosted CI now also **installs the real unsigned Debian development candidate on a disposable Ubuntu 24.04 runner**, verifies Debian's installed package status, and launches the opt-in Qt 6.12.0 GUI through the **actual installed Python module** with a separately hash-pinned Qt interpreter, disposable SQLite fixture, offscreen renderer and auto-quit. This is stronger evidence than extracting a .deb, but still does not make the installed `/usr/bin/goreecloud-index` (system Python) automatically resolve Qt 6.12.0 or change the GTK desktop default. Actual Qt distribution dependencies, license obligations, release signing, installed Qt launcher convenience and rollback remain separate release gates.
+
 The rootless development Debian package now includes the exact first-party
 `qtquick_app.py`, palette service and QML source assets as an **opt-in**
 interface. It continues to launch GTK by default, and **does not install,
