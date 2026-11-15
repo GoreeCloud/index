@@ -73,7 +73,16 @@ class IndexBridge(QObject):
             app.styleHints().colorSchemeChanged.connect(self._update_dark)
         self._reload_roots()
         self.refresh("", "all")
-        self._index_snapshot = self._current_index_snapshot()
+        # PRAGMA data_version only detects OTHER connections' commits when
+        # compared on the SAME SQLite connection across calls. Keep this
+        # short-lived-reading, autocommit-only connection on the Qt GUI
+        # thread; do not hold a transaction or use it in scan workers.
+        self._change_connection = self._store.connect()
+        try:
+            self._index_snapshot = self._current_index_snapshot()
+        except BaseException:
+            self._change_connection.close()
+            raise
 
     @Property(int, constant=True)
     def startupWidth(self):
@@ -139,20 +148,20 @@ class IndexBridge(QObject):
         window is open. Indexed-item count also catches external clear.
         """
         roots = self._store.roots()
-        # A successful rescan updates each indexed row's generation even if
-        # one path is replaced by another and the total number of rows stays
-        # constant. Both aggregates come from a single read-only SQL query.
-        # This does not add a schema migration, watcher, or source-file read.
-        with self._store.connect() as conn:
-            row = conn.execute(
-                "SELECT COUNT(*) AS total, "
-                "COALESCE(MAX(generation), 0) AS newest_generation FROM items"
-            ).fetchone()
+        # On one persistent connection, SQLite's read-only data_version
+        # changes after ANY OTHER connection commits to this database,
+        # including a same-count item replacement with unchanged generation.
+        # This is O(1), unlike COUNT(*) + MAX(generation) over every item.
+        # roots() above also validates database path/inode on every poll;
+        # this monitor is not permission authority and keeps no transaction.
+        version = self._change_connection.execute("PRAGMA data_version").fetchone()
+        if version is None:
+            raise sqlite3.DatabaseError("Could not read local index revision")
         return (
             tuple((root.path, root.include_content, root.device, root.inode,
                    self._store.root_is_current(root),
                    tuple(self._store.exclusions(root.path))) for root in roots),
-            int(row["total"]), int(row["newest_generation"]),
+            int(version[0]),
         )
 
     @Slot()
