@@ -22,7 +22,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from .apps import Application, launch_application, list_applications
 from .palette import PaletteHit, collect_hits
 from .portal import request_open_fd
-from .scanner import scan_all, scan_root
+from .scanner import ScanCanceled, scan_all, scan_root
 from .storage import IndexStore
 from .windowing import palette_startup_size_for_monitors
 
@@ -68,6 +68,8 @@ class IndexBridge(QObject):
         self._portal_pump.setInterval(25)
         self._portal_pump.timeout.connect(self._pump_glib)
         self._scanDone.connect(self._finish_scan)
+        self._scan_cancel = threading.Event()
+        self._scan_thread: threading.Thread | None = None
         app = QGuiApplication.instance()
         if app is not None:
             app.styleHints().colorSchemeChanged.connect(self._update_dark)
@@ -356,19 +358,42 @@ class IndexBridge(QObject):
         self._scan_worker(None)
 
     def _scan_worker(self, root) -> None:
+        if self._scan_cancel.is_set():
+            return
         self._set_busy(True)
         self._set_status("Indexing selected local folders…")
 
         def run() -> None:
             try:
-                reports = [scan_root(self._store, root)] if root is not None else scan_all(self._store)
+                reports = ([scan_root(self._store, root,
+                                      cancel=self._scan_cancel.is_set)]
+                           if root is not None else
+                           scan_all(self._store, cancel=self._scan_cancel.is_set))
                 incomplete = any(r.errors or r.truncated for r in reports) or not reports
                 total = sum(r.indexed for r in reports)
                 result = f"Indexed {total} entries" + (" · incomplete scan" if incomplete else "")
+            except ScanCanceled:
+                result = "Index scan canceled; no partial results committed"
             except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
                 result = f"Scan failed: {exc}"
             self._scanDone.emit(result)
-        threading.Thread(target=run, name="gc-index-qt-scan", daemon=True).start()
+        worker = threading.Thread(target=run, name="gc-index-qt-scan", daemon=True)
+        self._scan_thread = worker
+        worker.start()
+
+    def stopScans(self, timeout_seconds: float = 5.0) -> bool:
+        """Signal shutdown and wait briefly for the rollback checkpoint.
+
+        This is only called after the UI event loop exits. We do not hold a
+        Qt GUI lock while scanning, and we do not join on the scan thread.
+        """
+        self._scan_cancel.set()
+        worker = self._scan_thread
+        if worker is not None and worker.is_alive():
+            if worker is threading.current_thread():
+                return False
+            worker.join(timeout_seconds)
+        return worker is None or not worker.is_alive()
 
     @Slot(str)
     def _finish_scan(self, message: str) -> None:
@@ -433,6 +458,12 @@ def launch_qtquick(argv: list[str] | None = None) -> int:
             raise RuntimeError("Qt Quick UI could not load")
         return app.exec()
     finally:
+        # Stop and join any running scan before losing the Qt bridge. A
+        # cancellation checkpoint rolls back the scan's open transaction.
+        # A hung filesystem can outlive the bounded wait; do not claim
+        # complete shutdown when join timed out.
+        if not bridge.stopScans():
+            print("Index scan shutdown still pending", file=sys.stderr)
         # QML's context bindings refer to the Python bridge. Tear down the
         # QML engine while the bridge is still alive, on both startup errors
         # and normal quit. Do not rely on Python frame-local cleanup order.

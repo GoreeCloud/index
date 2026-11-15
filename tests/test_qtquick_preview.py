@@ -340,6 +340,38 @@ print("CLEAN_QT_QUIT")
         self.assertNotIn("Cannot read property", completed.stderr)
         self.assertNotIn("TypeError:", completed.stderr)
 
+    def test_qt_shutdown_cancels_and_joins_scan_worker(self):
+        """An active async scan must observe shutdown and stop before bridge dies."""
+        import threading
+        import time
+        from goreecloud_index import qtquick_app
+        from goreecloud_index.scanner import ScanCanceled
+
+        entered = threading.Event()
+        exited = threading.Event()
+
+        def synthetic_scan(store, *, cancel=None):
+            entered.set()
+            for _ in range(300):
+                if cancel is not None and cancel():
+                    exited.set()
+                    raise ScanCanceled("Synthetic cancellation")
+                time.sleep(0.005)
+            self.fail("Scan did not observe explicit shutdown")
+
+        with patch.object(qtquick_app, "scan_all", side_effect=synthetic_scan):
+            self.bridge.rescan()
+            self.assertTrue(entered.wait(timeout=2.0))
+            self.assertTrue(self.bridge.busy)
+            self.assertTrue(self.bridge.stopScans(timeout_seconds=2.0))
+            self.assertTrue(exited.is_set())
+            self.assertFalse(self.bridge._scan_thread.is_alive())
+            self.assertTrue(self.fixture.is_file())
+            # A Qt bridge undergoing shutdown must not start another scan.
+            with patch.object(qtquick_app, "scan_all") as new_scan:
+                self.bridge.rescan()
+                new_scan.assert_not_called()
+
     def test_approved_qml_engine_loads_normal_window(self):
         from PySide6.QtCore import QUrl
         from PySide6.QtQml import QQmlApplicationEngine
