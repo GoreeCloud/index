@@ -90,6 +90,77 @@ class QtQuickPreviewTests(unittest.TestCase):
                     self.assertTrue(source.is_file(), "No source file is deleted")
                     self.assertIn("changed externally", bridge.status)
 
+    def test_same_count_external_rescan_invalidates_cached_private_hits(self):
+        """Replacing an indexed file without changing row count must refresh."""
+        for mutation in ("replace-path", "replace-text"):
+            with self.subTest(mutation=mutation):
+                with tempfile.TemporaryDirectory(prefix="gc-index-same-count-") as tmp:
+                    base = Path(tmp)
+                    root_dir = base / "selected"
+                    root_dir.mkdir()
+                    old = root_dir / "old-note.md"
+                    old.write_text("obsolete-private-token", encoding="utf-8")
+                    store = IndexStore(base / "private" / "index.sqlite3")
+                    root = store.add_root(root_dir, include_content=True)
+                    scan_root(store, root)
+                    from goreecloud_index.qtquick_app import IndexBridge
+                    bridge = IndexBridge(store, applications=[])
+                    bridge.refresh("obsolete-private-token", "files")
+                    self.assertEqual([h["kind"] for h in bridge.results], ["file"])
+                    before = store.count()
+                    if mutation == "replace-path":
+                        old.unlink()
+                        (root_dir / "new-note.md").write_text(
+                            "new-private-token", encoding="utf-8"
+                        )
+                    else:
+                        old.write_text("new-private-token", encoding="utf-8")
+                    scan_root(store, root)
+                    self.assertEqual(store.count(), before,
+                                     "Regression requires unchanged entry count")
+                    bridge.reconcileExternalChanges()
+                    self.assertEqual(bridge.results, [],
+                                     "Same-count rescans must invalidate stale hits")
+                    self.assertIn("changed externally", bridge.status)
+
+    def test_qml_timer_detects_same_count_external_rescan(self):
+        """Real QML timer refreshes a same-count replacement without typing."""
+        from PySide6.QtCore import QObject, QEventLoop, QTimer, QUrl
+        from PySide6.QtQml import QQmlApplicationEngine
+        from goreecloud_index.qtquick_app import IndexBridge
+
+        original = self.root / "old-note.md"
+        original.write_text("obsolete-private-token", encoding="utf-8")
+        root = self.store.add_root(self.root, include_content=True)
+        scan_root(self.store, root)
+        bridge = IndexBridge(self.store, applications=[])
+        engine = QQmlApplicationEngine()
+        engine.rootContext().setContextProperty("indexBackend", bridge)
+        qml = (Path(__file__).resolve().parents[1] /
+               "src/goreecloud_index/qtquick/Main.qml")
+        engine.load(QUrl.fromLocalFile(str(qml)))
+        self.assertTrue(engine.rootObjects())
+        window = engine.rootObjects()[0]
+        search = window.findChild(QObject, "indexSearchField")
+        self.assertIsNotNone(search)
+        search.setProperty("text", "obsolete-private-token")
+        self.app.processEvents()
+        self.assertEqual(len(bridge.results), 1)
+        before = self.store.count()
+
+        original.unlink()
+        replacement = self.root / "new-note.md"
+        replacement.write_text("new-private-token", encoding="utf-8")
+        scan_root(self.store, root)
+        self.assertEqual(self.store.count(), before)
+        loop = QEventLoop()
+        QTimer.singleShot(1950, loop.quit)
+        loop.exec()
+        self.assertEqual(bridge.results, [])
+        self.assertTrue(replacement.is_file())
+        self.assertIn("changed externally", bridge.status)
+        window.close()
+
     def test_failed_live_consent_read_hides_cached_local_file_results(self):
         """A locked or unusable local index cannot justify stale private hits."""
         import sqlite3
