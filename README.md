@@ -86,15 +86,17 @@ An isolated QAccessible test uses only a disposable calculator-copy fixture;
 no app launches or file opens are performed by the test. Real Orca/AT-SPI
 and interaction acceptance remain pending.
 
-The opt-in Qt UI also checks the newest existing SQLite scan generation,
-so a rescan that replaces or updates a file **without changing the number
-of indexed rows** still invalidates stale visible search results. This is
-read-only metadata validation; it does not migrate the schema, read original
-file contents, or promise instantaneous updates. Very large indexes may
-require future query-performance optimization.
+The opt-in Qt UI detects database changes through SQLite's
+`PRAGMA data_version` on a single persistent, transaction-free GUI-thread
+connection. Committed external writes—including a same-count reindex **or
+an edit preserving the original scan generation**—invalidate cached search
+results. This replaces a full-index COUNT/MAX aggregate on each timer tick
+with a cheap revision check. It neither migrates the schema nor reads
+source-file contents. Root/exclusion checks remain independently verified;
+large-index responsiveness still needs physical-device benchmarking.
 
 The opt-in Qt UI also periodically rechecks selected-root identity, content
-consent, subfolder exclusions and indexed entry count while its window is
+consent, subfolder exclusions and local SQLite changes while its window is
 visible. If another Index CLI/process revokes or downgrades access, deletes
 index entries, or changes exclusions, cached file-result metadata is reloaded
 without waiting for a new keystroke. An unavailable local permission check
