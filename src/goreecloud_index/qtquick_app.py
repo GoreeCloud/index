@@ -139,11 +139,20 @@ class IndexBridge(QObject):
         window is open. Indexed-item count also catches external clear.
         """
         roots = self._store.roots()
+        # A successful rescan updates each indexed row's generation even if
+        # one path is replaced by another and the total number of rows stays
+        # constant. Both aggregates come from a single read-only SQL query.
+        # This does not add a schema migration, watcher, or source-file read.
+        with self._store.connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS total, "
+                "COALESCE(MAX(generation), 0) AS newest_generation FROM items"
+            ).fetchone()
         return (
             tuple((root.path, root.include_content, root.device, root.inode,
                    self._store.root_is_current(root),
                    tuple(self._store.exclusions(root.path))) for root in roots),
-            self._store.count(),
+            int(row["total"]), int(row["newest_generation"]),
         )
 
     @Slot()
