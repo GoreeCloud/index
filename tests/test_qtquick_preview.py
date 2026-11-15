@@ -714,6 +714,76 @@ print("CLEAN_QT_QUIT")
             self.bridge.activate(0)
             opener.assert_not_called()
 
+    def test_qt_reset_appearance_matches_gtk_default_and_failure_is_safe(self):
+        """Reset must delete saved choice; a failed write preserves UI state."""
+        import sqlite3
+        self.bridge.setAppearance("dark")
+        self.assertEqual(self.bridge.appearance, "dark")
+        with self.store.connect() as conn:
+            self.assertEqual(conn.execute(
+                "SELECT mode FROM appearance_preference WHERE singleton=1"
+            ).fetchone()["mode"], "dark")
+        with patch.object(
+            self.store, "reset_appearance_mode",
+            side_effect=sqlite3.OperationalError("synthetic unavailable"),
+        ):
+            self.bridge.resetAppearance()
+        self.assertEqual(self.bridge.appearance, "dark")
+        self.assertEqual(self.store.get_appearance_mode(), "dark")
+        self.assertIn("Could not reset", self.bridge.status)
+
+        self.bridge.resetAppearance()
+        self.assertEqual(self.bridge.appearance, "light")
+        self.assertFalse(self.bridge.dark)
+        self.assertEqual(self.store.get_appearance_mode(), "light")
+        with self.store.connect() as conn:
+            self.assertIsNone(conn.execute(
+                "SELECT mode FROM appearance_preference WHERE singleton=1"
+            ).fetchone())
+        self.assertIn("reset to default Light", self.bridge.status)
+
+    def test_qml_reset_appearance_is_an_accessible_control_at_minimum_size(self):
+        """Use the real Qt accessibility Press action on a visible QML button."""
+        from PySide6.QtCore import QObject, QEventLoop, QMetaObject, QTimer, QUrl
+        from PySide6.QtGui import QAccessible
+        from PySide6.QtQml import QQmlApplicationEngine
+        from goreecloud_index.qtquick_app import IndexBridge
+
+        with patch("goreecloud_index.qtquick_app._qt_screen_sizes",
+                   return_value=[(390, 300)]):
+            bridge = IndexBridge(self.store, applications=[])
+        engine = QQmlApplicationEngine()
+        engine.rootContext().setContextProperty("indexBackend", bridge)
+        qml = (Path(__file__).resolve().parents[1] /
+               "src/goreecloud_index/qtquick/Main.qml")
+        engine.load(QUrl.fromLocalFile(str(qml)))
+        self.assertTrue(engine.rootObjects())
+        window = engine.rootObjects()[0]
+        self.assertEqual((window.width(), window.height()), (390, 300))
+        dialog = window.findChild(QObject, "indexThemeDialog")
+        self.assertIsNotNone(dialog)
+        bridge.setAppearance("dark")
+        self.assertTrue(QMetaObject.invokeMethod(dialog, "open"))
+        loop = QEventLoop()
+        QTimer.singleShot(170, loop.quit)
+        loop.exec()
+        button = window.findChild(QObject, "indexResetAppearanceButton")
+        self.assertIsNotNone(button)
+        iface = QAccessible.queryAccessibleInterface(button)
+        self.assertEqual(iface.text(QAccessible.Text.Name),
+                         "Reset appearance to default Light")
+        action = iface.actionInterface()
+        self.assertIn("Press", action.actionNames())
+        action.doAction("Press")
+        self.app.processEvents()
+        self.assertEqual(bridge.appearance, "light")
+        with self.store.connect() as conn:
+            self.assertIsNone(conn.execute(
+                "SELECT mode FROM appearance_preference WHERE singleton=1"
+            ).fetchone())
+        self.assertLessEqual(dialog.property("height"), window.height())
+        window.close()
+
     def test_local_appearance_and_clipboard(self):
         self.bridge.setAppearance("dark")
         self.assertEqual(self.store.get_appearance_mode(), "dark")

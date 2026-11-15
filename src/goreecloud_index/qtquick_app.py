@@ -420,6 +420,19 @@ class IndexBridge(QObject):
         self.darkChanged.emit()
         self._set_status("Appearance preference saved locally")
 
+    @Slot()
+    def resetAppearance(self) -> None:
+        """Match GTK's Reset to Light without altering the desktop theme."""
+        try:
+            self._store.reset_appearance_mode()
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+            self._set_status(f"Could not reset appearance: {exc}")
+            return
+        self._appearance = "light"
+        self.appearanceChanged.emit()
+        self.darkChanged.emit()
+        self._set_status("Appearance reset to default Light locally")
+
 
 APPROVED_QT_RUNTIME = "6.12.0"
 
