@@ -107,6 +107,15 @@ poll**, not instantaneous cross-process notification or proof that already
 opened third-party file descriptors can be revoked; file activation retains
 its independent inode-pinned authorization check.
 
+The opt-in Qt rescan worker now cooperatively checks for app shutdown between
+bounded directory/file entries and before final index reconciliation. A
+cancel-request raises a dedicated scan exception inside the SQLite write
+transaction so all partial indexed changes roll back; original files remain
+untouched. During normal GUI quit, the bridge signals cancellation and waits
+up to five seconds before its QML engine is destroyed. A filesystem stall may
+outlive that bounded wait, so cancellation is **best effort**, not a process
+kill guarantee. Existing CLI/GTK scans retain their previous behavior.
+
 The Qt preview's portal bridge is also covered by a strictly isolated,
 synthetic D-Bus `OpenFile` regression for accepted, canceled, rejected and
 backend-error outcomes with inode-preserving FD handoff after same-path
