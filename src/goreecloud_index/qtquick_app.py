@@ -414,11 +414,17 @@ def launch_qtquick(argv: list[str] | None = None) -> int:
     app.setApplicationName("GoreeCloud Index — Qt Quick Preview")
     bridge = IndexBridge()
     engine = QQmlApplicationEngine()
-    engine.rootContext().setContextProperty("indexBackend", bridge)
-    qml = Path(str(files("goreecloud_index").joinpath("qtquick/Main.qml")))
-    if not qml.is_file():
-        raise RuntimeError("Installed Qt Quick UI resources are unavailable")
-    engine.load(QUrl.fromLocalFile(str(qml)))
-    if not engine.rootObjects():
-        raise RuntimeError("Qt Quick UI could not load")
-    return app.exec()
+    try:
+        engine.rootContext().setContextProperty("indexBackend", bridge)
+        qml = Path(str(files("goreecloud_index").joinpath("qtquick/Main.qml")))
+        if not qml.is_file():
+            raise RuntimeError("Installed Qt Quick UI resources are unavailable")
+        engine.load(QUrl.fromLocalFile(str(qml)))
+        if not engine.rootObjects():
+            raise RuntimeError("Qt Quick UI could not load")
+        return app.exec()
+    finally:
+        # QML's context bindings refer to the Python bridge. Tear down the
+        # QML engine while the bridge is still alive, on both startup errors
+        # and normal quit. Do not rely on Python frame-local cleanup order.
+        del engine

@@ -223,6 +223,60 @@ class QtQuickPreviewTests(unittest.TestCase):
         with patch.object(qtquick_app, "qVersion", return_value="6.12.0"):
             qtquick_app._require_approved_qt_runtime()
 
+    def test_opt_in_launcher_closes_qml_before_releasing_backend(self):
+        """A normal Qt quit must not evaluate live QML against null backend."""
+        import subprocess
+        import sys
+
+        if os.environ.get("QT_QPA_PLATFORM") != "offscreen":
+            self.skipTest("Qt launch lifecycle smoke requires isolated offscreen QPA")
+
+        # Child process owns its own QGuiApplication and disposable database.
+        # Patch only the constructor to close after startup; never enumerate
+        # or launch real installed apps, open files or modify desktop settings.
+        script = """
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
+from PySide6.QtCore import QTimer
+from goreecloud_index import qtquick_app as qt
+from goreecloud_index.storage import IndexStore
+
+NativeApplication = qt.QGuiApplication
+NativeBridge = qt.IndexBridge
+class AutoQuit(NativeApplication):
+    def __init__(self, args):
+        super().__init__(args)
+        QTimer.singleShot(200, self.quit)
+
+with TemporaryDirectory(prefix="gc-index-clean-qml-quit-") as tmp:
+    class SyntheticBridge(NativeBridge):
+        def __init__(self):
+            super().__init__(
+                IndexStore(Path(tmp) / "private" / "index.sqlite3"),
+                applications=[],
+            )
+    with patch.object(qt, "QGuiApplication", AutoQuit), \\
+         patch.object(qt, "IndexBridge", SyntheticBridge):
+        assert qt.launch_qtquick([]) == 0
+
+print("CLEAN_QT_QUIT")
+"""
+        env = dict(os.environ)
+        env["QT_QPA_PLATFORM"] = "offscreen"
+        env["QT_QUICK_BACKEND"] = "software"
+        env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
+        with tempfile.TemporaryDirectory(prefix="gc-index-qml-quit-data-") as tmp:
+            env["XDG_DATA_HOME"] = tmp
+            completed = subprocess.run(
+                [sys.executable, "-c", script], env=env,
+                capture_output=True, text=True, timeout=15,
+            )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("CLEAN_QT_QUIT", completed.stdout)
+        self.assertNotIn("Cannot read property", completed.stderr)
+        self.assertNotIn("TypeError:", completed.stderr)
+
     def test_approved_qml_engine_loads_normal_window(self):
         from PySide6.QtCore import QUrl
         from PySide6.QtQml import QQmlApplicationEngine
