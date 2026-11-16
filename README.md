@@ -36,6 +36,16 @@ logical-monitor sizing contract as GTK: a preferred 660×488 footprint, a
 390×300 minimum, and approximately 10% margins when small/mixed monitors
 require it. [Synthetic 640×360 monitor geometry test](docs/screenshots/linux-qtquick-compact-synthetic.png)
 shows a 576×324 Qt window, not physical small-display hardware acceptance.
+Hosted CI also runs the actual Qt 6.12.0 QML window against a **private
+Weston headless Wayland compositor** configured as a 640×360 logical display.
+The unprivileged Ubuntu 24.04-only test checks normal 576×324 startup,
+QAccessible search naming, synthetic calculator search and 390×300 layout
+containment. Its shell refuses non-hosted environments, isolates XDG
+HOME/data/config/runtime, and never connects to the founder's display,
+personal Index, real portal, or installed apps. This qualifies compositor
+startup in CI, **not** GNOME/KDE, Orca, real physical small monitors, font
+scaling, or a signed Stable release.
+
 The Qt preview also now reflows its header and four search modes at the
 **390×300 minimum**: the folders and appearance controls, local search,
 mode buttons and results stay inside the window. [Synthetic minimum-viewport
