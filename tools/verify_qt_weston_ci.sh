@@ -21,7 +21,20 @@ if [[ -z "$root" || "$root" != "$RUNNER_TEMP"/gc-index-qt-weston-* ]]; then
   echo "Unsafe hosted temporary directory" >&2
   exit 2
 fi
-trap 'rm -rf -- "$root"' EXIT
+cleanup() {
+  result=$?
+  trap - EXIT
+  # If a desktop portal somehow mounted its FUSE document directory, NEVER
+  # traverse that mount with rm -rf. Fail this ephemeral job and let the
+  # GitHub-hosted VM be destroyed by the runner.
+  if [[ -e "$root/runtime/doc" || -L "$root/runtime/doc" ]]; then
+    echo "Unexpected document portal path: refusing unsafe cleanup" >&2
+    exit 4
+  fi
+  rm -rf -- "$root"
+  exit "$result"
+}
+trap cleanup EXIT
 mkdir -p "$root"/{home,config,data,cache,runtime}
 chmod 0700 "$root/home" "$root/runtime"
 export HOME="$root/home"
@@ -39,9 +52,17 @@ export GOREECLOUD_INDEX_PRIVATE_QT_WESTON=1
 export PYTHONPATH=src
 unset DISPLAY WAYLAND_DISPLAY XAUTHORITY WAYLAND_SOCKET
 
-# A private bus plus private socket avoid the live user session. Never
-# launch real apps, portals, or use a stored personal Index database.
-dbus-run-session -- bash -euo pipefail <<'PRIVATE_QT_WESTON'
+# Explicitly NO standard D-Bus activation directories. The default
+# dbus-run-session config can auto-start xdg-desktop-portal, which mounts
+# runtime/doc and leaks a document FUSE mount into our temporary root.
+bus_config="$(python tools/qt_private_bus.py "$root")"
+dbus-run-session --config-file="$bus_config" -- bash -euo pipefail <<'PRIVATE_QT_WESTON'
+  activatable="$(dbus-send --session --print-reply     --dest=org.freedesktop.DBus /org/freedesktop/DBus     org.freedesktop.DBus.ListActivatableNames)"
+  if grep -q 'org.freedesktop.portal.' <<<"$activatable"; then
+    echo "Private Qt bus unexpectedly permits desktop portal activation" >&2
+    exit 4
+  fi
+  echo "QT_PRIVATE_NO_PORTAL_ACTIVATION_PASS"
   socket=gc-index-qt-ci-wl
   weston --no-config --backend=headless-backend.so --renderer=pixman \
     --width=640 --height=360 --idle-time=0 \
