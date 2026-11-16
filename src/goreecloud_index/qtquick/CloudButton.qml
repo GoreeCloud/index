@@ -7,7 +7,7 @@ Button {
     id: control
     property var uiTokens: null
 
-    implicitHeight: 35
+    implicitHeight: Math.max(35, (control.uiTokens ? control.uiTokens.textScale : 1) * 20 + 15)
     implicitWidth: Math.max(76, label.implicitWidth + 24)
     background: Rectangle {
         radius: 11
@@ -24,7 +24,7 @@ Button {
         id: label
         text: control.text
         textFormat: Text.PlainText
-        font.pixelSize: 11
+        font.pixelSize: Math.round(11 * (control.uiTokens ? control.uiTokens.textScale : 1))
         font.bold: control.activeFocus
         color: control.uiTokens ? control.uiTokens.foreground : "#1B2030"
         verticalAlignment: Text.AlignVCenter

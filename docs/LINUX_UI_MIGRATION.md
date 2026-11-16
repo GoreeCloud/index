@@ -52,6 +52,22 @@ The opt-in Qt app search uses a narrowly scoped **trusted system-Python Gio help
 
 The extracted-development-Debian Qt smoke previously returned success while its Python teardown order emitted **16 QML null-backend TypeErrors** after an otherwise valid synthetic search. The smoke now destroys the QQmlApplicationEngine before the Python Index bridge leaves scope, matching the production Qt launcher lifetime contract. An independent Qt-only subprocess regression builds and extracts the real unsigned candidate, drives the packaged QML under isolated offscreen Qt 6.12.0, checks the pass marker and **rejects any null-context TypeError output**. This is a test-harness integrity fix; it does not change GUI behavior, distro Qt runtime dependencies or release readiness.
 
+A separate Qt Quick text-enlargement improvement now derives a capped 1–4x
+relative UI text scale from the application's Qt font point size rather
+than fixing all content text at constant pixels. It scales user-facing text
+and critical control heights while leaving purely decorative glyphs alone;
+the normal palette keeps the original metrics. A bounded vertical
+Flickable gives search, result and status controls access to more layout
+space at the 390×300 minimum. Synthetic Qt 6.12 tests verify a 9pt baseline
+remains 17px in the search field and that 36pt (4x) produces a 68px search
+field, preserves accessible search naming, and exposes the full page through
+scrolling; the 400%-text appearance dialog also bounds its height, scrolls
+its oversized preference controls and permits accessible Reset to Light.
+This **does not** prove GNOME/KDE accessibility settings are
+propagated to Qt, Orca/AT-SPI screen-reader behavior, 400% full-font
+interaction on physical equipment, actual focus/hotplug or Stable release.
+It supplements, rather than replaces, the 400% *display-scale* Weston CI.
+
 **Still migration-required:** Qt Quick is not yet the installed, default or fully qualified primary Linux GUI. Continue GoreeShield privacy, Wardveil security, and existing GTK regression work until source/feature/portal/packaging parity and rollback are accepted. Keep `docs/linux-ui-framework-status.json` accurately noncompliant.
 
 ## Compact permission-confirmation lifecycle

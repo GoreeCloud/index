@@ -167,6 +167,9 @@ jobs:
           QT_QUICK_BACKEND: software
         run: |
           python -m unittest discover -s tests -p 'test_qtquick_preview.py' -v
+          # 9pt normal / 36pt four-times text: native QML font metrics,
+          # named accessible controls and scrollable compact window.
+          python -m unittest discover -s tests -p 'test_qt_text_scale.py' -v
           python -m unittest discover -s tests -p 'test_palette.py' -v
           python -m unittest discover -s tests -p 'test_portal_fd_lifetime.py' -v
           python -m unittest discover -s tests -p 'test_qt_portal_fd_lifetime.py' -v

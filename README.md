@@ -57,6 +57,18 @@ This is simulated compositor **display scaling**, **not** 400% enlarged
 text/fonts, real GNOME/KDE, Orca, physical mixed-DPI hardware or a signed
 Stable release.
 
+The Qt preview now responds to the Qt application's accessible font point
+size rather than ignoring a 400% text preference via hard-coded pixel text.
+The measured Qt 9pt → 36pt font change increases the search field from
+17px to 68px and makes compact 390×300 content vertically scrollable
+without hiding the search, results, status or appearance controls.
+The local appearance dialog itself also has a bounded, scrollable
+content region at 400% text so Reset to Light remains reachable.
+This preserves native result and keyboard semantics at normal text size.
+It is **automated text-enlargement evidence only**: actual GNOME/KDE
+accessibility preference propagation, 400% screen-reader interaction,
+Orca/AT-SPI and real-device acceptance remain release blockers.
+
 The Qt preview also now reflows its header and four search modes at the
 **390×300 minimum**: the folders and appearance controls, local search,
 mode buttons and results stay inside the window. [Synthetic minimum-viewport

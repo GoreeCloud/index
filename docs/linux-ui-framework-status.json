@@ -33,6 +33,7 @@
     "tests/test_qt_portal_smoke_guard.py",
     "tests/test_qt_portal_fd_lifetime.py",
     "tests/test_qt_extracted_clean_shutdown.py",
+    "tests/test_qt_text_scale.py",
     "tools/smoke_extracted_qtquick.py",
     "tools/build_deb.py",
     "tools/package_manifest.py",
