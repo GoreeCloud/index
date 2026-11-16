@@ -80,6 +80,10 @@ file-portal backend, real desktop, packaging and rollback checks. The QML
 preview is **not the default primary Linux GUI and not framework compliant
 as a released application**. Qt Python Essentials and shiboken6 have separate
 LGPL/GPL/commercial obligations; no Qt binaries are bundled in this repo.
+The exact 6.12.0 wheel metadata now has a read-only CI drift gate; see
+[Qt runtime and licensing release blockers](docs/QT_RUNTIME_RELEASE_LICENSE_GATE.md).
+Passing this metadata check **does not** constitute license compliance or
+approval to distribute a Qt-dependent primary Linux package.
 [Current migration gates](docs/LINUX_UI_MIGRATION.md). Synthetic [100% Wayland](docs/screenshots/linux-qtquick-wayland-100.png) and [200% Wayland](docs/screenshots/linux-qtquick-wayland-200.png) captures are preliminary native-runtime visual evidence, not real user data or Stable/design acceptance.
 
 An isolated offscreen QML keyboard regression checks native Up/Down navigation,
