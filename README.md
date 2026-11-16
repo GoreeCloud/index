@@ -49,7 +49,7 @@ The rootless development Debian package now includes the exact first-party
 interface. It continues to launch GTK by default, and **does not install,
 bundle or declare a version-qualified Qt Quick runtime**. To evaluate Qt from
 that package, the tester must separately provision a licensed and compatible
-Qt 6.12.0/PySide6 Essentials environment and the relevant system Gio bindings.
+Qt 6.12.0/PySide6 Essentials environment. Native QtDBus handles the file portal; however, the existing installed-app discovery and app launching still use system Gio bindings. That remaining dependency is a separate migration gate.
 CI verifies the extracted package Qt view using a synthetic offscreen fixture.
 This is package-payload and source parity, not production Qt dependency
 resolution, a signed release, installed desktop launcher migration or Stable.
@@ -123,11 +123,20 @@ up to five seconds before its QML engine is destroyed. A filesystem stall may
 outlive that bounded wait, so cancellation is **best effort**, not a process
 kill guarantee. Existing CLI/GTK scans retain their previous behavior.
 
-The Qt preview's portal bridge is also covered by a strictly isolated,
-synthetic D-Bus `OpenFile` regression for accepted, canceled, rejected and
-backend-error outcomes with inode-preserving FD handoff after same-path
-replacement. This does **not** test the actual desktop portal or any external
-application handler; no pathname-based opener fallback is authorized.
+The opt-in **Qt Quick** file-open handoff now uses **Qt 6.12 QtDBus**, not
+PyGObject/GLib. It passes an already-authorized inode-pinned FD via
+`QDBusUnixFileDescriptor`, consumes the source FD on all paths and tracks
+asynchronous `OpenFile`/portal response with finite timeout and best-effort
+Request.Close. This removes a real failure mode for isolated hash-pinned Qt
+virtual environments that have no `gi` module. Existing legacy GTK portal
+support still uses the system Gio bindings. Six private-bus fake portal
+scenarios verify accepted, canceled, rejected, error, invalid-handle and
+alternate-handle outcomes. No real external handler or OS portal was invoked.
+
+The portal tests operate only on a private fake D-Bus service, not on a real
+GNOME/KDE portal or a third-party handler. There is no pathname fallback.
+Qt's installed-app discovery and launching still depend on Gio, so the
+Qt-only virtualenv is not yet a fully independent Linux desktop launcher.
 
 ## Implemented today
 

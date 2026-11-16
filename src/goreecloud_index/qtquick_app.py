@@ -14,14 +14,14 @@ import threading
 from importlib.resources import files
 from pathlib import Path
 
-from PySide6.QtCore import Property, QObject, QTimer, QUrl, Qt, Signal, Slot, qVersion
+from PySide6.QtCore import Property, QObject, QUrl, Qt, Signal, Slot, qVersion
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 
 from .apps import Application, launch_application, list_applications
 from .palette import PaletteHit, collect_hits
-from .portal import request_open_fd
+from .qt_portal import cancel_pending_qt_portals, request_open_qt_fd
 from .scanner import ScanCanceled, scan_all, scan_root
 from .storage import IndexStore
 from .windowing import palette_startup_size_for_monitors
@@ -64,9 +64,6 @@ class IndexBridge(QObject):
         self._query = ""
         self._mode = "all"
         self._portal_running = False
-        self._portal_pump = QTimer(self)
-        self._portal_pump.setInterval(25)
-        self._portal_pump.timeout.connect(self._pump_glib)
         self._scanDone.connect(self._finish_scan)
         self._scan_cancel = threading.Event()
         self._scan_thread: threading.Thread | None = None
@@ -223,11 +220,9 @@ class IndexBridge(QObject):
                 fd = self._store.open_authorized_result_fd(hit["value"])
                 self._portal_running = True
                 self._set_status("Waiting for desktop portal response…")
-                self._portal_pump.start()
                 try:
-                    request_open_fd(fd, self._portal_finished)
+                    request_open_qt_fd(fd, self._portal_finished)
                 except BaseException:
-                    self._portal_pump.stop()
                     self._portal_running = False
                     raise
             elif hit["kind"] == "copy":
@@ -243,22 +238,7 @@ class IndexBridge(QObject):
         except (OSError, ValueError, RuntimeError, ImportError, sqlite3.Error) as exc:
             self._set_status(f"Action blocked: {exc}")
 
-    def _pump_glib(self) -> None:
-        """Drive only pending GLib async portal callbacks from Qt's event loop."""
-        try:
-            from gi.repository import GLib
-            context = GLib.MainContext.default()
-            for _ in range(8):
-                if not context.pending():
-                    break
-                context.iteration(False)
-        except (ImportError, RuntimeError) as exc:
-            self._portal_pump.stop()
-            self._portal_running = False
-            self._set_status(f"Desktop portal response unavailable: {exc}")
-
     def _portal_finished(self, succeeded: bool, message: str) -> None:
-        self._portal_pump.stop()
         self._portal_running = False
         # A portal success does not attest that an external app opened content.
         self._set_status(message)
@@ -471,6 +451,9 @@ def launch_qtquick(argv: list[str] | None = None) -> int:
             raise RuntimeError("Qt Quick UI could not load")
         return app.exec()
     finally:
+        # Portal dialogs must not outlive this GUI request. This is a
+        # best-effort, nonblocking Request.Close, never a pathname fallback.
+        cancel_pending_qt_portals()
         # Stop and join any running scan before losing the Qt bridge. A
         # cancellation checkpoint rolls back the scan's open transaction.
         # A hung filesystem can outlive the bounded wait; do not claim
