@@ -18,6 +18,39 @@ RUNNER = ROOT / "tools/verify_qt_weston_ci.sh"
 
 
 class QtWestonGuardTests(unittest.TestCase):
+    def test_noactivation_bus_isolated_from_host_service_directories(self):
+        """A new private bus must not advertise real desktop portals."""
+        import shutil
+        from tools.qt_private_bus import write_noactivation_bus_config
+
+        if not shutil.which("dbus-run-session") or not shutil.which("dbus-send"):
+            self.skipTest("Local D-Bus command line tools unavailable")
+        with tempfile.TemporaryDirectory(prefix="gc-qt-private-bus-") as td:
+            root = Path(td)
+            (root / "runtime").mkdir()
+            config = write_noactivation_bus_config(root)
+            source = config.read_text(encoding="utf-8")
+            self.assertIn("<auth>EXTERNAL</auth>", source)
+            self.assertIn("<servicedir>", source)
+            self.assertNotIn("<standard_session_servicedirs", source)
+            self.assertNotIn("<includedir>", source)
+            self.assertNotIn("<include ", source)
+            self.assertEqual(config.stat().st_mode & 0o777, 0o600)
+            result = subprocess.run(
+                [
+                    "dbus-run-session", "--config-file=" + str(config), "--",
+                    "dbus-send", "--session", "--print-reply",
+                    "--dest=org.freedesktop.DBus", "/org/freedesktop/DBus",
+                    "org.freedesktop.DBus.ListActivatableNames",
+                ],
+                capture_output=True, text=True, timeout=6, check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("org.freedesktop.portal.Desktop", result.stdout)
+        self.assertNotIn("org.freedesktop.portal.Documents", result.stdout)
+        self.assertNotIn("org.freedesktop.impl.portal.PermissionStore",
+                         result.stdout)
+
     def test_shell_refuses_untrusted_runner_before_starting_weston(self):
         env = dict(os.environ)
         env.pop("GITHUB_ACTIONS", None)

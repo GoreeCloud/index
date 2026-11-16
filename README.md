@@ -42,9 +42,14 @@ The unprivileged Ubuntu 24.04-only test checks normal 576×324 startup,
 QAccessible search naming, synthetic calculator search and 390×300 layout
 containment. Its shell refuses non-hosted environments, isolates XDG
 HOME/data/config/runtime, and never connects to the founder's display,
-personal Index, real portal, or installed apps. This qualifies compositor
-startup in CI, **not** GNOME/KDE, Orca, real physical small monitors, font
-scaling, or a signed Stable release.
+personal Index, real portal, or installed apps. Its D-Bus config contains
+**no standard service-activation directories**: an initial main CI run
+rendered the Qt window successfully but allowed an xdg-document-portal
+FUSE mount to appear and failed during temporary directory cleanup. The
+repair checks the bus's activatable names, prohibits portal autoactivation,
+and refuses to traverse unexpected mount paths at cleanup. This qualifies
+compositor startup in CI, **not** GNOME/KDE, Orca, real physical small
+monitors, font scaling, or a signed Stable release.
 
 The Qt preview also now reflows its header and four search modes at the
 **390×300 minimum**: the folders and appearance controls, local search,
