@@ -66,8 +66,12 @@ bundle or declare a version-qualified Qt Quick runtime**. To evaluate Qt from
 that package, the tester must separately provision a licensed and compatible
 Qt 6.12.0/PySide6 Essentials environment. Native QtDBus handles the file portal. The Qt application registry uses a first-party **isolated system-Python Gio helper** so Qt's virtualenv does not need to import `gi`; this still requires the distro's existing `python3-gi` package and does not install Qt runtimes.
 CI verifies the extracted package Qt view using a synthetic offscreen fixture.
-This is package-payload and source parity, not production Qt dependency
-resolution, a signed release, installed desktop launcher migration or Stable.
+The extracted Qt test now explicitly destroys its QML engine before the
+Python bridge, and a subprocess regression **rejects QML null-context
+TypeErrors on shutdown**. This closes a reproduced false-green smoke that
+previously printed 16 QML errors after reporting success. It remains only
+package-payload and source parity, not production Qt dependency resolution,
+a signed release, installed desktop launcher migration or Stable.
 
 The temporary data directory above is deliberately user-managed; remove it
 only when certain it contains no information to retain. The `gui` entry point
