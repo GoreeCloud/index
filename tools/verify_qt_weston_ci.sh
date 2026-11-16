@@ -64,26 +64,51 @@ dbus-run-session --config-file="$bus_config" -- bash -euo pipefail <<'PRIVATE_QT
   fi
   echo "QT_PRIVATE_NO_PORTAL_ACTIVATION_PASS"
   socket=gc-index-qt-ci-wl
-  weston --no-config --backend=headless-backend.so --renderer=pixman \
-    --width=640 --height=360 --idle-time=0 \
-    --socket="$socket" --log="$XDG_RUNTIME_DIR/weston.log" \
-    >"$XDG_RUNTIME_DIR/weston.stdout" 2>&1 &
-  compositor=$!
+  compositor=""
   shutdown() {
-    kill "$compositor" 2>/dev/null || :
-    wait "$compositor" 2>/dev/null || :
+    if [[ -n "$compositor" ]]; then
+      kill "$compositor" 2>/dev/null || :
+      wait "$compositor" 2>/dev/null || :
+      compositor=""
+    fi
   }
   trap shutdown EXIT
-  for i in $(seq 1 50); do
-    if [[ -S "$XDG_RUNTIME_DIR/$socket" ]]; then break; fi
-    if ! kill -0 "$compositor" 2>/dev/null; then break; fi
-    sleep 0.2
+  # Test two *distinct* Wayland screen scales under this one private bus.
+  # 3840x2160 physical at Qt 400% maps to 960x540 logical; Qt's preferred
+  # floating window fits, unlike scaling up a tiny 640x360 pixel display.
+  for case in compact hidpi4; do
+    if [[ "$case" == compact ]]; then
+      physical_width=640
+      physical_height=360
+      unset QT_SCALE_FACTOR
+    else
+      physical_width=3840
+      physical_height=2160
+      export QT_SCALE_FACTOR=4
+    fi
+    export GOREECLOUD_INDEX_QT_WESTON_CASE="$case"
+    weston --no-config --backend=headless-backend.so --renderer=pixman \
+      --width="$physical_width" --height="$physical_height" --idle-time=0 \
+      --socket="$socket" --log="$XDG_RUNTIME_DIR/weston-$case.log" \
+      >"$XDG_RUNTIME_DIR/weston-$case.stdout" 2>&1 &
+    compositor=$!
+    for i in $(seq 1 50); do
+      if [[ -S "$XDG_RUNTIME_DIR/$socket" ]]; then break; fi
+      if ! kill -0 "$compositor" 2>/dev/null; then break; fi
+      sleep 0.2
+    done
+    if [[ ! -S "$XDG_RUNTIME_DIR/$socket" ]]; then
+      echo "Private Qt Weston socket did not appear for $case" >&2
+      tail -60 "$XDG_RUNTIME_DIR/weston-$case.log" >&2 || :
+      exit 3
+    fi
+    export WAYLAND_DISPLAY="$socket"
+    python tools/smoke_qt_weston.py
+    shutdown
+    # The compositor must remove its socket before starting another one.
+    if [[ -S "$XDG_RUNTIME_DIR/$socket" ]]; then
+      echo "Weston leaked the prior Wayland socket" >&2
+      exit 4
+    fi
   done
-  if [[ ! -S "$XDG_RUNTIME_DIR/$socket" ]]; then
-    echo "Private Qt Weston socket did not appear" >&2
-    tail -60 "$XDG_RUNTIME_DIR/weston.log" >&2 || :
-    exit 3
-  fi
-  export WAYLAND_DISPLAY="$socket"
-  python tools/smoke_qt_weston.py
 PRIVATE_QT_WESTON
