@@ -51,6 +51,24 @@ class QtWestonGuardTests(unittest.TestCase):
         self.assertNotIn("org.freedesktop.impl.portal.PermissionStore",
                          result.stdout)
 
+    def test_hidpi_requires_exact_400_percent_scale_before_loading_qt(self):
+        """Reject missing/wrong high-DPI scaling before opening any display."""
+        env = dict(os.environ)
+        env.update(
+            GITHUB_ACTIONS="true", RUNNER_ENVIRONMENT="github-hosted",
+            RUNNER_OS="Linux", GOREECLOUD_INDEX_PRIVATE_QT_WESTON="1",
+            GOREECLOUD_INDEX_QT_WESTON_CASE="hidpi4",
+            QT_QPA_PLATFORM="wayland", QT_QUICK_BACKEND="software",
+            WAYLAND_DISPLAY="gc-index-qt-ci-wl", QT_SCALE_FACTOR="2",
+        )
+        completed = subprocess.run(
+            [sys.executable, str(SMOKE)], env=env,
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("400 percent case must use Qt scale factor 4",
+                      completed.stderr)
+
     def test_shell_refuses_untrusted_runner_before_starting_weston(self):
         env = dict(os.environ)
         env.pop("GITHUB_ACTIONS", None)

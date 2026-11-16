@@ -27,6 +27,13 @@ if os.environ.get("QT_QUICK_BACKEND") != "software":
     refuse("software renderer required")
 if os.environ.get("WAYLAND_DISPLAY") != "gc-index-qt-ci-wl":
     refuse("unexpected Weston socket name")
+case = os.environ.get("GOREECLOUD_INDEX_QT_WESTON_CASE", "compact")
+if case not in {"compact", "hidpi4"}:
+    refuse("unapproved Wayland test scaling case")
+if case == "hidpi4" and os.environ.get("QT_SCALE_FACTOR") != "4":
+    refuse("400 percent case must use Qt scale factor 4")
+if case == "compact" and os.environ.get("QT_SCALE_FACTOR") not in (None, "1"):
+    refuse("compact case may not inherit a scale factor")
 
 temp_root = Path(os.environ.get("RUNNER_TEMP", "/nonexistent")).resolve()
 runtime = Path(os.environ.get("XDG_RUNTIME_DIR", "/nonexistent")).resolve()
@@ -54,9 +61,14 @@ QQuickStyle.setStyle("Basic")
 app = QGuiApplication([])
 if app.platformName() != "wayland":
     refuse("not using native Wayland platform")
+screen = (640, 360) if case == "compact" else (960, 540)
 screens = [(x.geometry().width(), x.geometry().height()) for x in app.screens()]
-if (640, 360) not in screens:
-    raise RuntimeError(f"Private Weston expected 640x360, found {screens}")
+if screen not in screens:
+    raise RuntimeError(f"Private Weston expected logical {screen}, found {screens}")
+if case == "hidpi4":
+    ratio = app.primaryScreen().devicePixelRatio()
+    if not (3.99 <= ratio <= 4.01):
+        raise RuntimeError(f"Qt Wayland device scale must be 4, got {ratio}")
 
 with tempfile.TemporaryDirectory(prefix="gc-index-weston-fixture-", dir=str(data)) as tmp:
     db = IndexStore(Path(tmp) / "private" / "index.sqlite3")
@@ -75,8 +87,12 @@ with tempfile.TemporaryDirectory(prefix="gc-index-weston-fixture-", dir=str(data
         try:
             if window.visibility() != QWindow.Visibility.Windowed:
                 raise AssertionError("Qt window was not a normal window")
-            if (window.width(), window.height()) != (576, 324):
-                raise AssertionError(f"Wrong 640x360 startup: {window.width()}x{window.height()}")
+            expected = (576, 324) if case == "compact" else (660, 486)
+            if (window.width(), window.height()) != expected:
+                raise AssertionError(
+                    f"Wrong {case} logical startup: {window.width()}x{window.height()}, "
+                    f"expected {expected}"
+                )
             query = window.findChild(QObject, "indexSearchField")
             if query is None:
                 raise AssertionError("Native QML search field missing")
@@ -112,4 +128,5 @@ with tempfile.TemporaryDirectory(prefix="gc-index-weston-fixture-", dir=str(data
     if not checks["passed"]:
         raise RuntimeError(checks["error"] or "Private Wayland Qt check timed out")
 
-print("HOSTED_PRIVATE_QT_WESTON_PASS windowed 640x360, 390x300, synthetic search")
+print(f"HOSTED_PRIVATE_QT_WESTON_PASS case={case} logical={screen} "
+      "min=390x300, native QML, synthetic search")

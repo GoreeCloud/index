@@ -48,8 +48,14 @@ rendered the Qt window successfully but allowed an xdg-document-portal
 FUSE mount to appear and failed during temporary directory cleanup. The
 repair checks the bus's activatable names, prohibits portal autoactivation,
 and refuses to traverse unexpected mount paths at cleanup. This qualifies
-compositor startup in CI, **not** GNOME/KDE, Orca, real physical small
-monitors, font scaling, or a signed Stable release.
+compositor startup in CI. A second **hosted-only** case exercises an
+independent 3840×2160 Weston output with Qt `QT_SCALE_FACTOR=4` (400%
+display scale, **960×540 logical resolution**), checks the expected
+660×486 normal QML window, Qt screen device-pixel ratio, accessible search,
+safe synthetic calculation and declared minimum-window controls.
+This is simulated compositor **display scaling**, **not** 400% enlarged
+text/fonts, real GNOME/KDE, Orca, physical mixed-DPI hardware or a signed
+Stable release.
 
 The Qt preview also now reflows its header and four search modes at the
 **390×300 minimum**: the folders and appearance controls, local search,
