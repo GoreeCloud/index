@@ -159,10 +159,15 @@ system-Python Gio helper** boundary. The Qt 6.12 virtualenv does not import
 `gi` or execute desktop `Exec` strings. It invokes `/usr/bin/python3 -I`
 with a reviewed module root, a fixed argv-only operation and bounded JSON,
 revalidates the desktop ID through native Gio at activation, and never
-invokes a shell. Tests use a private synthetic XDG application registry
-and never launch any installed application. The Debian candidate already
-requires system `python3-gi`, but this does not qualify Qt distro dependency
-provisioning, real application launches, KDE, or Stable release.
+invokes a shell. Tests use a private synthetic XDG application registry:
+one test actually launches **only the trusted /usr/bin/touch utility** to
+create a disposable marker, removes the temporary desktop entry, and
+verifies that its stale ID cannot launch again. It runs under a D-Bus
+session with **no host portal service activation**, never opens a user's
+installed app, and performs no network or personal-file access. The Debian
+candidate already requires system `python3-gi`, but this does not qualify
+Qt distro runtime provisioning, real third-party application launches,
+KDE, or Stable release.
 
 ## Implemented today
 

@@ -23,6 +23,7 @@
     "src/goreecloud_index/qt_gio.py",
     "src/goreecloud_index/gio_apps_helper.py",
     "tests/test_qt_gio_bridge.py",
+    "tests/test_qt_gio_synthetic_launch.py",
     "src/goreecloud_index/palette.py",
     "tests/test_qtquick_preview.py",
     "tests/test_windowing.py",
