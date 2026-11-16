@@ -372,6 +372,31 @@ print("CLEAN_QT_QUIT")
                 self.bridge.rescan()
                 new_scan.assert_not_called()
 
+    def test_qt_bridge_discovers_apps_through_system_gio_without_exec(self):
+        from goreecloud_index.qtquick_app import IndexBridge
+        fake = [Application(
+            "com.goreecloud.OfflineFixture.desktop",
+            "Private Synthetic Editor",
+            "No process launch",
+        )]
+        with patch("goreecloud_index.qtquick_app.list_qt_applications",
+                   return_value=fake) as discovery:
+            bridge = IndexBridge(self.store)
+            discovery.assert_called_once()
+        bridge.refresh("Private Synthetic", "apps")
+        self.assertEqual(len(bridge.results), 1)
+        self.assertEqual(bridge.results[0]["value"],
+                         "com.goreecloud.OfflineFixture.desktop")
+
+    def test_qt_app_action_uses_system_registry_bridge_not_shell(self):
+        self.bridge.refresh("Synthetic Editor", "apps")
+        self.assertEqual(len(self.bridge.results), 1)
+        self.assertEqual(self.bridge.results[0]["kind"], "app")
+        with patch("goreecloud_index.qtquick_app.launch_qt_application") as launch:
+            self.bridge.activate(0)
+            launch.assert_called_once_with("synthetic.desktop")
+        self.assertIn("Requested installed application launch", self.bridge.status)
+
     def test_approved_qml_engine_loads_normal_window(self):
         from PySide6.QtCore import QUrl
         from PySide6.QtQml import QQmlApplicationEngine
