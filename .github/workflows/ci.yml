@@ -158,6 +158,9 @@ jobs:
             -r tools/qtquick-linux-x86_64.requirements.txt
           python -m pip install --no-deps -e .
           python -c 'from PySide6.QtCore import qVersion; assert qVersion() == "6.12.0"'
+          # This verifies observed wheel/runtime provenance only; legal
+          # redistribution obligations remain a separate blocked release gate.
+          python tools/verify_qt_runtime_metadata.py
       - name: Run isolated QML window and privacy-contract tests
         env:
           QT_QPA_PLATFORM: offscreen
