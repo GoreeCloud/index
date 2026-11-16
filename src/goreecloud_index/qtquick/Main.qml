@@ -30,6 +30,12 @@ ApplicationWindow {
     color: canvas
 
     readonly property bool compact: width < 520
+    // Qt's platform theme reports the user's application font point size.
+    // Fixed-pixel labels previously ignored a 4x desktop text preference.
+    // The observed native Qt baseline is 9pt; never shrink below the
+    // existing GoreeCloud UI size. This is a UI-only scale, not system DPI.
+    readonly property real textScale: Math.min(4, Math.max(1,
+        (Qt.application.font.pointSize > 0 ? Qt.application.font.pointSize : 9) / 9))
     // Recheck local consent and indexed-entry status while a window is
     // visible. The inode-pinned desktop portal path enforces authorization.
     Timer {
@@ -68,10 +74,20 @@ ApplicationWindow {
     Rectangle {
         anchors.fill: parent; anchors.margins: 10
         radius: 26; color: win.surface; border.color: win.outline
-        ColumnLayout {
+        Flickable {
+            id: bodyScroll; objectName: "indexBodyScroll"
             anchors.fill: parent
             anchors.margins: win.height < 400 ? 12 : 20
-            spacing: win.height < 400 ? 8 : 12
+            clip: true
+            contentWidth: width
+            contentHeight: bodyColumn.height
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            ColumnLayout {
+                id: bodyColumn
+                width: bodyScroll.width
+                height: Math.max(bodyScroll.height, implicitHeight)
+                spacing: win.height < 400 ? 8 : 12
             RowLayout {
                 Layout.fillWidth: true; spacing: win.compact ? 6 : 10
                 Rectangle {
@@ -85,27 +101,27 @@ ApplicationWindow {
                     Text {
                         Layout.fillWidth: true; Layout.minimumWidth: 0
                         text: "GoreeCloud Index"; color: win.foreground
-                        font.pixelSize: win.compact ? 15 : 19
+                        font.pixelSize: Math.round((win.compact ? 15 : 19) * win.textScale)
                         font.bold: true; textFormat: Text.PlainText; elide: Text.ElideRight
                     }
                     Text {
                         Layout.fillWidth: true; Layout.minimumWidth: 0
                         text: win.compact ? "LOCAL · QT PREVIEW" : "LOCAL-FIRST · QT QUICK PREVIEW"
-                        font.pixelSize: win.compact ? 8 : 10
+                        font.pixelSize: Math.round((win.compact ? 8 : 10) * win.textScale)
                         color: win.secondary; font.letterSpacing: win.compact ? 0.6 : 1.3
                         textFormat: Text.PlainText; elide: Text.ElideRight
                     }
                 }
                 Button {
                     objectName: "foldersButton"; text: "Folders"
-                    implicitHeight: win.compact ? 34 : 40
+                    implicitHeight: Math.max(win.compact ? 34 : 40, 19 * win.textScale + 14)
                     implicitWidth: win.compact ? 69 : 82
                     Accessible.name: "Manage indexing folders"
                     onClicked: foldersDialog.open()
                     background: Rectangle { radius: 12; color: win.tonal; border.color: win.outline }
                     contentItem: Text {
                         text: parent.text; color: win.foreground
-                        font.pixelSize: 12; font.bold: true
+                        font.pixelSize: Math.round((12) * win.textScale); font.bold: true
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
                         textFormat: Text.PlainText
@@ -114,14 +130,14 @@ ApplicationWindow {
                 Button {
                     objectName: "indexAppearanceButton"
                     text: win.compact ? "◐" : "Appearance"
-                    implicitHeight: win.compact ? 34 : 40
+                    implicitHeight: Math.max(win.compact ? 34 : 40, 19 * win.textScale + 14)
                     implicitWidth: win.compact ? 34 : 110
                     Accessible.name: "Local appearance preferences"
                     onClicked: themeDialog.open()
                     background: Rectangle { radius: 12; color: win.tonal; border.color: win.outline }
                     contentItem: Text {
                         text: parent.text; color: win.foreground
-                        font.pixelSize: 12; font.bold: true
+                        font.pixelSize: Math.round((12) * win.textScale); font.bold: true
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
                         textFormat: Text.PlainText
@@ -130,7 +146,8 @@ ApplicationWindow {
             }
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: win.height < 400 ? 46 : 54
+                Layout.preferredHeight: Math.max(win.height < 400 ? 46 : 54,
+                    25 * win.textScale + 20)
                 radius: 17
                 color: win.tonal; border.color: query.activeFocus ? win.accent : win.outline
                 border.width: query.activeFocus ? 2 : 1
@@ -140,7 +157,7 @@ ApplicationWindow {
                     TextField {
                         id: query; objectName: "indexSearchField"
                         Layout.fillWidth: true; background: null; color: win.foreground
-                        font.pixelSize: 17; placeholderText: "Search apps, files or calculate…"
+                        font.pixelSize: Math.round((17) * win.textScale); placeholderText: "Search apps, files or calculate…"
                         placeholderTextColor: win.secondary; focus: true
                         Accessible.name: "Search GoreeCloud Index"
                         Accessible.searchEdit: true
@@ -171,6 +188,8 @@ ApplicationWindow {
                         objectName: "indexMode" + modelData.value
                         Layout.fillWidth: true; Layout.minimumWidth: 0
                         Layout.preferredWidth: 1
+                        Layout.preferredHeight: Math.max(28, 20 * win.textScale + 12)
+                        Accessible.name: modelData.label
                         text: win.compact && modelData.value === "apps" ? "Apps" : modelData.label
                         checkable: true; checked: win.mode === modelData.value
                         onClicked: win.switchMode(modelData.value)
@@ -182,7 +201,7 @@ ApplicationWindow {
                             text: parent.text; horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
                             color: parent.checked ? win.onAccentSurface : win.foreground
-                            font.pixelSize: win.compact ? 11 : 12
+                            font.pixelSize: Math.round((win.compact ? 11 : 12) * win.textScale)
                             font.bold: parent.checked
                             textFormat: Text.PlainText
                         }
@@ -193,14 +212,16 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Text {
                     text: query.text.length ? "RESULTS" : "SUGGESTIONS"
-                    font.pixelSize: 11; font.bold: true; font.letterSpacing: 1.5; color: win.secondary
+                    font.pixelSize: Math.round((11) * win.textScale); font.bold: true; font.letterSpacing: 1.5; color: win.secondary
                 }
                 Item { Layout.fillWidth: true }
-                Text { text: indexBackend.results.length + " results"; color: win.secondary; font.pixelSize: 11 }
+                Text { text: indexBackend.results.length + " results"; color: win.secondary; font.pixelSize: Math.round((11) * win.textScale) }
             }
             ListView {
                 id: hits; objectName: "indexResults"
-                Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 6
+                Layout.fillWidth: true; Layout.fillHeight: true
+                Layout.minimumHeight: Math.max(68, 50 * win.textScale)
+                clip: true; spacing: 6
                 model: indexBackend.results; ScrollBar.vertical: ScrollBar {}
                 Accessible.role: Accessible.List
                 Accessible.name: "Local Index search results"
@@ -208,7 +229,7 @@ ApplicationWindow {
                     required property var modelData
                     required property int index
                     objectName: "indexResultItem" + index
-                    width: hits.width; height: 64; radius: 13
+                    width: hits.width; height: Math.max(64, 26 * win.textScale + 24); radius: 13
                     color: win.selected === index ? win.accentSurface : win.tonal
                     border.color: win.selected === index ? win.accent : "transparent"
                     Accessible.role: Accessible.ListItem
@@ -240,17 +261,17 @@ ApplicationWindow {
                                 Layout.fillWidth: true; text: modelData.title
                                 textFormat: Text.PlainText; elide: Text.ElideRight
                                 color: win.selected === index ? win.onAccentSurface : win.foreground
-                                font.pixelSize: 14; font.bold: true
+                                font.pixelSize: Math.round((14) * win.textScale); font.bold: true
                             }
                             Text {
                                 Layout.fillWidth: true; text: modelData.subtitle
                                 textFormat: Text.PlainText; elide: Text.ElideMiddle
                                 color: win.selected === index ? win.onAccentSurface : win.secondary
-                                font.pixelSize: 11
+                                font.pixelSize: Math.round((11) * win.textScale)
                             }
                         }
                         Text {
-                            text: modelData.kind.toUpperCase(); font.pixelSize: 10; font.bold: true
+                            text: modelData.kind.toUpperCase(); font.pixelSize: Math.round((10) * win.textScale); font.bold: true
                             textFormat: Text.PlainText
                             color: win.selected === index ? win.onAccentSurface : win.secondary
                         }
@@ -269,12 +290,13 @@ ApplicationWindow {
                 Rectangle { width: 7; height: 7; radius: 4; color: indexBackend.busy ? "#955000" : "#166B4B" }
                 Text {
                     objectName: "indexStatusText"
-                    Layout.fillWidth: true; text: indexBackend.status; font.pixelSize: 11
+                    Layout.fillWidth: true; text: indexBackend.status; font.pixelSize: Math.round((11) * win.textScale)
                     textFormat: Text.PlainText; elide: Text.ElideRight; color: win.secondary
                     Accessible.role: Accessible.StaticText
                     Accessible.name: indexBackend.status
                 }
                 BusyIndicator { running: indexBackend.busy; visible: running; Layout.preferredWidth: 22; Layout.preferredHeight: 22 }
+            }
             }
         }
     }
@@ -310,12 +332,12 @@ ApplicationWindow {
                     radius: 12; color: win.tonal
                     ColumnLayout {
                         anchors.fill: parent; anchors.margins: 8; spacing: 3
-                        Text { Layout.fillWidth: true; text: modelData.path; color: win.foreground; elide: Text.ElideMiddle; textFormat: Text.PlainText; font.pixelSize: 11 }
+                        Text { Layout.fillWidth: true; text: modelData.path; color: win.foreground; elide: Text.ElideMiddle; textFormat: Text.PlainText; font.pixelSize: Math.round((11) * win.textScale) }
                         RowLayout {
                             Text {
                                 text: !modelData.current ? "REAUTHORIZE"
                                     : modelData.content ? "Text enabled" : "Metadata only"
-                                color: win.secondary; font.pixelSize: 11
+                                color: win.secondary; font.pixelSize: Math.round((11) * win.textScale)
                             }
                             Item { Layout.fillWidth: true }
                             CloudButton {
@@ -348,7 +370,7 @@ ApplicationWindow {
                             Item { Layout.fillWidth: true }
                             Text {
                                 text: modelData.exclusions.length + " exclusions"
-                                color: win.secondary; font.pixelSize: 10
+                                color: win.secondary; font.pixelSize: Math.round((10) * win.textScale)
                                 textFormat: Text.PlainText
                             }
                         }
@@ -361,7 +383,7 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     text: modelData; color: win.secondary
                                     textFormat: Text.PlainText; elide: Text.ElideMiddle
-                                    font.pixelSize: 10
+                                    font.pixelSize: Math.round((10) * win.textScale)
                                 }
                                 CloudButton {
                                     uiTokens: win
@@ -425,7 +447,7 @@ ApplicationWindow {
         anchors.centerIn: Overlay.overlay; width: Math.min(win.width - 40, 320)
         standardButtons: Dialog.Close
         contentItem: ColumnLayout {
-            Text { text: "Your choice stays on this device."; color: win.secondary; font.pixelSize: 12 }
+            Text { text: "Your choice stays on this device."; color: win.secondary; font.pixelSize: Math.round((12) * win.textScale) }
             Repeater {
                 model: ["light", "dark", "auto"]
                 delegate: Button {
@@ -440,7 +462,7 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 text: "Reset removes the saved preference; default is Light."
                 wrapMode: Text.WordWrap; textFormat: Text.PlainText
-                color: win.secondary; font.pixelSize: 11
+                color: win.secondary; font.pixelSize: Math.round((11) * win.textScale)
             }
             Button {
                 objectName: "indexResetAppearanceButton"
