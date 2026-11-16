@@ -1,4 +1,4 @@
-"""Qt Quick -> GLib D-Bus -> inode-pinned portal smoke on an isolated bus.
+"""Qt Quick -> native QtDBus -> inode-pinned portal smoke on an isolated bus.
 
 Requires a fresh private session (dbus-run-session), synthetic files and the
 GOREECLOUD_INDEX_PORTAL_ISOLATED=1 explicit test guard. It never invokes a
@@ -19,8 +19,8 @@ if os.environ.get("GOREECLOUD_INDEX_PORTAL_ISOLATED") != "1":
 if not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
     raise SystemExit("Refuse Qt portal smoke without private session bus")
 
-# The opt-in Qt migration venv lacks system gi by default on Ubuntu. Only
-# distro-provided gi may be exposed; no PyGObject binary is downloaded.
+# Only the fake *server* uses system Gio/GLib; the actual Qt portal client
+# uses PySide6.QtDBus and never imports gi. No PyGObject wheel downloaded.
 system_gi = "/usr/lib/python3/dist-packages"
 if system_gi not in sys.path:
     sys.path.append(system_gi)
@@ -54,7 +54,7 @@ XML = """
 
 def main() -> int:
     mode = os.environ.get("GOREECLOUD_INDEX_FAKE_PORTAL", "0")
-    if mode not in {"0", "1", "2", "error"}:
+    if mode not in {"0", "1", "2", "error", "wrong-handle", "alternate-handle"}:
         raise ValueError("Invalid isolated portal mode")
 
     app = QGuiApplication([])
@@ -114,12 +114,17 @@ def main() -> int:
                     "/org/freedesktop/portal/desktop/request/"
                     + sender[1:].replace(".", "_") + "/" + token
                 )
+                if mode == "wrong-handle":
+                    invocation.return_value(GLib.Variant("(o)", ("/invalid/portal/request",)))
+                    return
+                if mode == "alternate-handle":
+                    handle += "_alternate"
                 invocation.return_value(GLib.Variant("(o)", (handle,)))
 
                 def respond():
                     bus.emit_signal(
                         None, handle, "org.freedesktop.portal.Request",
-                        "Response", GLib.Variant("(ua{sv})", (int(mode), {})),
+                        "Response", GLib.Variant("(ua{sv})", (0 if mode == "alternate-handle" else int(mode), {})),
                     )
                     return GLib.SOURCE_REMOVE
 
@@ -138,7 +143,7 @@ def main() -> int:
                 bridge.activate(0)
                 assert bridge._portal_running, bridge.status
                 # Rename and substitute AFTER the FD was authorized, before
-                # the Qt-timer-driven GLib portal method is dispatched.
+                # the fake-service GLib method is dispatched by the test timer.
                 current.rename(moved)
                 current.write_text("new synthetic replacement", encoding="utf-8")
                 assert moved.stat().st_ino == expected_inode
@@ -158,6 +163,17 @@ def main() -> int:
                 )
             app.quit()
 
+        # Fake Gio service runs in this same process, so advance its GLib
+        # context on a Qt timer. The *client* no longer uses GI or a GLib pump.
+        glib_pump = QTimer()
+        def pump_fake_server():
+            context = GLib.MainContext.default()
+            for _ in range(8):
+                if not context.pending():
+                    break
+                context.iteration(False)
+        glib_pump.timeout.connect(pump_fake_server)
+        glib_pump.start(15)
         poller = QTimer()
         poller.timeout.connect(inspect)
         poller.start(20)
@@ -167,7 +183,7 @@ def main() -> int:
             app.exec()
         finally:
             poller.stop()
-            bridge._portal_pump.stop()
+            glib_pump.stop()
             bus.unregister_object(registration)
             bus.call_sync(
                 "org.freedesktop.DBus", "/org/freedesktop/DBus",
@@ -179,18 +195,19 @@ def main() -> int:
             "0": "Desktop accepted the file-open request",
             "1": "File opening canceled",
             "2": "Desktop could not open the selected file",
-            "error": "Desktop portal unavailable or rejected request",
+            "error": "Desktop portal rejected the file-open request",
+            "wrong-handle": "Unexpected portal request handle",
+            "alternate-handle": "Desktop accepted the file-open request",
         }[mode]
         assert state["error"] is None, state["error"]
         assert state["completed"] and state["received_fd"], state
         assert expected_text in bridge.status, bridge.status
         assert not bridge._portal_running
-        assert not bridge._portal_pump.isActive()
         assert current.read_text(encoding="utf-8") == "new synthetic replacement"
         assert moved.read_text(encoding="utf-8") == "original synthetic canary"
         print(
             f"PRIVATE_QT_PORTAL_PASS mode={mode}: original FD identity, "
-            "Qt/GLib response, no path fallback"
+            "QtDBus/GLib fake-server response, no path fallback"
         )
     return 0
 

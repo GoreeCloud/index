@@ -166,6 +166,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_qtquick_preview.py' -v
           python -m unittest discover -s tests -p 'test_palette.py' -v
           python -m unittest discover -s tests -p 'test_portal_fd_lifetime.py' -v
+          python -m unittest discover -s tests -p 'test_qt_portal_fd_lifetime.py' -v
           # Build and extract the unsigned development .deb. Confirm its
           # opt-in Qt files are real installed payload, not source checkout.
           python tools/build_deb.py --output-dir "$RUNNER_TEMP/qt-deb"
@@ -182,8 +183,8 @@ jobs:
           GOREECLOUD_INDEX_INSTALLED_QT_ISOLATED=1 python tools/smoke_installed_qt.py
           # No real desktop bus or handler: dbus-run-session owns a fresh,
           # private fake OpenFile portal. Synthetic rename/replacement proves
-          # Qt timer -> GLib callback -> SCM_RIGHTS integration in 4 modes.
-          for response in 0 1 2 error; do
+          # QtDBus -> synthetic GLib fake server -> SCM_RIGHTS in six modes.
+          for response in 0 1 2 error wrong-handle alternate-handle; do
             GOREECLOUD_INDEX_PORTAL_ISOLATED=1 \
               GOREECLOUD_INDEX_FAKE_PORTAL="$response" \
               PYTHONPATH=src:/usr/lib/python3/dist-packages \

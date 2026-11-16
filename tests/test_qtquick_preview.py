@@ -705,12 +705,12 @@ print("CLEAN_QT_QUIT")
             self.assertEqual(os.fstat(fd).st_ino, self.fixture.stat().st_ino)
             os.close(fd)
             callback(True, "Synthetic portal completed")
-        with patch("goreecloud_index.qtquick_app.request_open_fd", side_effect=fake_portal) as opener:
+        with patch("goreecloud_index.qtquick_app.request_open_qt_fd", side_effect=fake_portal) as opener:
             self.bridge.activate(0)
             opener.assert_called_once()
         self.assertIn("Synthetic portal completed", self.bridge.status)
         self.store.remove_root(self.root)
-        with patch("goreecloud_index.qtquick_app.request_open_fd") as opener:
+        with patch("goreecloud_index.qtquick_app.request_open_qt_fd") as opener:
             self.bridge.activate(0)
             opener.assert_not_called()
 
