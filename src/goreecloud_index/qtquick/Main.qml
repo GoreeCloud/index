@@ -444,32 +444,47 @@ ApplicationWindow {
     Dialog {
         id: themeDialog; objectName: "indexThemeDialog"
         modal: true; title: "Local appearance"
-        anchors.centerIn: Overlay.overlay; width: Math.min(win.width - 40, 320)
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(win.width - 40, 320)
+        height: Math.min(win.height - 24, 350)
         standardButtons: Dialog.Close
-        contentItem: ColumnLayout {
-            Text { text: "Your choice stays on this device."; color: win.secondary; font.pixelSize: Math.round((12) * win.textScale) }
-            Repeater {
-                model: ["light", "dark", "auto"]
-                delegate: Button {
-                    required property string modelData
+        // At 4x text size the appearance actions are taller than the
+        // window. Scroll their content; never hide Reset below a dialog.
+        contentItem: ScrollView {
+            id: themeScroll; objectName: "indexThemeScroll"
+            clip: true
+            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+            ColumnLayout {
+                width: themeScroll.availableWidth; spacing: 8
+                Text {
                     Layout.fillWidth: true
-                    text: modelData.charAt(0).toUpperCase() + modelData.slice(1)
-                        + (indexBackend.appearance === modelData ? " ✓" : "")
-                    onClicked: indexBackend.setAppearance(modelData)
+                    text: "Your choice stays on this device."
+                    color: win.secondary; wrapMode: Text.WordWrap
+                    font.pixelSize: Math.round(12 * win.textScale)
                 }
-            }
-            Text {
-                Layout.fillWidth: true
-                text: "Reset removes the saved preference; default is Light."
-                wrapMode: Text.WordWrap; textFormat: Text.PlainText
-                color: win.secondary; font.pixelSize: Math.round((11) * win.textScale)
-            }
-            Button {
-                objectName: "indexResetAppearanceButton"
-                Layout.fillWidth: true
-                text: "Reset to Light"
-                Accessible.name: "Reset appearance to default Light"
-                onClicked: indexBackend.resetAppearance()
+                Repeater {
+                    model: ["light", "dark", "auto"]
+                    delegate: Button {
+                        required property string modelData
+                        Layout.fillWidth: true
+                        text: modelData.charAt(0).toUpperCase() + modelData.slice(1)
+                            + (indexBackend.appearance === modelData ? " ✓" : "")
+                        onClicked: indexBackend.setAppearance(modelData)
+                    }
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: "Reset removes the saved preference; default is Light."
+                    wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                    color: win.secondary; font.pixelSize: Math.round(11 * win.textScale)
+                }
+                Button {
+                    objectName: "indexResetAppearanceButton"
+                    Layout.fillWidth: true
+                    text: "Reset to Light"
+                    Accessible.name: "Reset appearance to default Light"
+                    onClicked: indexBackend.resetAppearance()
+                }
             }
         }
     }

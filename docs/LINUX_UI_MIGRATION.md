@@ -61,7 +61,9 @@ Flickable gives search, result and status controls access to more layout
 space at the 390×300 minimum. Synthetic Qt 6.12 tests verify a 9pt baseline
 remains 17px in the search field and that 36pt (4x) produces a 68px search
 field, preserves accessible search naming, and exposes the full page through
-scrolling. This **does not** prove GNOME/KDE accessibility settings are
+scrolling; the 400%-text appearance dialog also bounds its height, scrolls
+its oversized preference controls and permits accessible Reset to Light.
+This **does not** prove GNOME/KDE accessibility settings are
 propagated to Qt, Orca/AT-SPI screen-reader behavior, 400% full-font
 interaction on physical equipment, actual focus/hotplug or Stable release.
 It supplements, rather than replaces, the 400% *display-scale* Weston CI.

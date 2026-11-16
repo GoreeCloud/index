@@ -57,7 +57,7 @@ class QtFontTextScaleTests(unittest.TestCase):
         return tmp, bridge, engine, window
 
     def test_four_times_accessible_text_and_vertically_scrollable_content(self):
-        from PySide6.QtCore import QObject
+        from PySide6.QtCore import QObject, QMetaObject, QEventLoop, QTimer
         from PySide6.QtGui import QAccessible
         from PySide6.QtQuick import QQuickItem
 
@@ -91,6 +91,32 @@ class QtFontTextScaleTests(unittest.TestCase):
             )
             self.assertIsNotNone(window.findChild(QObject, "foldersButton"))
             self.assertTrue(isinstance(body, QQuickItem))
+            # At 400% text the entire appearance dialog is taller than the
+            # 390x300 window. All controls, especially privacy-friendly
+            # Reset to Light, must remain accessible through scrolling.
+            bridge.setAppearance("dark")
+            theme = window.findChild(QObject, "indexThemeDialog")
+            self.assertTrue(QMetaObject.invokeMethod(theme, "open"))
+            loop = QEventLoop()
+            QTimer.singleShot(150, loop.quit)
+            loop.exec()
+            self.assertLessEqual(theme.property("height"), window.height() - 24)
+            theme_scroll = window.findChild(QObject, "indexThemeScroll")
+            self.assertGreater(theme_scroll.property("contentHeight"),
+                               theme_scroll.property("height"))
+            limit = (theme_scroll.property("contentHeight") -
+                     theme_scroll.property("height"))
+            theme_scroll.setProperty("contentY", limit)
+            self.app.processEvents()
+            self.assertAlmostEqual(theme_scroll.property("contentY"),
+                                   limit, delta=1)
+            reset = window.findChild(QObject, "indexResetAppearanceButton")
+            iface_reset = QAccessible.queryAccessibleInterface(reset)
+            self.assertEqual(iface_reset.text(QAccessible.Text.Name),
+                             "Reset appearance to default Light")
+            iface_reset.actionInterface().doAction("Press")
+            self.app.processEvents()
+            self.assertEqual(bridge.appearance, "light")
         finally:
             window.close()
             del engine
