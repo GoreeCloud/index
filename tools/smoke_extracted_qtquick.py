@@ -68,5 +68,12 @@ with tempfile.TemporaryDirectory(prefix="gc-index-extracted-qt-") as tmp:
         app.quit()
     QTimer.singleShot(80, finish)
     app.exec()
+    # Unlike the production launcher, this tool directly owns a QML engine
+    # and a Python bridge. Destroy the QML engine FIRST, before its context
+    # backend or temporary database is released; otherwise Qt reports a
+    # misleading successful smoke followed by 16 null-binding TypeErrors.
+    del window
+    del search
+    del engine
 
 print("EXTRACTED_QT_DEB_PASS 6.12.0 opt-in QML resource & synthetic search")
