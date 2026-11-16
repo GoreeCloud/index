@@ -18,7 +18,8 @@ MODULE = "goreecloud_index"
 MODULE_FILES = (
     "__init__.py", "__main__.py", "apps.py", "calculator.py", "cli.py",
     "config.py", "portal.py", "scanner.py", "search.py", "storage.py", "ui.py",
-    "windowing.py", "palette.py", "qtquick_app.py", "qt_portal.py", "index.css",
+    "windowing.py", "palette.py", "qtquick_app.py", "qt_portal.py",
+    "qt_gio.py", "gio_apps_helper.py", "index.css",
 )
 QTQUICK_FILES = ("Main.qml", "CloudButton.qml")
 BIN_SCRIPT = """#!/usr/bin/python3

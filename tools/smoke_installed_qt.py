@@ -31,7 +31,7 @@ sys.path.insert(0, str(installed.parent))
 
 from PySide6.QtCore import QTimer, qVersion
 from PySide6.QtGui import QGuiApplication
-from goreecloud_index import cli, qtquick_app
+from goreecloud_index import cli, qtquick_app, qt_gio
 from goreecloud_index.apps import Application
 from goreecloud_index.storage import IndexStore
 
@@ -41,6 +41,10 @@ if Path(qtquick_app.__file__).resolve() != (installed / "qtquick_app.py"):
     raise SystemExit("Accidentally imported development source instead of APT package")
 if not (installed / "qtquick/Main.qml").is_file():
     raise SystemExit("Actual APT package lacks Qt QML resources")
+if Path(qt_gio.__file__).resolve() != (installed / "qt_gio.py"):
+    raise SystemExit("Actual APT package lacks first-party Qt Gio bridge")
+if not (installed / "gio_apps_helper.py").is_file():
+    raise SystemExit("Actual APT package lacks system Gio helper")
 
 # No live XDG settings, real installed applications, original file handlers,
 # or personal directory indexing. Exercise the installed CLI's gui-qt dispatch.
@@ -50,8 +54,28 @@ NativeApp = qtquick_app.QGuiApplication
 NativeBridge = qtquick_app.IndexBridge
 
 with tempfile.TemporaryDirectory(prefix="gc-index-apt-qt-") as tmp:
-    os.environ["XDG_DATA_HOME"] = tmp
+    private_data = Path(tmp) / "share"
+    private_apps = private_data / "applications"
+    private_apps.mkdir(parents=True)
+    (Path(tmp) / "other").mkdir()
+    (private_apps / "com.goreecloud.OfflineFixture.desktop").write_text(
+        "[Desktop Entry]\n"
+        "Type=Application\n"
+        "Name=GoreeCloud Offline Fixture\n"
+        "Exec=/bin/false\n"
+        "NoDisplay=false\n",
+        encoding="utf-8",
+    )
+    os.environ["XDG_DATA_HOME"] = str(private_data)
+    os.environ["XDG_DATA_DIRS"] = str(Path(tmp) / "other")
     os.environ["XDG_CONFIG_HOME"] = tmp
+    os.environ["GIO_USE_VFS"] = "local"
+    os.environ["GSETTINGS_BACKEND"] = "memory"
+    apps = qt_gio.list_qt_applications()
+    assert any(
+        app.app_id == "com.goreecloud.OfflineFixture.desktop"
+        for app in apps
+    ), "Installed Qt Gio helper did not discover the synthetic XDG app"
     class SyntheticApp(NativeApp):
         def __init__(self, args):
             super().__init__(args)
@@ -70,4 +94,4 @@ with tempfile.TemporaryDirectory(prefix="gc-index-apt-qt-") as tmp:
         assert cli.main(["gui-qt"]) == 0
     assert (Path(tmp) / "private" / "index.sqlite3").is_file()
 
-print("APT_INSTALLED_QT_PREVIEW_PASS: 6.12.0 QML, CLI dispatch, isolated quit")
+print("APT_INSTALLED_QT_PREVIEW_PASS: 6.12.0 QML, CLI dispatch, private Gio registry, isolated quit")

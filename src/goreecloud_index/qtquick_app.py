@@ -19,7 +19,8 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from .apps import Application, launch_application, list_applications
+from .apps import Application
+from .qt_gio import launch_qt_application, list_qt_applications
 from .palette import PaletteHit, collect_hits
 from .qt_portal import cancel_pending_qt_portals, request_open_qt_fd
 from .scanner import ScanCanceled, scan_all, scan_root
@@ -55,7 +56,7 @@ class IndexBridge(QObject):
         self._startup_size = palette_startup_size_for_monitors(
             _qt_screen_sizes(), preferred_size=(660, 488)
         )
-        self._applications = applications if applications is not None else list_applications()
+        self._applications = applications if applications is not None else list_qt_applications()
         self._results: list[dict[str, str]] = []
         self._roots: list[dict[str, object]] = []
         self._status = "Local only · clipboard history off"
@@ -209,7 +210,7 @@ class IndexBridge(QObject):
         hit = self._results[index]
         try:
             if hit["kind"] == "app":
-                launch_application(hit["value"])
+                launch_qt_application(hit["value"])
                 self._set_status("Requested installed application launch")
             elif hit["kind"] == "file":
                 if self._portal_running:

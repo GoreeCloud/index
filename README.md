@@ -64,7 +64,7 @@ The rootless development Debian package now includes the exact first-party
 interface. It continues to launch GTK by default, and **does not install,
 bundle or declare a version-qualified Qt Quick runtime**. To evaluate Qt from
 that package, the tester must separately provision a licensed and compatible
-Qt 6.12.0/PySide6 Essentials environment. Native QtDBus handles the file portal; however, the existing installed-app discovery and app launching still use system Gio bindings. That remaining dependency is a separate migration gate.
+Qt 6.12.0/PySide6 Essentials environment. Native QtDBus handles the file portal. The Qt application registry uses a first-party **isolated system-Python Gio helper** so Qt's virtualenv does not need to import `gi`; this still requires the distro's existing `python3-gi` package and does not install Qt runtimes.
 CI verifies the extracted package Qt view using a synthetic offscreen fixture.
 This is package-payload and source parity, not production Qt dependency
 resolution, a signed release, installed desktop launcher migration or Stable.
@@ -150,8 +150,15 @@ alternate-handle outcomes. No real external handler or OS portal was invoked.
 
 The portal tests operate only on a private fake D-Bus service, not on a real
 GNOME/KDE portal or a third-party handler. There is no pathname fallback.
-Qt's installed-app discovery and launching still depend on Gio, so the
-Qt-only virtualenv is not yet a fully independent Linux desktop launcher.
+Qt's installed-app discovery/launch now crosses a strict **first-party
+system-Python Gio helper** boundary. The Qt 6.12 virtualenv does not import
+`gi` or execute desktop `Exec` strings. It invokes `/usr/bin/python3 -I`
+with a reviewed module root, a fixed argv-only operation and bounded JSON,
+revalidates the desktop ID through native Gio at activation, and never
+invokes a shell. Tests use a private synthetic XDG application registry
+and never launch any installed application. The Debian candidate already
+requires system `python3-gi`, but this does not qualify Qt distro dependency
+provisioning, real application launches, KDE, or Stable release.
 
 ## Implemented today
 
